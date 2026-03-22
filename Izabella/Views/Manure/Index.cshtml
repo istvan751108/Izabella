@@ -1,0 +1,117 @@
+﻿@{
+    ViewData["Title"] = "Trágya rögzítés";
+}
+
+<h2>Trágya rögzítés</h2>
+
+<select id="manureType">
+    <option value="liquid">Hígtrágya</option>
+    <option value="solid">Istállótrágya</option>
+</select>
+
+<div id="liquidForm">
+    <label>Összes mennyiség (m3)</label>
+    <input type="number" id="liquidAmount" />
+    <button id="submitLiquid">Mentés</button>
+</div>
+
+<div id="solidForm" style="display:none;">
+    <label>Bruttó súly (kg)</label>
+    <input type="number" id="gross" />
+    <label>Jármű üres súly (kg)</label>
+    <input type="number" id="tare" value="17500" />
+    <button id="submitSolid">Mentés</button>
+</div>
+<h3>Istállótrágya (multi)</h3>
+
+<table id="entries">
+    <thead>
+        <tr>
+            <th>Rendszám</th>
+            <th>Bruttó</th>
+            <th>Tára</th>
+            <th>Cél</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<button id="addRow">+ Sor</button>
+<button id="submitMulti">Mentés (multi)</button>
+<div id="result"></div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        $(function() {
+        $("#manureType").change(function() {
+        if ($(this).val() === "liquid") {
+        $("#liquidForm").show();
+        $("#solidForm").hide();
+        } else {
+        $("#liquidForm").hide();
+        $("#solidForm").show();
+        }
+        });
+
+        $("#submitLiquid").click(function() {
+        var totalAmount = parseFloat($("#liquidAmount").val());
+        $.post("/Manure/SubmitLiquid", { totalAmount: totalAmount }, function(data) {
+        if(data.success){
+        $("#result").html("Bontás: <pre>" + JSON.stringify(data.result, null, 2) + "</pre>Voucher: " + data.voucherCode);
+        }
+        });
+        });
+
+        $("#submitSolid").click(function() {
+        var gross = parseFloat($("#gross").val());
+        var tare = parseFloat($("#tare").val());
+        $.post("/Manure/SubmitSolid", { gross: gross, tare: tare }, function(data) {
+        if(data.success){
+        $("#result").html("Bontás: <pre>" + JSON.stringify(data.result, null, 2) + "</pre>Voucher In: " + data.voucherIn + "<br/>Voucher Out: " + data.voucherOut);
+        }
+        });
+        });
+        });
+    </script>
+    <script>
+        $("#addRow").click(function () {
+        $("#entries tbody").append(`
+        <tr>
+        <td><input class="plate"/></td>
+        <td><input class="gross" type="number"/></td>
+        <td><input class="tare" type="number" value="17500"/></td>
+        <td>
+        <select class="dest">
+        <option>Csonkás</option>
+        <option>Új istálló</option>
+        </select>
+        </td>
+        </tr>
+        `);
+        });
+
+        $("#submitMulti").click(function () {
+        var data = [];
+
+        $("#entries tbody tr").each(function () {
+        data.push({
+        licensePlate: $(this).find(".plate").val(),
+        gross: parseFloat($(this).find(".gross").val()),
+        tare: parseFloat($(this).find(".tare").val()),
+        destination: $(this).find(".dest").val()
+        });
+        });
+
+        $.ajax({
+        url: "/Manure/SubmitSolidMulti",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(data),
+        success: function (res) {
+        $("#result").html("<pre>" + JSON.stringify(res, null, 2) + "</pre>");
+        }
+        });
+        });
+    </script>
+}
