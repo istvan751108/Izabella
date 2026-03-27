@@ -3081,23 +3081,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\istva\\.nuget\\packages\\": {},
+    "C:\\Users\\Erzsike\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\istva\\source\\repos\\Izabella\\Izabella\\Izabella.csproj",
+      "projectUniqueName": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Izabella.csproj",
       "projectName": "Izabella",
-      "projectPath": "C:\\Users\\istva\\source\\repos\\Izabella\\Izabella\\Izabella.csproj",
-      "packagesPath": "C:\\Users\\istva\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\istva\\source\\repos\\Izabella\\Izabella\\obj\\",
+      "projectPath": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Izabella.csproj",
+      "packagesPath": "C:\\Users\\Erzsike\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\istva\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\Erzsike\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -3111,6 +3111,7 @@
       },
       "frameworks": {
         "net10.0": {
+          "framework": "net10.0",
           "targetAlias": "net10.0",
           "projectReferences": {}
         }
@@ -3129,6 +3130,7 @@
     },
     "frameworks": {
       "net10.0": {
+        "framework": "net10.0",
         "targetAlias": "net10.0",
         "dependencies": {
           "Microsoft.EntityFrameworkCore.Design": {

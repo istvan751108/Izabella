@@ -1,117 +1,187 @@
 ﻿@{
     ViewData["Title"] = "Trágya rögzítés";
+    var yesterday = DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd");
 }
 
 <h2>Trágya rögzítés</h2>
 
-<select id="manureType">
+<select id="type">
     <option value="liquid">Hígtrágya</option>
     <option value="solid">Istállótrágya</option>
 </select>
 
-<div id="liquidForm">
-    <label>Összes mennyiség (m3)</label>
-    <input type="number" id="liquidAmount" />
-    <button id="submitLiquid">Mentés</button>
+<hr/>
+
+<!-- HÍGTRÁGYA -->
+<div id="liquidBox">
+
+    <h3>Hígtrágya mennyiség (m3)</h3>
+
+    <input type="number" id="liquidAmount" style="width:200px; font-size:20px;" />
+
+    <br/><br/>
+
+    <label>Dátum:</label>
+    <input type="date" id="liquidDate" value="@DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd")" />
+
+    <br/><br/>
+
+    <button id="saveLiquid" type="button">Mentés</button>
+    <button onclick="location.reload()">Mégsem</button>
+
+<h4>Kiadási bontás (m3)</h4>
+
+<div id="splitList"></div>
+
+<input type="number" id="splitAmount" placeholder="m3" />
+<button id="addSplit" type="button">+ hozzáadás</button>
 </div>
 
-<div id="solidForm" style="display:none;">
-    <label>Bruttó súly (kg)</label>
-    <input type="number" id="gross" />
-    <label>Jármű üres súly (kg)</label>
-    <input type="number" id="tare" value="17500" />
-    <button id="submitSolid">Mentés</button>
-</div>
-<h3>Istállótrágya (multi)</h3>
+<!-- ISTÁLLÓ -->
+<div id="solidBox" style="display:none;">
 
-<table id="entries">
-    <thead>
-        <tr>
-            <th>Rendszám</th>
-            <th>Bruttó</th>
-            <th>Tára</th>
-            <th>Cél</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
+    <h3>Istállótrágya</h3>
 
-<button id="addRow">+ Sor</button>
-<button id="submitMulti">Mentés (multi)</button>
-<div id="result"></div>
+    <label>Dátum:</label>
+    <input type="date" id="solidDate" value="@DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd")" />
 
-@section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script>
-        $(function() {
-        $("#manureType").change(function() {
-        if ($(this).val() === "liquid") {
-        $("#liquidForm").show();
-        $("#solidForm").hide();
-        } else {
-        $("#liquidForm").hide();
-        $("#solidForm").show();
-        }
-        });
+    <br/><br/>
 
-        $("#submitLiquid").click(function() {
-        var totalAmount = parseFloat($("#liquidAmount").val());
-        $.post("/Manure/SubmitLiquid", { totalAmount: totalAmount }, function(data) {
-        if(data.success){
-        $("#result").html("Bontás: <pre>" + JSON.stringify(data.result, null, 2) + "</pre>Voucher: " + data.voucherCode);
-        }
-        });
-        });
+    <input placeholder="Rendszám" id="plate" />
+    <input placeholder="Bruttó" id="gross" type="number"/>
+    <input placeholder="Tára" id="tare" type="number" value="17500"/>
 
-        $("#submitSolid").click(function() {
-        var gross = parseFloat($("#gross").val());
-        var tare = parseFloat($("#tare").val());
-        $.post("/Manure/SubmitSolid", { gross: gross, tare: tare }, function(data) {
-        if(data.success){
-        $("#result").html("Bontás: <pre>" + JSON.stringify(data.result, null, 2) + "</pre>Voucher In: " + data.voucherIn + "<br/>Voucher Out: " + data.voucherOut);
-        }
-        });
-        });
-        });
-    </script>
-    <script>
-        $("#addRow").click(function () {
-        $("#entries tbody").append(`
-        <tr>
-        <td><input class="plate"/></td>
-        <td><input class="gross" type="number"/></td>
-        <td><input class="tare" type="number" value="17500"/></td>
-        <td>
-        <select class="dest">
+    <select id="dest">
         <option>Csonkás</option>
         <option>Új istálló</option>
-        </select>
-        </td>
-        </tr>
-        `);
-        });
+    </select>
 
-        $("#submitMulti").click(function () {
-        var data = [];
+    <br/><br/>
 
-        $("#entries tbody tr").each(function () {
-        data.push({
-        licensePlate: $(this).find(".plate").val(),
-        gross: parseFloat($(this).find(".gross").val()),
-        tare: parseFloat($(this).find(".tare").val()),
-        destination: $(this).find(".dest").val()
-        });
-        });
+    <button id="addLoad" type="button">Következő szállítmány</button>
+    <button id="saveAll" type="button">Tárol</button>
+
+    <br/><br/>
+
+    <div id="tempList"></div>
+
+</div>
+
+<div id="msg"></div>
+
+@section Scripts{
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script>
+$(function() {
+    let splits = [];
+    let loads = [];
+
+    function toggle() {
+        $("#msg").html("");
+        if ($("#type").val() === "liquid") {
+            $("#liquidBox").show();
+            $("#solidBox").hide();
+        } else {
+            $("#liquidBox").hide();
+            $("#solidBox").show();
+        }
+    }
+
+    $("#type").change(toggle);
+    toggle(); // Alapértelmezett állapot beállítása
+
+    // HÍGTRÁGYA BONTÁS HOZZÁADÁSA
+    $("#addSplit").click(function(e) {
+        e.preventDefault();
+        let val = parseFloat($("#splitAmount").val());
+        if (isNaN(val) || val <= 0) {
+            alert("Adj meg érvényes mennyiséget!");
+            return;
+        }
+        splits.push({ amount: val });
+        $("#splitList").append("<div>" + val + " m3</div>");
+        $("#splitAmount").val("");
+    });
+
+    // HÍGTRÁGYA MENTÉSE
+    $("#saveLiquid").click(function(e) {
+        e.preventDefault();
+        let total = parseFloat($("#liquidAmount").val());
+        if (isNaN(total)) {
+            alert("Add meg az összhígtrágya mennyiséget!");
+            return;
+        }
+
+        let data = {
+            date: $("#liquidDate").val(),
+            totalAmount: total,
+            splits: splits
+        };
 
         $.ajax({
-        url: "/Manure/SubmitSolidMulti",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify(data),
-        success: function (res) {
-        $("#result").html("<pre>" + JSON.stringify(res, null, 2) + "</pre>");
+            url: "/Manure/SubmitLiquid",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function() {
+                $("#msg").html("<b style='color:green;'>✅ Hígtrágya sikeresen mentve!</b>");
+                splits = [];
+                $("#splitList").html("");
+                $("#liquidAmount").val("");
+            },
+            error: function() {
+                alert("Hiba történt a mentés során!");
+            }
+        });
+    });
+
+    // ISTÁLLÓTRÁGYA SOR HOZZÁADÁSA
+    $("#addLoad").click(function() {
+        let gross = parseFloat($("#gross").val());
+        let tare = parseFloat($("#tare").val());
+        
+        if (isNaN(gross) || isNaN(tare)) {
+            alert("Hibás súly adatok!");
+            return;
         }
+
+        let item = {
+            licensePlate: $("#plate").val() || "Ismeretlen",
+            grossWeight: gross, // Figyelj a DTO mezőnevekre!
+            tareWeight: tare,
+            destination: $("#dest").val()
+        };
+
+        loads.push(item);
+        $("#tempList").append("<div>" + item.licensePlate + " - " + (gross - tare) + " kg - " + item.destination + "</div>");
+        
+        $("#plate").val("");
+        $("#gross").val("");
+    });
+
+    // ISTÁLLÓTRÁGYA ÖSSZESÍTETT MENTÉSE
+    $("#saveAll").click(function() {
+        if (loads.length === 0) {
+            alert("Nincs hozzáadva szállítmány!");
+            return;
+        }
+
+        $.ajax({
+            url: "/Manure/SubmitSolidMulti?date=" + $("#solidDate").val(),
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(loads),
+            success: function() {
+                $("#msg").html("<b style='color:green;'>✅ Istállótrágya sikeresen mentve!</b>");
+                loads = [];
+                $("#tempList").html("");
+            },
+            error: function() {
+                alert("Hiba a mentésnél!");
+            }
         });
-        });
-    </script>
+    });
+});
+</script>
 }

@@ -50,6 +50,15 @@
             // napi bontás
             var result = _calc.CalculateSolid(totalNet);
 
+            var voucherIn = await _voucher.CreateVoucherAsync("+");
+
+            var expenseMap = new Dictionary<string, string>();
+
+            foreach (var dest in grouped.Keys)
+            {
+                var v = await _voucher.CreateVoucherAsync("-");
+                expenseMap[dest] = _voucher.FormatVoucher(v);
+            }
             // napi összesítés mentése
             _context.SolidManureDailies.Add(new SolidManureDaily
             {
@@ -60,20 +69,13 @@
                 Calf3_6 = result.Calf3_6,
                 Young6_9 = result.Young6_9,
                 Young9_12 = result.Young9_12,
-                PregnantHeifer = result.PregnantHeifer
+                PregnantHeifer = result.PregnantHeifer,
+
+                VoucherIn = _voucher.FormatVoucher(voucherIn),
+
+                // 🔥 több kiadás → stringként
+                VoucherOut = string.Join(", ", expenseMap.Values)
             });
-
-            // bevételi bizonylat
-            var incomeVoucher = await _voucher.CreateVoucherAsync("+");
-
-            // kiadási bizonylatok célállomásonként
-            var expenseVouchers = new List<string>();
-
-            foreach (var dest in grouped.Keys)
-            {
-                var v = await _voucher.CreateVoucherAsync("-");
-                expenseVouchers.Add(_voucher.FormatVoucher(v));
-            }
 
             await _context.SaveChangesAsync();
 
@@ -81,8 +83,8 @@
             {
                 totalNet,
                 result,
-                income = _voucher.FormatVoucher(incomeVoucher),
-                expenses = expenseVouchers,
+                income = _voucher.FormatVoucher(voucherIn),
+                expenses = expenseMap.Values.ToList(),
                 destinations = grouped
             };
         }

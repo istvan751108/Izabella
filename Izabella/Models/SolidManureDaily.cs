@@ -9,6 +9,9 @@ public class SolidManureDaily
     public DateTime Date { get; set; }
     public double TotalNet { get; set; }
 
+    public string VoucherIn { get; set; }
+    public string VoucherOut { get; set; }
+
     public double Cow { get; set; }
     public double CalfMilk { get; set; }
     public double Calf3_6 { get; set; }

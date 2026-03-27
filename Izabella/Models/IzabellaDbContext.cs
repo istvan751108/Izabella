@@ -18,6 +18,7 @@ public class IzabellaDbContext : DbContext
     public DbSet<SolidManureDaily> SolidManureDailies { get; set; }
     public DbSet<LiquidManure> LiquidManures { get; set; }
     public DbSet<SolidManure> SolidManures { get; set; }
+    public DbSet<LiquidManureSplit> LiquidManureSplits { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
      

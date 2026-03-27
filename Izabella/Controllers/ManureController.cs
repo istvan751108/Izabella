@@ -2,6 +2,7 @@
 using Izabella.Models.DTOs;
 using Izabella.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 namespace Izabella.Controllers
 {
@@ -30,38 +31,76 @@ namespace Izabella.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> SubmitSolidMulti([FromBody] List<SolidEntryDto> entries)
+        public async Task<IActionResult> SubmitSolidMulti(DateTime date, [FromBody] List<SolidEntryDto> entries)
         {
-            var result = await _solidService.ProcessDailyAsync(DateTime.Now, entries);
-            return Json(result);
+            var result = await _solidService.ProcessDailyAsync(date.Date, entries);
+            return Json(new { success = true });
         }
         [HttpPost]
-        public async Task<IActionResult> SubmitLiquid(double totalAmount)
+        public async Task<IActionResult> SubmitLiquid([FromBody] LiquidSubmitDto dto)
         {
-            var result = _calc.CalculateLiquid(totalAmount);
+            if (dto == null)
+                return BadRequest("Nincs adat");
 
-            // Bizonylat generálás
-            var voucher = await _voucher.CreateVoucherAsync("+");
-            var voucherCode = _voucher.FormatVoucher(voucher);
+            var result = _calc.CalculateLiquid(dto.TotalAmount);
 
-            // DB mentés (példa)
+            var voucherIn = await _voucher.CreateVoucherAsync("+");
+
             var record = new LiquidManure
             {
-                Date = System.DateTime.Now,
-                TotalAmount = totalAmount,
+                Date = dto.Date,
+                TotalAmount = dto.TotalAmount,
                 Cow = result.Cow,
                 Young6_9 = result.Young6_9,
                 Young9_12 = result.Young9_12,
                 Young12Preg = result.Young12Preg,
                 PregnantHeifer = result.PregnantHeifer,
-                VoucherCode = voucherCode
+                VoucherIn = _voucher.FormatVoucher(voucherIn)
             };
+
             _context.LiquidManures.Add(record);
             await _context.SaveChangesAsync();
 
-            return Json(new { success = true, result, voucherCode });
-        }
+            var splits = dto.Splits ?? new List<LiquidSplitDto>();
 
+            var voucherList = new List<string>();
+
+            foreach (var s in splits)
+            {
+                var v = await _voucher.CreateVoucherAsync("-");
+
+                var split = new LiquidManureSplit
+                {
+                    LiquidManureId = record.Id,
+                    Amount = s.Amount,
+                    VoucherNumber = _voucher.FormatVoucher(v)
+                };
+
+                voucherList.Add(split.VoucherNumber);
+                _context.LiquidManureSplits.Add(split);
+            }
+
+            if (!splits.Any())
+            {
+                var v = await _voucher.CreateVoucherAsync("-");
+
+                var split = new LiquidManureSplit
+                {
+                    LiquidManureId = record.Id,
+                    Amount = dto.TotalAmount,
+                    VoucherNumber = _voucher.FormatVoucher(v)
+                };
+
+                voucherList.Add(split.VoucherNumber);
+                _context.LiquidManureSplits.Add(split);
+            }
+
+            record.VoucherOut = string.Join(", ", voucherList);
+
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
         [HttpPost]
         public async Task<IActionResult> SubmitSolid(double gross, double tare)
         {

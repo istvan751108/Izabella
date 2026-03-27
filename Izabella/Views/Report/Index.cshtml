@@ -1,0 +1,151 @@
+﻿@model Izabella.Models.ViewModels.DailyReportVm
+<style>
+    table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 20px;
+    }
+
+    th, td {
+        border: 1px solid #ccc;
+        padding: 8px 12px;
+        text-align: center;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        white-space: nowrap;
+    }
+
+    td {
+        white-space: nowrap;
+    }
+
+    h2 {
+        margin-bottom: 10px;
+    }
+</style>
+
+<h2>@Model.Year.@Model.Month havi riport</h2>
+<hr/>
+<form method="get">
+    <input type="number" name="year" value="@Model.Year" />
+    <input type="number" name="month" value="@Model.Month" min="1" max="12"/>
+    <button type="submit">Betölt</button>
+</form>
+
+<h3>Hígtrágya</h3>
+<table>
+<tr>
+    <th>Dátum</th>
+    <th>Összes</th>
+    <th>Tehén</th>
+    <th>6-9</th>
+    <th>9-12</th>
+    <th>12-vemhes</th>
+    <th>Vemhes</th>
+    <th>+ Biz</th>
+    <th>- Biz</th>
+</tr>
+
+@foreach (var l in Model.Liquids.OrderBy(x => x.Date))
+{
+<tr>
+    <td>@l.Date.ToString("yyyy.MM.dd")</td>
+    <td>@l.TotalAmount</td>
+    <td>@l.Cow</td>
+    <td>@l.Young6_9</td>
+    <td>@l.Young9_12</td>
+    <td>@l.Young12Preg</td>
+    <td>@l.PregnantHeifer</td>
+    <td>@l.VoucherIn</td>
+    <td>
+    @foreach (var s in l.Splits)
+    {
+        <div>@s.VoucherNumber (@s.Amount m3)</div>
+    }
+</td>
+</tr>
+}
+</table>
+
+<p><b>Havi összes:</b> @Model.LiquidTotal</p>
+
+<h3>Istállótrágya</h3>
+
+<div style="display:flex; gap:40px;">
+
+<!-- BAL TÁBLA -->
+<div>
+<h4>Szállítmányok</h4>
+
+<table>
+<tr>
+    <th>Dátum</th>
+    <th>Rendszám</th>
+    <th>Hova</th>
+    <th>Bruttó</th>
+    <th>Tára</th>
+    <th>Nettó</th>
+</tr>
+
+@foreach (var l in Model.Loads.OrderBy(x => x.Date))
+{
+<tr>
+    <td>@l.Date.ToString("yyyy.MM.dd")</td>
+    <td>@l.LicensePlate</td>
+    <td>@l.Destination</td>
+    <td>@l.GrossWeight</td>
+    <td>@l.TareWeight</td>
+    <td>@l.NetWeight</td>
+</tr>
+}
+</table>
+</div>
+
+<!-- JOBB TÁBLA -->
+<div>
+<h4>Napi összesítés</h4>
+
+<table>
+<tr>
+    <th>Dátum</th>
+    <th>Napi nettó</th>
+    <th>Tehén</th>
+    <th>Borjú tej</th>
+    <th>3-6</th>
+    <th>6-9</th>
+    <th>9-12</th>
+    <th>Vemhes</th>
+    <th>+ Biz</th>
+    <th>- Biz</th>
+</tr>
+
+@foreach (var d in Model.Days.OrderBy(x => x.Date))
+{
+<tr>
+    <td>@d.Date.ToString("yyyy.MM.dd")</td>
+    <td>@d.TotalNet</td>
+    <td>@d.Cow</td>
+    <td>@d.CalfMilk</td>
+    <td>@d.Calf3_6</td>
+    <td>@d.Young6_9</td>
+    <td>@d.Young9_12</td>
+    <td>@d.PregnantHeifer</td>
+    <td>@d.VoucherIn</td>
+    <td>@d.VoucherOut</td>
+</tr>
+}
+</table>
+</div>
+
+</div>
+
+<p><b>Havi nettó istállótrágya:</b> @Model.SolidTotal</p>
+
+<hr/>
+
+<h3>Éves összesítés (@Model.Year)</h3>
+
+<p>Hígtrágya: <b>@Model.YearlyLiquid</b></p>
+<p>Istállótrágya: <b>@Model.YearlySolid</b></p>
