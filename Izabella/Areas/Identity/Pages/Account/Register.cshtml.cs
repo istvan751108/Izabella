@@ -100,14 +100,21 @@ namespace Izabella.Areas.Identity.Pages.Account
         }
 
 
-        public async Task OnGetAsync(string returnUrl = null)
+        public async Task<IActionResult> OnGetAsync(string returnUrl = null)
         {
+            // Ez azonnal visszaküldi a Login-ra
+            return RedirectToPage("Login");
+
+            /* A többi kód érintetlenül maradhat alatta, 
+               de a 'return' miatt sosem fog lefutni. */
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            return Page(); // Ez csak azért kell, hogy a fordító ne panaszkodjon a végén
         }
 
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
+            return RedirectToPage("Login");
             returnUrl ??= Url.Content("~/");
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
             if (ModelState.IsValid)

@@ -48,17 +48,7 @@ namespace Izabella.Controllers
                 YearlySolid = _context.SolidManureDailies.Where(x => x.Date.Year == y).Sum(x => x.TotalNet),
                 Date = DateTime.Today
             };
-
-            // MINDEN MÁS (Chart adatok, ViewBag-ek) TÖRÖLHETŐ INNEN!
             return View(vm);
-        }
-        public async Task<IActionResult> Monthly(int year, int month)
-        {
-            var data = await _context.LiquidManures
-                .Where(x => x.Date.Year == year && x.Date.Month == month)
-                .ToListAsync();
-
-            return View(data);
         }
         public async Task<IActionResult> Charts(int? year, int? month)
         {

@@ -10,7 +10,7 @@
             <a class="nav-link text-light" asp-area="Identity" asp-page="/Account/Manage/Index" title="Profil">Üdv, @User.Identity?.Name!</a>
         </li>
         <li class="nav-item">
-            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Report", new { area = "" })">
+            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" method="post">
                 @* Itt is text-light *@
                 <button type="submit" class="nav-link btn btn-link text-light">Kijelentkezés</button>
             </form>
