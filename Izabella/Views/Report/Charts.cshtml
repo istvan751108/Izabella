@@ -1,0 +1,65 @@
+﻿@{
+    ViewData["Title"] = "Grafikonok";
+}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<h2>Statisztikák - @ViewBag.Year.@ViewBag.Month</h2>
+
+<form method="get" class="mb-4 row g-2">
+    <div class="col-auto"><input type="number" name="year" value="@ViewBag.Year" class="form-control" /></div>
+    <div class="col-auto"><input type="number" name="month" value="@ViewBag.Month" min="1" max="12" class="form-control" /></div>
+    <div class="col-auto"><button type="submit" class="btn btn-primary">Betöltés</button></div>
+</form>
+
+<div class="row">
+    <div class="col-md-6 mb-4"><div class="card p-3 shadow-sm"><h4>Hígtrágya Napi (m3)</h4><canvas id="liquidDailyChart"></canvas></div></div>
+    <div class="col-md-6 mb-4"><div class="card p-3 shadow-sm"><h4>Istállótrágya Napi (t)</h4><canvas id="solidDailyChart"></canvas></div></div>
+    
+    <div class="col-md-6 mb-4"><div class="card p-3 shadow-sm"><h4>Hígtrágya Éves trend (m3)</h4><canvas id="liquidYearlyChart"></canvas></div></div>
+    <div class="col-md-6 mb-4"><div class="card p-3 shadow-sm"><h4>Istállótrágya Éves trend (t)</h4><canvas id="solidYearlyChart"></canvas></div></div>
+    
+    <div class="col-md-6 mb-4"><div class="card p-3 shadow-sm"><h4>Hígtrágya Évek összehasonlítása</h4><canvas id="liquidCompChart"></canvas></div></div>
+    <div class="col-md-6 mb-4"><div class="card p-3 shadow-sm"><h4>Istállótrágya Évek összehasonlítása</h4><canvas id="solidCompChart"></canvas></div></div>
+</div>
+
+@section Scripts {
+    <script>
+        const commonOptions = { responsive: true, scales: { y: { beginAtZero: true } } };
+        const months = ['Jan', 'Feb', 'Már', 'Ápr', 'Máj', 'Jún', 'Júl', 'Aug', 'Szep', 'Okt', 'Nov', 'Dec'];
+
+        // Adatok beolvasása
+        const dailyLabels = @Html.Raw(Json.Serialize(ViewBag.DailyLabels));
+        const liquidDaily = @Html.Raw(Json.Serialize(ViewBag.LiquidDaily));
+        const solidDaily = @Html.Raw(Json.Serialize(ViewBag.SolidDaily));
+        const yearlyLiquid = @Html.Raw(Json.Serialize(ViewBag.YearlyLiquid));
+        const yearlySolid = @Html.Raw(Json.Serialize(ViewBag.YearlySolid));
+        const compLabels = @Html.Raw(Json.Serialize(ViewBag.CompLabels));
+        const compLiquid = @Html.Raw(Json.Serialize(ViewBag.CompLiquid));
+        const compSolid = @Html.Raw(Json.Serialize(ViewBag.CompSolid));
+
+        // 1. Napi híg
+        new Chart(document.getElementById('liquidDailyChart'), {
+        type: 'line', data: { labels: dailyLabels, datasets: [{ label: 'm3', data: liquidDaily, borderColor: 'blue' }] }, options: commonOptions
+        });
+        // 2. Napi szilárd
+        new Chart(document.getElementById('solidDailyChart'), {
+        type: 'line', data: { labels: dailyLabels, datasets: [{ label: 't', data: solidDaily.map(v => v/1000), borderColor: 'brown' }] }, options: commonOptions
+        });
+        // 3. Éves híg
+        new Chart(document.getElementById('liquidYearlyChart'), {
+        type: 'bar', data: { labels: months, datasets: [{ label: 'm3', data: yearlyLiquid, backgroundColor: '#0d6efd' }] }, options: commonOptions
+        });
+        // 4. Éves szilárd
+        new Chart(document.getElementById('solidYearlyChart'), {
+        type: 'bar', data: { labels: months, datasets: [{ label: 't', data: yearlySolid.map(v => v/1000), backgroundColor: '#198754' }] }, options: commonOptions
+        });
+        // 5. Comp híg
+        new Chart(document.getElementById('liquidCompChart'), {
+        type: 'bar', data: { labels: compLabels, datasets: [{ label: 'm3', data: compLiquid, backgroundColor: '#0dcaf0' }] }
+        });
+        // 6. Comp szilárd
+        new Chart(document.getElementById('solidCompChart'), {
+        type: 'bar', data: { labels: compLabels, datasets: [{ label: 't', data: compSolid.map(v => v/1000), backgroundColor: '#ffc107' }] }
+        });
+    </script>
+}

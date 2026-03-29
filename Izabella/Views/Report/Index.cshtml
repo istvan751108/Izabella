@@ -1,151 +1,384 @@
 ﻿@model Izabella.Models.ViewModels.DailyReportVm
+
 <style>
-    table {
-        border-collapse: collapse;
-        width: 100%;
-        margin-top: 20px;
-    }
-
-    th, td {
-        border: 1px solid #ccc;
-        padding: 8px 12px;
-        text-align: center;
-    }
-
-    th {
-        background-color: #f2f2f2;
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: center; }
+    th { background-color: #f2f2f2; white-space: nowrap; }
+    #liquidTable td, #dailySolidTable td {
         white-space: nowrap;
     }
 
-    td {
-        white-space: nowrap;
+    /* Engedélyezzük a sortörést és a függőleges elrendezést a bizonylat cellákban */
+    .voucher-cell {
+        white-space: normal !important;
+        min-width: 140px;
+        vertical-align: middle;
+        line-height: 1.2;
     }
 
-    h2 {
-        margin-bottom: 10px;
+    .voucher-item {
+        display: block;
+        font-size: 0.85em;
+        background: #f8f9fa; /* Enyhe háttér, hogy elkülönüljenek */
+        border-radius: 3px;
+        margin: 2px 0;
+        padding: 1px 4px;
+        border: 1px solid #eee;
     }
+    h2 { margin-bottom: 10px; }
+    .btn-delete {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1.2em;
+        padding: 0;
+    }
+    .btn-delete:hover {
+        transform: scale(1.2);
+    }
+    @@media print {
+    /* Kényszerített fekvő tájolás */
+    @@page { size: landscape; margin: 10mm; }
+
+    .d-print-none, .btn-delete, .btn-group, .navbar, .btn, form {
+        display: none !important;
+    }
+    td.voucher-cell {
+        white-space: normal !important;
+        font-size: 7.5pt !important; /* Nyomtatásban még kisebb lehet */
+    }
+    
+    .voucher-item {
+        border: none;
+        background: transparent;
+        padding: 0;
+    }
+    /* CSAK azokat rejtsük, amiknek van id-je és művelet oszlopa */
+    #liquidTable th:last-child, #liquidTable td:last-child,
+    #dailySolidTable th:last-child, #dailySolidTable td:last-child {
+        display: none !important;
+        width: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* A Szállítmányok táblázatnál (ahol nincs művelet) NE rejtsünk semmit */
+    #loadsTable th:last-child, #loadsTable td:last-child {
+        display: table-cell !important;
+    }
+
+    body { padding-top: 0; background-color: white; color: black; font-family: sans-serif; }
+    .container { width: 100% !important; max-width: 100% !important; margin: 0; padding: 0; }
+    
+    table { 
+        font-size: 8.5pt; /* Kicsit kisebb betű, hogy beférjen */
+        width: 100% !important; 
+        border-collapse: collapse !important; 
+        table-layout: auto; /* Hagyjuk, hogy a böngésző optimálisan ossza el a helyet */
+    }
+    
+    th, td { 
+        border: 1px solid black !important; 
+        padding: 2px 4px !important; /* Minimális padding */
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
 </style>
 
 <h2>@Model.Year.@Model.Month havi riport</h2>
-<hr/>
-<form method="get">
-    <input type="number" name="year" value="@Model.Year" />
-    <input type="number" name="month" value="@Model.Month" min="1" max="12"/>
-    <button type="submit">Betölt</button>
+<hr />
+
+<form method="get" class="row g-2 align-items-center">
+    <div class="col-auto">
+        <input type="number" name="year" value="@Model.Year" class="form-control" />
+    </div>
+    <div class="col-auto">
+        <input type="number" name="month" value="@Model.Month" min="1" max="12" class="form-control" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Betölt</button>
+    </div>
+    <div class="d-print-none mb-3">
+        <button onclick="window.print()" class="btn btn-secondary">
+            <i class="bi bi-printer"></i> Nyomtatás (PDF)
+        </button>
+        <button id="exportExcel" class="btn btn-success">
+            <i class="bi bi-file-earmark-excel"></i> Excel Export
+        </button>
+    </div>
 </form>
 
+<hr />
+
 <h3>Hígtrágya</h3>
-<table>
-<tr>
-    <th>Dátum</th>
-    <th>Összes</th>
-    <th>Tehén</th>
-    <th>6-9</th>
-    <th>9-12</th>
-    <th>12-vemhes</th>
-    <th>Vemhes</th>
-    <th>+ Biz</th>
-    <th>- Biz</th>
-</tr>
+<div class="table-responsive">
+    <table id="liquidTable">
+        <thead>
+            <tr>
+                <th>Dátum</th>
+                <th>Összes (m³)</th>
+                <th>Tehén</th>
+                <th>6-9</th>
+                <th>9-12</th>
+                <th>12-vemhes</th>
+                <th>Vemhes</th>
+                <th>+ Biz</th>
+                <th>- Biz</th>
+                <th>Művelet</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var l in Model.Liquids.OrderBy(x => x.Date))
+            {
+                <tr>
+                    <td>@l.Date.ToString("yyyy.MM.dd")</td>
+                    <td>@l.TotalAmount</td>
+                    <td>@l.Cow</td>
+                    <td>@l.Young6_9</td>
+                    <td>@l.Young9_12</td>
+                    <td>@l.Young12Preg</td>
+                    <td>@l.PregnantHeifer</td>
+                    <td>@l.VoucherIn</td>
+                    <td class="voucher-cell">
+                        @foreach (var s in l.Splits)
+                        {
+                            <div class="voucher-item">@s.VoucherNumber (@s.Amount m³)</div>
+                        }
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteItem(@l.Id, 'Liquid')" title="Végleges törlés">🗑️</button>
 
-@foreach (var l in Model.Liquids.OrderBy(x => x.Date))
-{
-<tr>
-    <td>@l.Date.ToString("yyyy.MM.dd")</td>
-    <td>@l.TotalAmount</td>
-    <td>@l.Cow</td>
-    <td>@l.Young6_9</td>
-    <td>@l.Young9_12</td>
-    <td>@l.Young12Preg</td>
-    <td>@l.PregnantHeifer</td>
-    <td>@l.VoucherIn</td>
-    <td>
-    @foreach (var s in l.Splits)
-    {
-        <div>@s.VoucherNumber (@s.Amount m3)</div>
-    }
-</td>
-</tr>
-}
-</table>
+                            @if (!l.VoucherIn.StartsWith("STORNO"))
+                            {
+                                <button class="btn btn-sm btn-outline-warning" onclick="stornoItem(@l.Id, 'Liquid')" title="Stornózás">🔄</button>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+<p class="mt-2"><b>Havi összes:</b> @Model.LiquidTotal m³</p>
 
-<p><b>Havi összes:</b> @Model.LiquidTotal</p>
+<hr />
 
 <h3>Istállótrágya</h3>
 
-<div style="display:flex; gap:40px;">
+<div class="mb-5">
+    <h4>Szállítmányok (Részletes lista)</h4>
+    <div class="table-responsive shadow-sm">
+        <table id="loadsTable" class="table table-sm table-striped">
+            <thead class="table-light">
+                <tr>
+                    <th>Dátum</th>
+                    <th>Rendszám</th>
+                    <th>Hova</th>
+                    <th>Bruttó</th>
+                    <th>Tára</th>
+                    <th>Nettó (kg)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var l in Model.Loads.OrderBy(x => x.Date))
+                {
+                    <tr>
+                        <td>@l.Date.ToString("yyyy.MM.dd")</td>
+                        <td>@l.LicensePlate</td>
+                        <td>@l.Destination</td>
+                        <td>@l.GrossWeight</td>
+                        <td>@l.TareWeight</td>
+                        <td>@l.NetWeight</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
-<!-- BAL TÁBLA -->
-<div>
-<h4>Szállítmányok</h4>
+<div class="mb-4">
+    <h4>Napi összesítés (Számított adatok)</h4>
+    <div class="table-responsive shadow-sm">
+        <table id="dailySolidTable" class="table table-sm table-hover text-center">
+    <thead class="table-secondary">
+        <tr>
+            <th>Dátum</th>
+            <th>Napi nettó (kg)</th>
+            <th>Tehén</th>
+            <th>Borjú tej</th>
+            <th>3-6 hó</th>
+            <th>6-9 hó</th>
+            <th>9-12 hó</th>
+            <th>Vemhes</th>
+            <th>+ Bizonylat</th> <th>- Bizonylat</th>
+            <th>Művelet</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var d in Model.Days.OrderBy(x => x.Date))
+        {
+            <tr>
+                <td>@d.Date.ToString("yyyy.MM.dd")</td>
+                <td><b>@d.TotalNet</b></td>
+                <td>@d.Cow</td>
+                <td>@d.CalfMilk</td>
+                <td>@d.Calf3_6</td>
+                <td>@d.Young6_9</td>
+                <td>@d.Young9_12</td>
+                <td>@d.PregnantHeifer</td>
+                
+                <td class="voucher-cell">
+                    @if(!string.IsNullOrEmpty(d.VoucherIn)) {
+                        <div class="voucher-item">@d.VoucherIn</div>
+                    }
+                </td>
 
-<table>
-<tr>
-    <th>Dátum</th>
-    <th>Rendszám</th>
-    <th>Hova</th>
-    <th>Bruttó</th>
-    <th>Tára</th>
-    <th>Nettó</th>
-</tr>
+                <td class="voucher-cell">
+                    @if(!string.IsNullOrEmpty(d.VoucherOut)) {
+                        // Ha a bizonylatok vesszővel vannak elválasztva a stringben (pl. Liquid-nél), 
+                        // itt is szétszedhetjük őket:
+                        @foreach(var v in d.VoucherOut.Split(',', StringSplitOptions.RemoveEmptyEntries)) {
+                            <div class="voucher-item">@v.Trim()</div>
+                        }
+                    }
+                </td>
 
-@foreach (var l in Model.Loads.OrderBy(x => x.Date))
-{
-<tr>
-    <td>@l.Date.ToString("yyyy.MM.dd")</td>
-    <td>@l.LicensePlate</td>
-    <td>@l.Destination</td>
-    <td>@l.GrossWeight</td>
-    <td>@l.TareWeight</td>
-    <td>@l.NetWeight</td>
-</tr>
-}
+                <td>
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteItem(@d.Id, 'SolidDaily')" title="Végleges törlés">🗑️</button>
+                        @if (!string.IsNullOrEmpty(d.VoucherIn) && !d.VoucherIn.StartsWith("STORNO"))
+                        {
+                            <button class="btn btn-sm btn-outline-warning" onclick="stornoItem(@d.Id, 'SolidDaily')" title="Stornózás">🔄</button>
+                        }
+                    </div>
+                </td>
+            </tr>
+        }
+    </tbody>
 </table>
+    </div>
 </div>
 
-<!-- JOBB TÁBLA -->
-<div>
-<h4>Napi összesítés</h4>
-
-<table>
-<tr>
-    <th>Dátum</th>
-    <th>Napi nettó</th>
-    <th>Tehén</th>
-    <th>Borjú tej</th>
-    <th>3-6</th>
-    <th>6-9</th>
-    <th>9-12</th>
-    <th>Vemhes</th>
-    <th>+ Biz</th>
-    <th>- Biz</th>
-</tr>
-
-@foreach (var d in Model.Days.OrderBy(x => x.Date))
-{
-<tr>
-    <td>@d.Date.ToString("yyyy.MM.dd")</td>
-    <td>@d.TotalNet</td>
-    <td>@d.Cow</td>
-    <td>@d.CalfMilk</td>
-    <td>@d.Calf3_6</td>
-    <td>@d.Young6_9</td>
-    <td>@d.Young9_12</td>
-    <td>@d.PregnantHeifer</td>
-    <td>@d.VoucherIn</td>
-    <td>@d.VoucherOut</td>
-</tr>
-}
-</table>
-</div>
-
-</div>
-
-<p><b>Havi nettó istállótrágya:</b> @Model.SolidTotal</p>
-
-<hr/>
-
+<p class="h5"><b>Havi nettó istállótrágya:</b> @(Model.SolidTotal / 1000) t</p>
+<hr />
 <h3>Éves összesítés (@Model.Year)</h3>
+<p>Hígtrágya: <b>@Model.YearlyLiquid m³</b></p>
+<p>Istállótrágya: <b>@(Model.YearlySolid / 1000) t</b></p>
 
-<p>Hígtrágya: <b>@Model.YearlyLiquid</b></p>
-<p>Istállótrágya: <b>@Model.YearlySolid</b></p>
+@section Scripts {
+    <script>
+    $(function() {
+       $("#exportExcel").click(function () {
+            let year = "@Model.Year";
+            let month = "@Model.Month";
+            let fileName = "Tragya_Riport_" + year + "_" + month + ".xlsx";
+
+            // 1. Létrehozunk egy teljesen új, ideiglenes táblázatot
+            let masterTable = document.createElement("table");
+    
+            // Segédfüggvény a szekció címek hozzáadásához a táblázathoz
+            const addHeaderRow = (text, colSpan) => {
+                let row = masterTable.insertRow();
+                let cell = row.insertCell();
+                cell.colSpan = colSpan;
+                cell.innerHTML = "<strong>" + text + "</strong>";
+                cell.style.backgroundColor = "#d3d3d3";
+            };
+
+            // --- 1. HÍGTRÁGYA SZEKCIÓ ---
+            addHeaderRow("HÍGTRÁGYA", 9);
+            let liquidRows = document.getElementById("liquidTable").rows;
+            for (let i = 0; i < liquidRows.length; i++) {
+                let newRow = masterTable.insertRow();
+                // Csak az utolsó (Művelet) oszlop előtti cellákat másoljuk (rows[i].cells.length - 1)
+                for (let j = 0; j < liquidRows[i].cells.length - 1; j++) {
+                    let newCell = newRow.insertCell();
+                    newCell.innerHTML = liquidRows[i].cells[j].innerHTML;
+                }
+            }
+
+            // Üres sor elválasztónak
+            masterTable.insertRow();
+
+            // --- 2. ISTÁLLÓTRÁGYA SZÁLLÍTMÁNYOK ---
+            addHeaderRow("ISTÁLLÓTRÁGYA - SZÁLLÍTMÁNYOK", 6);
+            let loadRows = document.getElementById("loadsTable").rows;
+            for (let i = 0; i < loadRows.length; i++) {
+                let newRow = masterTable.insertRow();
+                for (let j = 0; j < loadRows[i].cells.length; j++) {
+                    let newCell = newRow.insertCell();
+                    newCell.innerHTML = loadRows[i].cells[j].innerHTML;
+                }
+            }
+
+            masterTable.insertRow();
+
+            // --- 3. ISTÁLLÓTRÁGYA NAPI ÖSSZESÍTŐ ---
+            addHeaderRow("ISTÁLLÓTRÁGYA - NAPI ÖSSZESÍTÉS", 10);
+            let dailyRows = document.getElementById("dailySolidTable").rows;
+            for (let i = 0; i < dailyRows.length; i++) {
+                let newRow = masterTable.insertRow();
+                // Itt is levágjuk az utolsó (Művelet) oszlopot
+                for (let j = 0; j < dailyRows[i].cells.length - 1; j++) {
+                    let newCell = newRow.insertCell();
+                    newCell.innerHTML = dailyRows[i].cells[j].innerHTML;
+                }
+            }
+            masterTable.insertRow(); // Üres sor
+            addHeaderRow("ÖSSZESÍTÉS", 2);
+
+            let totalRow1 = masterTable.insertRow();
+            totalRow1.insertCell().innerHTML = "Havi hígtrágya összesen:";
+            totalRow1.insertCell().innerHTML = "<b>@Model.LiquidTotal m³</b>";
+
+            let totalRow2 = masterTable.insertRow();
+            totalRow2.insertCell().innerHTML = "Havi istállótrágya összesen:";
+            totalRow2.insertCell().innerHTML = "<b>@(Model.SolidTotal / 1000) t</b>";
+            // 2. Exportálás (most már az egyetlen, összevont masterTable-t adjuk át)
+            TableToExcel.convert(masterTable, {
+                name: fileName,
+                sheet: { name: "Riport" }
+            });
+        });
+    });
+    function deleteItem(id, type) {
+        if (!confirm("Biztosan törölni szeretnéd ezt a tételt?")) return;
+
+        let url = type === 'Liquid' ? '/Manure/DeleteLiquid' : '/Manure/DeleteSolidDaily';
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: { id: id },
+            success: function(res) {
+    if (res.success) {
+        showToast("Tétel törölve.");
+        setTimeout(() => { location.reload(); }, 1500);
+    } else {
+        showToast("Hiba a törlés során!", true);
+    }
+}
+        });
+    }
+    function stornoItem(id, type) {
+    if (!confirm("Biztosan stornózni szeretnéd? Ez egy ellentétes előjelű tételt fog létrehozni.")) return;
+
+    let url = type === 'Liquid' ? '/Manure/StornoLiquid' : '/Manure/StornoSolidDaily';
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        data: { id: id },
+        success: function(res) {
+            if (res.success) {
+                showToast("Sikeres stornózás (negatív tétel létrehozva).");
+                setTimeout(() => { location.reload(); }, 1500);
+            } else {
+                showToast("Hiba: " + res.message, true);
+            }
+        }
+    });
+}
+    </script>
+}

@@ -1,0 +1,26 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+<ul class="navbar-nav">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <li class="nav-item">
+            @* text-dark helyett text-light *@
+            <a class="nav-link text-light" asp-area="Identity" asp-page="/Account/Manage/Index" title="Profil">Üdv, @User.Identity?.Name!</a>
+        </li>
+        <li class="nav-item">
+            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Report", new { area = "" })">
+                @* Itt is text-light *@
+                <button type="submit" class="nav-link btn btn-link text-light">Kijelentkezés</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            @* Itt is text-light *@
+            <a class="nav-link text-light" asp-area="Identity" asp-page="/Account/Login">Bejelentkezés</a>
+        </li>
+    }
+</ul>

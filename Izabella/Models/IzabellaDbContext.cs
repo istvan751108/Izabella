@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Izabella.Models;
 
-using Microsoft.EntityFrameworkCore;
-
-public class IzabellaDbContext : DbContext
+public class IzabellaDbContext : IdentityDbContext
 {
     public IzabellaDbContext(DbContextOptions<IzabellaDbContext> options)
         : base(options)
@@ -21,6 +20,10 @@ public class IzabellaDbContext : DbContext
     public DbSet<LiquidManureSplit> LiquidManureSplits { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-     
+        // EZ A SOR A KULCS: Ez állítja be az Identity táblák (köztük a Passkey) kulcsait!
+        base.OnModelCreating(modelBuilder);
+
+        // Itt tarthatod a saját egyedi beállításaidat, ha vannak, például:
+        // modelBuilder.Entity<LiquidManure>().HasMany(x => x.Splits)...
     }
 }

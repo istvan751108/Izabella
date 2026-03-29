@@ -18,8 +18,8 @@ namespace Izabella.Models
         public double Young12Preg { get; set; }
         public double PregnantHeifer { get; set; }
 
-        public string VoucherIn { get; set; }
-        public string VoucherOut { get; set; }
+        public string VoucherIn { get; set; } = string.Empty;
+        public string VoucherOut { get; set; } = string.Empty;
         public List<LiquidManureSplit> Splits { get; set; } = new();
     }
 }
