@@ -1,10 +1,21 @@
 ﻿@page
 @model AccessDeniedModel
 @{
-    ViewData["Title"] = "Access denied";
+    ViewData["Title"] = "Hozzáférés megtagadva";
 }
 
-<header>
-    <h1 class="text-danger">@ViewData["Title"]</h1>
-    <p class="text-danger">You do not have access to this resource.</p>
-</header>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center">
+            <header>
+                <h1 class="text-danger"><i class="bi bi-excursion"></i> @ViewData["Title"]</h1>
+                <p class="lead text-muted">Sajnáljuk, de nincs jogosultsága az oldal megtekintéséhez.</p>
+            </header>
+            <hr />
+            <div class="mt-4">
+                <p>Ezt a funkciót csak <strong>Adminisztrátorok</strong> használhatják.</p>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-primary mt-3">Vissza a főoldalra</a>
+            </div>
+        </div>
+    </div>
+</div>
