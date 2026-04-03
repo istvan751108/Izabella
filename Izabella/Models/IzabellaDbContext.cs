@@ -18,12 +18,26 @@ public class IzabellaDbContext : IdentityDbContext
     public DbSet<LiquidManure> LiquidManures { get; set; }
     public DbSet<SolidManure> SolidManures { get; set; }
     public DbSet<LiquidManureSplit> LiquidManureSplits { get; set; }
+    public DbSet<Cattle> Cattles { get; set; }
+    public DbSet<BreedingData> BreedingDatas { get; set; }
+    public DbSet<Company> Companies { get; set; }
+    public DbSet<Herd> Herds { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // EZ A SOR A KULCS: Ez állítja be az Identity táblák (köztük a Passkey) kulcsait!
         base.OnModelCreating(modelBuilder);
 
-        // Itt tarthatod a saját egyedi beállításaidat, ha vannak, például:
-        // modelBuilder.Entity<LiquidManure>().HasMany(x => x.Splits)...
+        // 1. Állat -> Tenyészet kapcsolat (Törléskor ne nyúljon az állathoz)
+        modelBuilder.Entity<Cattle>()
+            .HasOne(c => c.CurrentHerd)
+            .WithMany()
+            .HasForeignKey(c => c.CurrentHerdId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // 2. Tenyészet -> Cég kapcsolat (Biztonsági tartalék)
+        modelBuilder.Entity<Herd>()
+            .HasOne(h => h.Company)
+            .WithMany()
+            .HasForeignKey(h => h.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

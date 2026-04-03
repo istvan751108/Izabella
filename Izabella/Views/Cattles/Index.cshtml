@@ -1,0 +1,137 @@
+﻿@model IEnumerable<Izabella.Models.Cattle>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.EarTag)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EnarNumber)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PassportNumber)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PassportSequence)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Company)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CurrentHerd)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.AgeGroup)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IsTwin)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IsAlive)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DamAgeAtCalving)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.BirthDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.BirthWeight)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Gender)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.MotherEnar)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.FatherKlsz)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ExitDate)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ExitType)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.IsActive)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.EarTag)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EnarNumber)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PassportNumber)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PassportSequence)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Company.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CurrentHerd.HerdCode)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.AgeGroup)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsTwin)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsAlive)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DamAgeAtCalving)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.BirthDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.BirthWeight)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Gender)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.MotherEnar)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.FatherKlsz)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ExitDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ExitType)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.IsActive)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

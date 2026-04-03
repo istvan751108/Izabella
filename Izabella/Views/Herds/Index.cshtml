@@ -1,0 +1,56 @@
+﻿@model IEnumerable<Herd>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Tenyészetek</h1>
+
+<p>
+    <a asp-action="Create">Új tenyészet felvitele</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Name)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.HerdCode)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Company)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DefaultPrefix)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.EnarPrefix)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Name)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.HerdCode)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DefaultPrefix)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.EnarPrefix)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Szerkesztés</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Részletek</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Törlés</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

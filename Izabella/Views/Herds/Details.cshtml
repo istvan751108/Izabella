@@ -1,0 +1,52 @@
+﻿@model Herd
+
+@{
+    ViewData["Title"] = "Részletek";
+}
+
+<h1>Részletek</h1>
+
+<div>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.HerdCode)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.HerdCode)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Company)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Company.Name)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.DefaultPrefix)
+        </dt>
+        <dd class="col-sm-10">
+            @(string.IsNullOrEmpty(Model.DefaultPrefix) ? "Nincs beállítva" : Model.DefaultPrefix)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.EnarPrefix)
+        </dt>
+        <dd class="col-sm-10">
+            @(string.IsNullOrEmpty(Model.EnarPrefix) ? "Nincs beállítva" : Model.EnarPrefix)
+        </dd>
+    </dl>
+</div>
+
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-primary">Szerkesztés</a> |
+    <a asp-action="Index" class="btn btn-secondary">Vissza a Tenyészetek listához</a>
+</div>

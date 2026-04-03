@@ -1,0 +1,118 @@
+﻿@model Izabella.Models.Cattle
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Állat felvitele az Adatbázisba</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group">
+                <label asp-for="EarTag" class="control-label"></label>
+                <input asp-for="EarTag" class="form-control" />
+                <span asp-validation-for="EarTag" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EnarNumber" class="control-label"></label>
+                <input asp-for="EnarNumber" class="form-control" />
+                <span asp-validation-for="EnarNumber" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="PassportNumber" class="control-label"></label>
+                <input asp-for="PassportNumber" class="form-control" />
+                <span asp-validation-for="PassportNumber" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="PassportSequence" class="control-label"></label>
+                <input asp-for="PassportSequence" class="form-control" />
+                <span asp-validation-for="PassportSequence" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="CompanyId" class="control-label"></label>
+                <select asp-for="CompanyId" class ="form-control" asp-items="ViewBag.CompanyId"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="CurrentHerdId" class="control-label"></label>
+                <select asp-for="CurrentHerdId" class ="form-control" asp-items="ViewBag.CurrentHerdId"></select>
+            </div>
+            <div class="form-group">
+                <label asp-for="AgeGroup" class="control-label"></label>
+                <input asp-for="AgeGroup" class="form-control" />
+                <span asp-validation-for="AgeGroup" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="IsTwin" /> @Html.DisplayNameFor(model => model.IsTwin)
+                </label>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="IsAlive" /> @Html.DisplayNameFor(model => model.IsAlive)
+                </label>
+            </div>
+            <div class="form-group">
+                <label asp-for="DamAgeAtCalving" class="control-label"></label>
+                <input asp-for="DamAgeAtCalving" class="form-control" />
+                <span asp-validation-for="DamAgeAtCalving" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="BirthDate" class="control-label"></label>
+                <input asp-for="BirthDate" class="form-control" />
+                <span asp-validation-for="BirthDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="BirthWeight" class="control-label"></label>
+                <input asp-for="BirthWeight" class="form-control" />
+                <span asp-validation-for="BirthWeight" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Gender" class="control-label">Neme</label>
+                <select asp-for="Gender" class="form-control">
+                    <option value="1">Üsző / Tehén</option>
+                    <option value="0">Bika</option>
+                </select>
+                <span asp-validation-for="Gender" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="MotherEnar" class="control-label"></label>
+                <input asp-for="MotherEnar" class="form-control" />
+                <span asp-validation-for="MotherEnar" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="FatherKlsz" class="control-label"></label>
+                <input asp-for="FatherKlsz" class="form-control" />
+                <span asp-validation-for="FatherKlsz" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ExitDate" class="control-label"></label>
+                <input asp-for="ExitDate" class="form-control" />
+                <span asp-validation-for="ExitDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="ExitType" class="control-label"></label>
+                <input asp-for="ExitType" class="form-control" />
+                <span asp-validation-for="ExitType" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="IsActive" /> @Html.DisplayNameFor(model => model.IsActive)
+                </label>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

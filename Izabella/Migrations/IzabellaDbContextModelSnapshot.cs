@@ -22,6 +22,165 @@ namespace Izabella.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Herd", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DefaultPrefix")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EnarPrefix")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HerdCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("Herds");
+                });
+
+            modelBuilder.Entity("Izabella.Models.BreedingData", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AbortionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CattleId")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("IsPregnant")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastInseminationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PregnancyTestDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SireKlsz")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CattleId")
+                        .IsUnique();
+
+                    b.ToTable("BreedingDatas");
+                });
+
+            modelBuilder.Entity("Izabella.Models.Cattle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AgeGroup")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("BirthDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<double>("BirthWeight")
+                        .HasColumnType("float");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CurrentHerdId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DamAgeAtCalving")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EarTag")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EnarNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ExitDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ExitType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FatherKlsz")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Gender")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsAlive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsTwin")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("MotherEnar")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PassportNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("PassportSequence")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("CurrentHerdId");
+
+                    b.ToTable("Cattles");
+                });
+
+            modelBuilder.Entity("Izabella.Models.Company", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Companies");
+                });
+
             modelBuilder.Entity("Izabella.Models.LiquidManure", b =>
                 {
                     b.Property<int>("Id")
@@ -449,6 +608,45 @@ namespace Izabella.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Herd", b =>
+                {
+                    b.HasOne("Izabella.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Izabella.Models.BreedingData", b =>
+                {
+                    b.HasOne("Izabella.Models.Cattle", null)
+                        .WithOne("Breeding")
+                        .HasForeignKey("Izabella.Models.BreedingData", "CattleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Izabella.Models.Cattle", b =>
+                {
+                    b.HasOne("Izabella.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Herd", "CurrentHerd")
+                        .WithMany()
+                        .HasForeignKey("CurrentHerdId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+
+                    b.Navigation("CurrentHerd");
+                });
+
             modelBuilder.Entity("Izabella.Models.LiquidManureSplit", b =>
                 {
                     b.HasOne("Izabella.Models.LiquidManure", "LiquidManure")
@@ -509,6 +707,11 @@ namespace Izabella.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Izabella.Models.Cattle", b =>
+                {
+                    b.Navigation("Breeding");
                 });
 
             modelBuilder.Entity("Izabella.Models.LiquidManure", b =>

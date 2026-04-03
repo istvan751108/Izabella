@@ -1,0 +1,195 @@
+﻿@model Izabella.Models.Cattle
+
+@{
+    ViewData["Title"] = "Új ellés rögzítése";
+}
+
+<div class="container">
+    <h2 class="mb-4"><i class="bi bi-gender-female"></i> Új ellés rögzítése</h2>
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">Anyaállat azonosítása</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Anya fülszáma (pl. L1234)</label>
+                        <div class="input-group">
+                            <input type="text" id="damSearch" class="form-control" placeholder="Keresés...">
+                            <button class="btn btn-primary" type="button" id="btnSearchDam">Keresés</button>
+                        </div>
+                        <small id="damFeedback" class="text-muted"></small>
+                    </div>
+                    <div id="damDetails" class="d-none">
+                        <hr />
+                        <p><strong>ENAR:</strong> <span id="displayDamEnar"></span></p>
+                        <p><strong>Státusz:</strong> <span id="displayDamStatus" class="badge bg-info"></span></p>
+                        <p><strong>Helyszín:</strong> <span id="displayDamHerd"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <form asp-action="CreateCalf" id="calvingForm">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">Borjú adatai</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Születési hely (Tenyészet)</label>
+                                <select id="HerdId" name="CurrentHerdId" class="form-select" asp-items="ViewBag.Herds" required>
+                                    <option value="">-- Válassz tenyészetet --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Születési idő</label>
+                                <input type="date" name="BirthDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ajánlott Fülszám</label>
+                                <input type="text" id="CalfEarTag" name="EarTag" class="form-control fw-bold text-danger" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Generált ENAR</label>
+                                <input type="text" id="CalfEnar" name="EnarNumber" class="form-control fw-bold" readonly />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Neme</label>
+                                <select name="Gender" class="form-select">
+                                    <option value="Bika">Bika</option>
+                                    <option value="Üsző">Üsző</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Súly (kg)</label>
+                                <input type="number" name="BirthWeight" class="form-control" value="40" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Ikerellés?</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="IsTwin" id="IsTwin" value="true">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="secondTwinSection" class="d-none mt-4 p-3 border rounded bg-light">
+                            <h5 class="text-primary border-bottom pb-2">Második borjú adatai</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Második Fülszám</label>
+                                    <input type="text" id="CalfEarTag2" name="EarTag2" class="form-control fw-bold text-danger" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Második ENAR</label>
+                                    <input type="text" id="CalfEnar2" name="EnarNumber2" class="form-control fw-bold" readonly />
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Neme</label>
+                                    <select name="Gender2" class="form-select">
+                                        <option value="Bika">Bika</option>
+                                        <option value="Üsző">Üsző</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Súly (kg)</label>
+                                    <input type="number" name="BirthWeight2" class="form-control" value="38" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" id="MotherEnar" name="MotherEnar" />
+
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" class="btn btn-success btn-lg">Ellés mentése</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Anya keresése
+            $('#btnSearchDam').click(function () {
+                var tag = $('#damSearch').val();
+                if (!tag) return;
+                $.get('/Cattle/GetDamInfo', { earTag: tag }, function (data) {
+                    $('#damDetails').removeClass('d-none');
+                    $('#displayDamEnar').text(data.enar);
+                    $('#displayDamStatus').text(data.ageGroup);
+                    $('#displayDamHerd').text(data.herd);
+                    $('#MotherEnar').val(data.enar);
+                });
+            });
+
+            // Tenyészet választáskor lekérjük az AJÁNLOTT következő számot
+            $('#HerdId').change(function () {
+                var herdId = $(this).val();
+                if (!herdId) return;
+                $.get('/Cattle/GetNextIdentifiers', { herdId: herdId }, function (data) {
+                    $('#CalfEarTag').val(data.earTag);
+                    $('#CalfEnar').val(data.enar);
+                    syncTwinTag(); // Ha már be van pipálva az iker, frissítse a másodikat is
+                });
+            });
+
+            // Ha az ELSŐ fülszámot átírod, számolja újra az ENAR-t ÉS a másodikat
+            $('#CalfEarTag').on('change', function() {
+                var tag1 = $(this).val();
+                calculateSingleEnar(tag1, '#CalfEnar');
+                syncTwinTag();
+            });
+
+            // Ha a MÁSODIK fülszámot átírod, csak az ENAR-ját számolja újra
+            $('#CalfEarTag2').on('change', function() {
+                calculateSingleEnar($(this).val(), '#CalfEnar2');
+            });
+
+            // Iker-kapcsoló
+            $('#IsTwin').change(function () {
+                if (this.checked) {
+                    $('#secondTwinSection').removeClass('d-none');
+                    syncTwinTag();
+                } else {
+                    $('#secondTwinSection').addClass('d-none');
+                }
+            });
+
+            function syncTwinTag() {
+                if (!$('#IsTwin').is(':checked')) return;
+                
+                var tag1 = $('#CalfEarTag').val();
+                if (!tag1) return;
+
+                // Logika: Prefix + (Szám + 1)
+                let prefix = tag1.replace(/[0-9]/g, '');
+                let numPart = tag1.replace(/[^0-9]/g, '');
+                let nextNum = parseInt(numPart) + 1;
+                let tag2 = prefix + nextNum.toString().padStart(numPart.length, '0');
+
+                $('#CalfEarTag2').val(tag2);
+                calculateSingleEnar(tag2, '#CalfEnar2');
+            }
+
+            function calculateSingleEnar(tag, targetInputId) {
+                var herdId = $('#HerdId').val();
+                if (!tag || !herdId) return;
+                $.get('/Cattle/CalculateEnar', { earTag: tag, herdId: herdId }, function(data) {
+                    $(targetInputId).val(data.enar);
+                });
+            }
+        });
+    </script>
+}

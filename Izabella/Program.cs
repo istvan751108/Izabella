@@ -21,7 +21,8 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => {
 builder.Services.AddDbContext<IzabellaDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddControllersWithViews(); 
+builder.Services.AddControllersWithViews();
+builder.Services.AddMvc().AddDataAnnotationsLocalization();
 builder.Services.AddScoped<VoucherService>();
 builder.Services.AddScoped<ManureCalculationService>();
 builder.Services.AddScoped<SolidManureService>();

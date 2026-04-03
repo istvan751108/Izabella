@@ -28,15 +28,16 @@
                         <a class="nav-link" asp-controller="Home" asp-action="Index">Főoldal</a>
                     </li>
 
-                    @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Manure" asp-action="Index">Trágya rögzítés</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-warning" asp-controller="Admin" asp-action="Users">Felhasználók</a>
-                            </li>
-                        }
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="cattleDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Állomány
+                        </a>
+                        <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="cattleDropdown">
+                            <li><a class="dropdown-item" asp-controller="Cattle" asp-action="Calving">Új ellés rögzítése</a></li>
+                            <li><a class="dropdown-item" asp-controller="Cattle" asp-action="Index">Állatlista</a></li>
+                        </ul>
+                    </li>
+
                     @if (User.Identity.IsAuthenticated)
                     {
                         <li class="nav-item dropdown">
@@ -54,9 +55,24 @@
                             </ul>
                         </li>
                     }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-warning" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-gear-fill"></i> Adminisztráció
+                            </a>
+                            <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="adminDropdown">
+                                <li><a class="dropdown-item" asp-controller="Companies" asp-action="Index">Cégek kezelése</a></li>
+                                <li><a class="dropdown-item" asp-controller="Herds" asp-action="Index">Tenyészetek kezelése</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Index">Összes állat (Kézi szerkesztő)</a></li>
+                                <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Felhasználók kezelése</a></li>
+                            </ul>
+                        </li>
+                    }
                 </ul>
 
-                @* EZ HIÁNYZOTT: Itt jelenik meg a Bejelentkezés/Kijelentkezés *@
+                @* Itt jelenik meg a Bejelentkezés/Kijelentkezés *@
                 <div class="navbar-nav">
                     <partial name="_LoginPartial" />
                 </div>
