@@ -22,6 +22,8 @@ public class IzabellaDbContext : IdentityDbContext
     public DbSet<BreedingData> BreedingDatas { get; set; }
     public DbSet<Company> Companies { get; set; }
     public DbSet<Herd> Herds { get; set; }
+    public DbSet<DeathLog> DeathLogs { get; set; }
+    public DbSet<DeathReason> DeathReasons { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

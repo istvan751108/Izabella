@@ -1,0 +1,73 @@
+﻿@model Izabella.Models.Cattle
+
+@{
+    ViewData["Title"] = "Elhullás rögzítése";
+}
+
+<div class="container">
+    <h2 class="text-danger">Elhullás rögzítése</h2>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4 border-danger">
+                <div class="card-header bg-danger text-white">Állat adatai a kikerüléskor</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <p><strong>Fülszám:</strong> @Model.EarTag</p>
+                            <p><strong>ENAR:</strong> @Model.EnarNumber</p>
+                        </div>
+                        <div class="col-sm-6">
+                            <p><strong>Korcsoport:</strong> @Model.AgeGroup</p>
+                            <p><strong>Tenyészet:</strong> @(Model.CurrentHerd?.HerdCode ?? "Nincs megadva")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form asp-action="ProcessDeath" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold">Elhullás dátuma</label>
+                    <input type="date" name="deathDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold">Elhullás oka</label>
+                    <select name="reason" class="form-control" required>
+                        <option value="">-- Válasszon okot --</option>
+                        @if (ViewBag.Reasons != null)
+                        {
+                            foreach (var reason in (IEnumerable<Izabella.Models.DeathReason>)ViewBag.Reasons)
+                            {
+                                <option value="@reason.Name">@reason.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold">Becsült súly (kg)</label>
+                    <input type="number" name="weight" class="form-control" step="0.1" required />
+                </div>
+
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-danger btn-lg" onclick="return confirm('Biztosan rögzíti az elhullást? Az állat állapota élettelenre változik és kikerül az állományból.')">
+                        <i class="bi bi-Check-circle"></i> Elhullás mentése
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary btn-lg">Mégse</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

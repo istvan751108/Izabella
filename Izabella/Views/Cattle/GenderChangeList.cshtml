@@ -1,0 +1,80 @@
+﻿@model IEnumerable<Izabella.Models.Cattle>
+
+@{
+    ViewData["Title"] = "Nemváltoztatás";
+}
+
+<div class="container-fluid">
+    <h2><i class="bi bi-gender-ambiguous"></i> Nemváltoztatás kezelése</h2>
+    <p class="text-muted">Csak az "Itatásos borjú" korcsoportú állatok listája.</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <form asp-action="ProcessGenderChange" method="post">
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-warning">
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAll" class="form-check-input"></th>
+                            <th>Fülszám</th>
+                            <th>Jelenlegi Nem</th>
+                            <th>Új Nem (mentés után)</th>
+                            <th>Marhalevél</th>
+                            <th>Példány sz.</th>
+                            <th>Született</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td><input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input calf-check"></td>
+                                <td class="fw-bold">@item.EarTag</td>
+                                <td>
+                                    <span class="badge @(item.Gender == Gender.Bika ? "bg-info" : "bg-danger")">
+                                        @(item.Gender == Gender.Bika ? "Bika" : "Üsző")
+                                    </span>
+                                </td>
+                                <td>
+                                    <i class="bi bi-arrow-right"></i>
+                                    <span class="badge @(item.Gender == Gender.Bika ? "bg-danger" : "bg-info")">
+                                        @(item.Gender == Gender.Bika ? "Üsző" : "Bika")
+                                    </span>
+                                </td>
+                                <td>@item.PassportNumber</td>
+                                <td>@(item.PassportSequence <= 0 ? 1 : item.PassportSequence).</td>
+                                <td>@item.BirthDate.ToShortDateString()</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer d-flex justify-content-end">
+                <button type="submit" class="btn btn-warning btn-lg" id="btnSubmit" onclick="return confirm('Biztosan megváltoztatja a kijelölt állatok nemét? A marhalevél státuszok is frissülni fognak!')">
+                    <i class="bi bi-save"></i> Kijelöltek módosítása
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        $('#selectAll').click(function() {
+            $('.calf-check').prop('checked', this.checked);
+            updateButton();
+        });
+        $('.calf-check').change(updateButton);
+        function updateButton() {
+            $('#btnSubmit').prop('disabled', $('.calf-check:checked').length === 0);
+        }
+        updateButton();
+    </script>
+}

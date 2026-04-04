@@ -19,10 +19,35 @@ namespace Izabella.Controllers
         }
 
         // GET: Cattles
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchGroup, string searchTag)
         {
-            var izabellaDbContext = _context.Cattles.Include(c => c.Company).Include(c => c.CurrentHerd);
-            return View(await izabellaDbContext.ToListAsync());
+            // Alap lekérdezés: betöltjük a Tenyészetet és a Céget is (Eager Loading)
+            var query = _context.Cattles
+                .Include(c => c.CurrentHerd)
+                .Include(c => c.Company)
+                .Where(c => c.IsActive == true) // Csak az élő/bent lévő állatok
+                .AsQueryable();
+
+            // Szűrés korcsoportra, ha van kiválasztva
+            if (!string.IsNullOrEmpty(searchGroup))
+            {
+                query = query.Where(c => c.AgeGroup == searchGroup);
+            }
+
+            // Keresés fülszám alapján
+            if (!string.IsNullOrEmpty(searchTag))
+            {
+                query = query.Where(c => c.EarTag.Contains(searchTag));
+            }
+
+            // Korcsoportok listája a legördülőhöz
+            ViewBag.AgeGroups = await _context.Cattles
+                .Where(c => c.AgeGroup != null)
+                .Select(c => c.AgeGroup)
+                .Distinct()
+                .ToListAsync();
+
+            return View(await query.OrderByDescending(c => c.BirthDate).ToListAsync());
         }
 
         // GET: Cattles/Details/5

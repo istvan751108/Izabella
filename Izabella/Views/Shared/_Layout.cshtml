@@ -30,11 +30,16 @@
 
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="cattleDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Állomány
+                            Állomány kezelés
                         </a>
                         <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="cattleDropdown">
                             <li><a class="dropdown-item" asp-controller="Cattle" asp-action="Calving">Új ellés rögzítése</a></li>
-                            <li><a class="dropdown-item" asp-controller="Cattle" asp-action="Index">Állatlista</a></li>
+                            <li><a class="dropdown-item" asp-controller="Cattle" asp-action="EnarReporting">ENAR Bejelentés</a></li>
+                            <li><a class="dropdown-item" asp-controller="Cattle" asp-action="GenderChangeList">Borjú nemének megváltoztatása</a></li>
+                            <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Index">Állatlista</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            @* Opcionális: itt később listázhatjuk az elhullottakat *@
+                            <li><a class="dropdown-item text-danger" asp-controller="Cattle" asp-action="DeathLogList">Elhullások naplója</a></li>
                         </ul>
                     </li>
 
@@ -65,7 +70,7 @@
                                 <li><a class="dropdown-item" asp-controller="Companies" asp-action="Index">Cégek kezelése</a></li>
                                 <li><a class="dropdown-item" asp-controller="Herds" asp-action="Index">Tenyészetek kezelése</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Index">Összes állat (Kézi szerkesztő)</a></li>
+                                <li><a class="dropdown-item" asp-controller="DeathReasons" asp-action="Index">Elhullás okok kezelése</a></li>
                                 <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Felhasználók kezelése</a></li>
                             </ul>
                         </li>

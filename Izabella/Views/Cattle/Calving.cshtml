@@ -121,43 +121,71 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Anya keresése
+
+            // 1. ANYA KERESÉSE
             $('#btnSearchDam').click(function () {
                 var tag = $('#damSearch').val();
                 if (!tag) return;
-                $.get('/Cattle/GetDamInfo', { earTag: tag }, function (data) {
-                    $('#damDetails').removeClass('d-none');
-                    $('#displayDamEnar').text(data.enar);
-                    $('#displayDamStatus').text(data.ageGroup);
-                    $('#displayDamHerd').text(data.herd);
-                    $('#MotherEnar').val(data.enar);
+
+                $.ajax({
+                    url: '/Cattle/GetDamInfo',
+                    type: 'GET',
+                    data: { earTag: tag },
+                    success: function (data) {
+                        $('#damDetails').removeClass('d-none');
+                        $('#displayDamEnar').text(data.enar);
+                        $('#displayDamStatus').text(data.ageGroup).removeClass('bg-danger').addClass('bg-info');
+                        $('#displayDamHerd').text(data.herd);
+                        $('#MotherEnar').val(data.enar);
+                        $('#damFeedback').text("Anya azonosítva.").removeClass('text-danger').addClass('text-success');
+
+                        // AUTOMATIKUS TENYÉSZET ÉS FÜLSZÁM GENERÁLÁS
+                        $("#HerdId option").each(function() {
+                            if($(this).text().indexOf(data.herd) >= 0) {
+                                $(this).prop('selected', true);
+                                updateIdentifiers(); // Ez hívja meg a generálást
+                            }
+                        });
+                    },
+                    error: function (xhr) {
+                        $('#damDetails').addClass('d-none');
+                        if (xhr.status === 403) {
+                            alert(xhr.responseJSON.message);
+                            $('#damFeedback').text(xhr.responseJSON.message).addClass('text-danger');
+                        } else {
+                            alert("Nincs ilyen fülszámú állat az adatbázisban!");
+                            $('#damFeedback').text("Hiba: Az állat nem található.").addClass('text-danger');
+                        }
+                    }
                 });
             });
 
-            // Tenyészet választáskor lekérjük az AJÁNLOTT következő számot
-            $('#HerdId').change(function () {
-                var herdId = $(this).val();
+            // 2. FÜLSZÁM GENERÁLÁS FÜGGVÉNY
+            function updateIdentifiers() {
+                var herdId = $('#HerdId').val();
                 if (!herdId) return;
+
                 $.get('/Cattle/GetNextIdentifiers', { herdId: herdId }, function (data) {
                     $('#CalfEarTag').val(data.earTag);
                     $('#CalfEnar').val(data.enar);
-                    syncTwinTag(); // Ha már be van pipálva az iker, frissítse a másodikat is
+                    syncTwinTag();
                 });
+            }
+
+            // 3. ESEMÉNYKEZELŐK
+            $('#HerdId').change(function () {
+                updateIdentifiers();
             });
 
-            // Ha az ELSŐ fülszámot átírod, számolja újra az ENAR-t ÉS a másodikat
             $('#CalfEarTag').on('change', function() {
-                var tag1 = $(this).val();
-                calculateSingleEnar(tag1, '#CalfEnar');
+                calculateSingleEnar($(this).val(), '#CalfEnar');
                 syncTwinTag();
             });
 
-            // Ha a MÁSODIK fülszámot átírod, csak az ENAR-ját számolja újra
             $('#CalfEarTag2').on('change', function() {
                 calculateSingleEnar($(this).val(), '#CalfEnar2');
             });
 
-            // Iker-kapcsoló
             $('#IsTwin').change(function () {
                 if (this.checked) {
                     $('#secondTwinSection').removeClass('d-none');
@@ -167,13 +195,12 @@
                 }
             });
 
+            // 4. SEGÉDFÜGGVÉNYEK
             function syncTwinTag() {
                 if (!$('#IsTwin').is(':checked')) return;
-                
                 var tag1 = $('#CalfEarTag').val();
                 if (!tag1) return;
 
-                // Logika: Prefix + (Szám + 1)
                 let prefix = tag1.replace(/[0-9]/g, '');
                 let numPart = tag1.replace(/[^0-9]/g, '');
                 let nextNum = parseInt(numPart) + 1;

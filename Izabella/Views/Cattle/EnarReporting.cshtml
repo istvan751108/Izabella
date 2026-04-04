@@ -1,0 +1,96 @@
+﻿@model IEnumerable<Izabella.Models.Cattle>
+
+@{
+    ViewData["Title"] = "ENAR Bejelentés";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-file-earmark-code"></i> ENAR Bejelentés (Várólista)</h2>
+        <span class="badge bg-secondary">Csak "Itatásos borjú" + Marhalevél: "Nincs"</span>
+    </div>
+
+    <form asp-action="GenerateEnarXml" method="post">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th>Fülszám</th>
+                                <th>ENAR szám</th>
+                                <th>Született</th>
+                                <th>Iker?</th>
+                                <th>Súly (kg)</th>
+                                <th>Anya ENAR</th>
+                                <th>Tenyészet</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">Nincs bejelentésre váró borjú.</td>
+                                </tr>
+                            }
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input calf-check">
+                                    </td>
+                                    <td class="fw-bold">@item.EarTag</td>
+                                    <td>@item.EnarNumber</td>
+                                    <td>@item.BirthDate.ToString("yyyy.MM.dd.")</td>
+                                    <td>@(item.IsTwin ? "Igen" : "Nem")</td>
+                                    <td>@item.BirthWeight kg</td>
+                                    <td class="small">@item.MotherEnar</td>
+                                    <td>@item.CurrentHerd?.Name</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white py-3">
+                <div class="card-footer bg-white py-3">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" asp-action="GenerateEnarPdf" class="btn btn-outline-danger btn-lg">
+                            <i class="bi bi-file-pdf"></i> PDF Előnézet / Nyomtatás
+                        </button>
+
+                        <button type="submit" asp-action="GenerateEnarXml" class="btn btn-primary btn-lg" id="btnGenerate">
+                            <i class="bi bi-download"></i> XML Generálása és Beküldés
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Összes kijelölése/feloldása
+            $('#selectAll').click(function () {
+                $('.calf-check').prop('checked', this.checked);
+                updateButtonState();
+            });
+
+            $('.calf-check').change(function () {
+                updateButtonState();
+            });
+
+            function updateButtonState() {
+                var checkedCount = $('.calf-check:checked').length;
+                $('#btnGenerate').prop('disabled', checkedCount === 0);
+            }
+
+            updateButtonState();
+        });
+    </script>
+}

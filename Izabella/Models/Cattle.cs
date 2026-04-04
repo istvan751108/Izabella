@@ -28,14 +28,15 @@ namespace Izabella.Models
         [Display(Name = "Marhalevél sorszám")]
         public int PassportSequence { get; set; } = 1;
 
-        [Display(Name = "Cég")]
+        [Display(Name = "Tulajdonos (Cég)")]
         public int CompanyId { get; set; }
+        [Display(Name = "Cég")]
         public virtual Company? Company { get; set; }
 
-        // Cattle.cs-ben cseréld le/add hozzá:
         [Display(Name = "Aktuális Tenyészet")]
         public int CurrentHerdId { get; set; }
-        public virtual Herd CurrentHerd { get; set; }
+        [Display(Name = "Tenyészet kód")]
+        public virtual Herd? CurrentHerd { get; set; }
 
         [Display(Name = "Korcsoport")]
         public string AgeGroup { get; set; } // pl. "0-3 hó", "Vemhes üsző", "Tehén"
@@ -70,9 +71,11 @@ namespace Izabella.Models
         // --- Üsző specifikus adatok (Navigációs tulajdonság) ---
         public virtual BreedingData? Breeding { get; set; }
 
-        // --- Kikerülés adatai ---
+        [Display(Name = "Kikerülés dátuma")]
         [DataType(DataType.Date)]
         public DateTime? ExitDate { get; set; }
+        
+        [Display(Name = "Kikerülés típusa")]
         public ExitType? ExitType { get; set; }
 
         [Display(Name = "Aktív?")]

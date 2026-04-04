@@ -181,6 +181,62 @@ namespace Izabella.Migrations
                     b.ToTable("Companies");
                 });
 
+            modelBuilder.Entity("Izabella.Models.DeathLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CattleId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DeathDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EarTagAtDeath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EnarNumberAtDeath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("EstimatedWeight")
+                        .HasColumnType("float");
+
+                    b.Property<bool>("IsEnarReported")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CattleId");
+
+                    b.ToTable("DeathLogs");
+                });
+
+            modelBuilder.Entity("Izabella.Models.DeathReason", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DeathReasons");
+                });
+
             modelBuilder.Entity("Izabella.Models.LiquidManure", b =>
                 {
                     b.Property<int>("Id")
@@ -645,6 +701,17 @@ namespace Izabella.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("CurrentHerd");
+                });
+
+            modelBuilder.Entity("Izabella.Models.DeathLog", b =>
+                {
+                    b.HasOne("Izabella.Models.Cattle", "Cattle")
+                        .WithMany()
+                        .HasForeignKey("CattleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cattle");
                 });
 
             modelBuilder.Entity("Izabella.Models.LiquidManureSplit", b =>
