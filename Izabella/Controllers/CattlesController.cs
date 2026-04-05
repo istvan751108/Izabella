@@ -21,30 +21,32 @@ namespace Izabella.Controllers
         // GET: Cattles
         public async Task<IActionResult> Index(string searchGroup, string searchTag)
         {
-            // Alap lekérdezés: betöltjük a Tenyészetet és a Céget is (Eager Loading)
+            // 1. Alap lekérdezés: CSAK AZ AKTÍVAK (IsActive == true)
             var query = _context.Cattles
                 .Include(c => c.CurrentHerd)
                 .Include(c => c.Company)
-                .Where(c => c.IsActive == true) // Csak az élő/bent lévő állatok
+                .Where(c => c.IsActive == true)
                 .AsQueryable();
 
-            // Szűrés korcsoportra, ha van kiválasztva
+            // 2. Szűrés korcsoportra
             if (!string.IsNullOrEmpty(searchGroup))
             {
                 query = query.Where(c => c.AgeGroup == searchGroup);
             }
 
-            // Keresés fülszám alapján
+            // 3. Keresés fülszám alapján (kis/nagybetű függetlenül érdemes)
             if (!string.IsNullOrEmpty(searchTag))
             {
-                query = query.Where(c => c.EarTag.Contains(searchTag));
+                query = query.Where(c => c.EarTag.Contains(searchTag.ToUpper()));
             }
 
-            // Korcsoportok listája a legördülőhöz
+            // 4. Korcsoportok listája - CSAK AZ AKTÍV ÁLLOMÁNYBÓL
+            // Így nem fogsz látni "Halva született" opciót az élő állatok listájában
             ViewBag.AgeGroups = await _context.Cattles
-                .Where(c => c.AgeGroup != null)
+                .Where(c => c.IsActive == true && c.AgeGroup != null)
                 .Select(c => c.AgeGroup)
                 .Distinct()
+                .OrderBy(g => g)
                 .ToListAsync();
 
             return View(await query.OrderByDescending(c => c.BirthDate).ToListAsync());

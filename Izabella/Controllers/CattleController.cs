@@ -97,94 +97,148 @@ namespace Izabella.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateCalf(Cattle calf, string EarTag2, string EnarNumber2, string Gender2, double? BirthWeight2, string IsTwin)
+        public async Task<IActionResult> CreateCalf(Cattle calf, string? EarTag2, string? EnarNumber2, string Gender2, double? BirthWeight2, string? IsTwin, string? IsAlive, string? IsAlive2)
         {
-            // Kézzel beállítjuk a bool értéket, mert a böngésző "on"-t küldhet
-            calf.IsTwin = (IsTwin == "on" || IsTwin == "true");
-            // Megkeressük az anyát a cégadatokhoz
-            var dam = await _context.Cattles.FirstOrDefaultAsync(c => c.EnarNumber == calf.MotherEnar);
-            if (dam != null)
-            {
-                calf.CompanyId = dam.CompanyId;
-            }
+            // Checkboxok manuális feldolgozása a hiba elkerülésére
+            bool twin = (IsTwin == "on" || IsTwin == "true");
+            bool alive1 = (IsAlive == "on" || IsAlive == "true");
+            bool alive2 = (IsAlive2 == "on" || IsAlive2 == "true");
 
-            // ELTÁVOLÍTJUK A KRITIKUS MEZŐKET A VALIDÁCIÓBÓL
+            // Az anya adatainak lekérése a Cég és Tenyészet miatt
+            var dam = await _context.Cattles.FirstOrDefaultAsync(c => c.EnarNumber == calf.MotherEnar);
+
+            // Mivel a halva születettnek nincs fülszáma, a validátornak megengedjük az üres mezőt
+            ModelState.Remove("EarTag");
+            ModelState.Remove("EnarNumber");
+            ModelState.Remove("PassportNumber");
+            ModelState.Remove("AgeGroup");
+            ModelState.Remove("IsAlive");
+            ModelState.Remove("IsAlive2");
             ModelState.Remove("CurrentHerd");
             ModelState.Remove("Company");
-            ModelState.Remove("PassportNumber"); // Ez okozta a hibát
-            ModelState.Remove("AgeGroup");       // Ez is okozta a hibát
-            ModelState.Remove("EarTag2");
-            ModelState.Remove("EnarNumber2");
-            ModelState.Remove("IsTwin");
-            // Ha van más "Field is required" hiba, azt is add hozzá ide ModelState.Remove("MezőNeve") formában!
 
             if (ModelState.IsValid)
             {
-                try
+                using (var transaction = await _context.Database.BeginTransactionAsync())
                 {
-                    // Alapadatok beállítása mentés előtt
-                    calf.IsActive = true;
-                    calf.IsAlive = true;
-                    calf.PassportNumber = "Nincs"; // "KÉRVE" helyett
-                    calf.AgeGroup = "Itatásos borjú";
-
-                    _context.Cattles.Add(calf);
-
-                    if (calf.IsTwin && !string.IsNullOrEmpty(EarTag2))
+                    try
                     {
-                        var secondCalf = new Cattle
+                        // 1. ELSŐ BORJÚ
+                        if (!alive1)
                         {
-                            EarTag = EarTag2,
-                            EnarNumber = EnarNumber2,
-                            Gender = (Gender2 == "Bika" ? Gender.Bika : Gender.Üsző),
-                            BirthWeight = BirthWeight2 ?? 35,
-                            BirthDate = calf.BirthDate,
-                            MotherEnar = calf.MotherEnar,
-                            CurrentHerdId = calf.CurrentHerdId,
-                            CompanyId = calf.CompanyId,
-                            IsActive = true,
-                            IsAlive = true,
-                            IsTwin = true,
-                            PassportNumber = "Nincs",
-                            AgeGroup = "Itatásos borjú"
-                        };
-                        _context.Cattles.Add(secondCalf);
-                    }
-
-                    // 3. Anya frissítése és Vemhesség lezárása
-                    //var dam = await _context.Cattles.FirstOrDefaultAsync(c => c.EnarNumber == calf.MotherEnar);
-                    if (dam != null)
-                    {
-                        dam.DamAgeAtCalving = "Tehén";
-                        _context.Update(dam);
-
-                        var activeBreeding = await _context.BreedingDatas
-                            .Where(b => b.CattleId == dam.Id && b.IsPregnant == true)
-                            .OrderByDescending(b => b.PregnancyTestDate)
-                            .FirstOrDefaultAsync();
-
-                        if (activeBreeding != null)
-                        {
-                            activeBreeding.IsPregnant = false;
-                            _context.Update(activeBreeding);
+                            calf.EarTag = "HALVA-" + DateTime.Now.Ticks.ToString().Substring(10); // Belső technikai azonosító
+                            calf.EnarNumber = "HALVA-SZÜLETETT";
                         }
-                    }
 
-                    await _context.SaveChangesAsync();
-                    return RedirectToAction("Index", "Cattles"); // Átvisz az állatlistához
-                }
-                catch (Exception ex)
-                {
-                    // Ez kiírja a belső hibaüzenetet is, amiből látni fogjuk a konkrét SQL hibát
-                    var innerMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
-                    ModelState.AddModelError("", "Adatbázis hiba: " + innerMessage);
+                        ProcessNewborn(calf, dam, alive1);
+                        _context.Cattles.Add(calf);
+                        await _context.SaveChangesAsync();
+
+                        if (!alive1) AddDeathLog(calf, "Halva született");
+
+                        // 2. MÁSODIK BORJÚ (IKER)
+                        if (twin)
+                        {
+                            var secondCalf = new Cattle
+                            {
+                                BirthDate = calf.BirthDate,
+                                MotherEnar = calf.MotherEnar,
+                                CurrentHerdId = calf.CurrentHerdId,
+                                Gender = (Gender2 == "Bika" ? Gender.Bika : Gender.Üsző),
+                                BirthWeight = BirthWeight2 ?? 35,
+                                IsTwin = true,
+                                IsAlive = alive2
+                            };
+
+                            if (!alive2)
+                            {
+                                secondCalf.EarTag = "HALVA-" + DateTime.Now.Ticks.ToString().Substring(10) + "-2";
+                                secondCalf.EnarNumber = "HALVA-SZÜLETETT";
+                            }
+                            else
+                            {
+                                secondCalf.EarTag = EarTag2;
+                                secondCalf.EnarNumber = EnarNumber2;
+                            }
+
+                            ProcessNewborn(secondCalf, dam, alive2);
+                            _context.Cattles.Add(secondCalf);
+                            await _context.SaveChangesAsync();
+
+                            if (!alive2) AddDeathLog(secondCalf, "Halva született");
+                        }
+
+                        // 3. ANYA FRISSÍTÉSE (Csak ha tényleg volt anya a DB-ben)
+                        if (dam != null)
+                        {
+                            dam.DamAgeAtCalving = "Tehén";
+                            _context.Update(dam);
+
+                            // Itt a javított sor:
+                            var breeding = await _context.BreedingDatas
+                                .FirstOrDefaultAsync(b => b.CattleId == dam.Id && b.IsPregnant == true);
+
+                            if (breeding != null)
+                            {
+                                breeding.IsPregnant = false;
+                                _context.Update(breeding);
+                            }
+                        }
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+                        // SIKERES MENTÉS UTÁN:
+                        TempData["SuccessMessage"] = $"Az ellés ({calf.MotherEnar} anyától) sikeresen rögzítve!";
+
+                        // Visszaküldjük az Ellés oldalra az Index helyett
+                        return RedirectToAction("Calving");
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        ModelState.AddModelError("", "Hiba történt a mentés során: " + ex.Message);
+                    }
                 }
             }
 
-            // Ha idáig eljutunk, hiba volt, újra kell tölteni a listákat
-            var birthHerds = _context.Herds.Where(h => !string.IsNullOrEmpty(h.DefaultPrefix)).ToList();
-            ViewBag.Herds = new SelectList(birthHerds, "Id", "Name");
+            // Ha hiba van, vagy az adatok nem validak, újra betöltjük a nézetet
+            ViewBag.Herds = new SelectList(_context.Herds.Where(h => !string.IsNullOrEmpty(h.DefaultPrefix)), "Id", "Name");
             return View("Calving", calf);
+        }
+
+        // Segédmetódus az alapértékek beállításához
+        private void ProcessNewborn(Cattle c, Cattle dam, bool isAlive)
+        {
+            c.CompanyId = dam?.CompanyId ?? 0;
+            c.PassportNumber = "Nincs";
+            c.IsActive = isAlive;
+
+            if (isAlive)
+            {
+                c.AgeGroup = "Itatásos borjú";
+            }
+            else
+            {
+                c.AgeGroup = "Halva született"; // <--- Így nem keveredik az élő borjakkal
+                c.ExitDate = c.BirthDate;
+                c.ExitType = ExitType.Elhullás;
+            }
+        }
+
+        // Segédmetódus a naplózáshoz
+        private void AddDeathLog(Cattle c, string reason)
+        {
+            var log = new DeathLog
+            {
+                CattleId = c.Id,
+                DeathDate = c.BirthDate,
+                Reason = reason,
+                EstimatedWeight = c.BirthWeight,
+                EarTagAtDeath = c.EarTag,
+                EnarNumberAtDeath = c.EnarNumber,
+                IsEnarReported = false
+            };
+            _context.DeathLogs.Add(log);
         }
 
         // --- ENAR GENERÁLÓ LOGIKA (A VBA kódod alapján) ---
@@ -218,7 +272,10 @@ namespace Izabella.Controllers
         {
             var pendingCalves = await _context.Cattles
                 .Include(c => c.CurrentHerd)
-                .Where(c => c.AgeGroup == "Itatásos borjú" && c.PassportNumber == "Nincs")
+                .Where(c => c.AgeGroup == "Itatásos borjú"
+                         && c.PassportNumber == "Nincs"
+                         && c.IsAlive == true      // <--- Csak az élők
+                         && c.IsActive == true)    // <--- Csak az aktívak
                 .OrderBy(c => c.BirthDate)
                 .ToListAsync();
 
@@ -428,7 +485,9 @@ namespace Izabella.Controllers
         public async Task<IActionResult> GenderChangeList()
         {
             var calves = await _context.Cattles
-                .Where(c => c.AgeGroup == "Itatásos borjú")
+                .Where(c => c.AgeGroup == "Itatásos borjú"
+                         && c.IsAlive == true      // <--- Csak az élők
+                         && c.IsActive == true)    // <--- Csak az aktívak
                 .OrderByDescending(c => c.BirthDate)
                 .ToListAsync();
 
@@ -594,6 +653,79 @@ namespace Izabella.Controllers
                     return View("RecordDeath", cattle);
                 }
             }
+        }
+        public async Task<IActionResult> DeathLogList(int? year, int? month)
+        {
+            var y = year ?? DateTime.Now.Year;
+            var m = month ?? DateTime.Now.Month;
+
+            var query = _context.DeathLogs
+                .Include(d => d.Cattle)
+                .Where(d => d.DeathDate.Year == y && d.DeathDate.Month == m);
+
+            var logs = await query.ToListAsync();
+
+            // Statisztika számítása korcsoportonként
+            var stats = logs.GroupBy(l => l.Cattle.AgeGroup)
+                .Select(g => new {
+                    Group = g.Key,
+                    Count = g.Count(),
+                    TotalWeight = g.Sum(x => x.EstimatedWeight)
+                }).ToList();
+
+            ViewBag.Stats = stats;
+            ViewBag.Year = y;
+            ViewBag.Month = m;
+
+            return View(logs);
+        }
+        [HttpPost]
+        public IActionResult GenerateTransportReceipt(List<int> selectedLogIds, DateTime transportDate)
+        {
+            var allSelected = _context.DeathLogs
+                .Include(d => d.Cattle)
+                .Where(d => selectedLogIds.Contains(d.Id))
+                .ToList();
+
+            // SEGÉDFÜGGVÉNY: Ha az ENAR nem számokkal kezdődik, vagy benne van a "HALVA" vagy "HULLA" szó, akkor hullaellés
+            bool IsStillBorn(DeathLog log) =>
+                string.IsNullOrWhiteSpace(log.EnarNumberAtDeath) ||
+                log.EnarNumberAtDeath.Contains("HULLA", StringComparison.OrdinalIgnoreCase) ||
+                log.EnarNumberAtDeath.Contains("HALVA", StringComparison.OrdinalIgnoreCase);
+
+            // 1. Csoportosítás a mostani szállításból
+            var currentNormal = allSelected.Where(l => !IsStillBorn(l)).ToList();
+            var currentStillborn = allSelected.Where(l => IsStillBorn(l)).ToList();
+
+            // 2. Múltbóli elmaradások (szigorúan csak rendes ENAR-os állatok!)
+            var pendingPassports = _context.DeathLogs
+                .Where(d => d.IsTransported && !d.IsPassportSent)
+                .AsEnumerable()
+                .Where(d => !IsStillBorn(d))
+                .ToList();
+
+            // 3. Mentés
+            foreach (var log in allSelected)
+            {
+                log.IsTransported = true;
+                log.TransportDate = transportDate;
+
+                if (IsStillBorn(log))
+                {
+                    log.IsPassportSent = true;
+                }
+                else
+                {
+                    bool hasPassport = log.Cattle != null && log.Cattle.PassportNumber != "Nincs" && log.Cattle.PassportNumber != "Kérve";
+                    log.IsPassportSent = hasPassport;
+                }
+            }
+
+            foreach (var p in pendingPassports) { p.IsPassportSent = true; }
+            _context.SaveChanges();
+
+            var document = new TransportReceiptDocument(currentNormal, currentStillborn, pendingPassports, transportDate);
+            return File(document.GeneratePdf(), "application/pdf", $"Bizonylat_{transportDate:yyyyMMdd}.pdf");
         }
     }   
 }

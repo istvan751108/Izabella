@@ -1,0 +1,89 @@
+﻿@model IEnumerable<Izabella.Models.DeathLog>
+
+<h2>Elhullások naplója</h2>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <form asp-action="DeathLogList" method="get" class="form-inline">
+            <input type="number" name="year" value="@ViewBag.Year" class="form-control mr-2" style="width: 100px;" />
+            <select name="month" class="form-control mr-2">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    <option value="@i" selected="@(i == ViewBag.Month)">@i. hónap</option>
+                }
+            </select>
+            <button type="submit" class="btn btn-primary">Szűrés</button>
+        </form>
+    </div>
+    <div class="col-md-6 text-right">
+        @foreach (var stat in ViewBag.Stats)
+        {
+            <span class="badge badge-info p-2">@stat.Group: @stat.Count db (@stat.TotalWeight kg)</span>
+        }
+    </div>
+</div>
+
+<form asp-action="GenerateTransportReceipt" method="post">
+    <div class="mb-3 card p-3 bg-light">
+        <div class="row">
+            <div class="col-md-4">
+                <label>Szállítás dátuma:</label>
+                <input type="date" name="transportDate" value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-success">Kijelöltek elszállítása és Bizonylat nyomtatása</button>
+            </div>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    <input type="checkbox" id="selectAll" title="Mindet kijelöl/kivesz" />
+                </th>
+                <th>Kijelölés</th>
+                <th>Dátum</th>
+                <th>Fülszám</th>
+                <th>ENAR</th>
+                <th>Súly (becsült)</th>
+                <th>Ok</th>
+                <th>Státusz</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var log in Model)
+            {
+                <tr>
+                    <td>
+                        @if (!log.IsTransported)
+                        {
+                            <input type="checkbox" name="selectedLogIds" value="@log.Id" />
+                        }
+                    </td>
+                    <td>@log.DeathDate.ToString("yyyy.MM.dd")</td>
+                    <td>@log.EarTagAtDeath</td>
+                    <td>@log.EnarNumberAtDeath</td>
+                    <td>@log.EstimatedWeight kg</td>
+                    <td>@log.Reason</td>
+                    <td>
+                        @if (log.IsTransported)
+                        {
+                            <span class="badge badge-secondary">Elszállítva (@log.TransportDate?.ToString("yyyy.MM.dd"))</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-warning">Szállításra vár</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</form>
+<script>
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('input[name="selectedLogIds"]');
+        checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+</script>

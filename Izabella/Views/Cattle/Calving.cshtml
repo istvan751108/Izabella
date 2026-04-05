@@ -6,6 +6,13 @@
 
 <div class="container">
     <h2 class="mb-4"><i class="bi bi-gender-female"></i> Új ellés rögzítése</h2>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <div asp-validation-summary="All" class="text-danger"></div>
     <div class="row">
         <div class="col-md-5">
@@ -64,12 +71,18 @@
                                 <label class="form-label">Neme</label>
                                 <select name="Gender" class="form-select">
                                     <option value="Bika">Bika</option>
-                                    <option value="Üsző">Üsző</option>
+                                    <option value="Üsző" selected>Üsző</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Súly (kg)</label>
                                 <input type="number" name="BirthWeight" class="form-control" value="40" />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Élve született?</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" name="IsAlive" id="IsAlive" value="true" checked>
+                                </div>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Ikerellés?</label>
@@ -96,12 +109,18 @@
                                     <label class="form-label">Neme</label>
                                     <select name="Gender2" class="form-select">
                                         <option value="Bika">Bika</option>
-                                        <option value="Üsző">Üsző</option>
+                                        <option value="Üsző" selected>Üsző</option>
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Súly (kg)</label>
                                     <input type="number" name="BirthWeight2" class="form-control" value="38" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Élve született?</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" name="IsAlive2" id="IsAlive2" value="true" checked>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -217,6 +236,37 @@
                     $(targetInputId).val(data.enar);
                 });
             }
+                    // IsAlive kapcsoló figyelése
+        $('#IsAlive').change(function() {
+            if (!this.checked) {
+                $('#CalfEarTag').val('').prop('disabled', true);
+                $('#CalfEnar').val('HALVA SZÜLETETT').prop('disabled', true);
+            } else {
+                $('#CalfEarTag').prop('disabled', false);
+                $('#CalfEnar').prop('disabled', false);
+                updateIdentifiers(); // Újra generáljuk a következőt
+            }
+        });
+
+        // IsAlive2 (Iker) kapcsoló figyelése
+        $('#IsAlive2').change(function() {
+            if (!this.checked) {
+                $('#CalfEarTag2').val('').prop('disabled', true);
+                $('#CalfEnar2').val('HALVA SZÜLETETT').prop('disabled', true);
+            } else {
+                $('#CalfEarTag2').prop('disabled', false);
+                $('#CalfEnar2').prop('disabled', false);
+                syncTwinTag(); // Újra generáljuk az iker számát
+            }
+        });
         });
     </script>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <script>
+            $(document).ready(function() {
+                $('#damSearch').focus(); // Automatikusan az anya keresőre ugrik a kurzor
+            });
+        </script>
+    }
 }
