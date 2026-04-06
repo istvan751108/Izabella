@@ -23,15 +23,31 @@ namespace Izabella.Controllers
 
         // --- 1. AZ ELLÉS ŰRLAP MEGJELENÍTÉSE ---
         [HttpGet]
+        [HttpGet]
         public IActionResult Calving()
         {
-            // Csak azokat a tenyészeteket adjuk át, ahol van beállítva Prefix (ahol lehet ellés)
             var birthHerds = _context.Herds
                 .Where(h => !string.IsNullOrEmpty(h.DefaultPrefix))
                 .Select(h => new { h.Id, Name = h.Name + " (" + h.HerdCode + ")" })
                 .ToList();
 
+            // Fajtalista összeállítása (a kép alapján)
+            var breeds = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "22", Text = "Holstein-fríz (22)", Selected = true },
+                new SelectListItem { Value = "1", Text = "Magyartarka (1)" },
+                new SelectListItem { Value = "12", Text = "Jersey (12)" },
+                new SelectListItem { Value = "13", Text = "Európai barna (13)" },
+                new SelectListItem { Value = "19", Text = "Mokány (19)" },
+                new SelectListItem { Value = "20", Text = "Erdélyi borzderes (20)" },
+                new SelectListItem { Value = "33", Text = "Kárpáti borzderes (33)" },
+                new SelectListItem { Value = "63", Text = "Montbeliarde (63)" },
+                new SelectListItem { Value = "88", Text = "Brown Swiss (88)" },
+                new SelectListItem { Value = "99", Text = "Egyéb tejhasznú (99)" }
+            };
+
             ViewBag.Herds = new SelectList(birthHerds, "Id", "Name");
+            ViewBag.Breeds = breeds; // Ezt használd a View-ban: <select asp-for="BreedCode" asp-items="ViewBag.Breeds"></select>
             return View();
         }
 
@@ -146,6 +162,7 @@ namespace Izabella.Controllers
                                 CurrentHerdId = calf.CurrentHerdId,
                                 Gender = (Gender2 == "Bika" ? Gender.Bika : Gender.Üsző),
                                 BirthWeight = BirthWeight2 ?? 35,
+                                BreedCode = calf.BreedCode,
                                 IsTwin = true,
                                 IsAlive = alive2
                             };
@@ -315,7 +332,7 @@ namespace Izabella.Controllers
                     new XElement("Azonosito", enarOnly),
                     new XElement("SzuletesiDatum", calf.BirthDate.ToString("yyyy-MM-dd")),
                     new XElement("Neme", calf.Gender == Gender.Bika ? 1 : 2),
-                    new XElement("SzarvasmarhaFajta", 22),
+                    new XElement("SzarvasmarhaFajta", calf.BreedCode),
                     new XElement("Szine", 1),
                     new XElement("TenyeszetKodja", calf.CurrentHerd?.HerdCode ?? "467355"),
                     new XElement("AnyaAzonOrszagkodja", "HU"),

@@ -74,6 +74,10 @@
                                     <option value="Üsző" selected>Üsző</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label>Szarvasmarha fajtája</label>
+                                <select asp-for="BreedCode" class="form-control" asp-items="ViewBag.Breeds"></select>
+                            </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Súly (kg)</label>
                                 <input type="number" name="BirthWeight" class="form-control" value="40" />
@@ -111,6 +115,10 @@
                                         <option value="Bika">Bika</option>
                                         <option value="Üsző" selected>Üsző</option>
                                     </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Szarvasmarha fajtája</label>
+                                    <select asp-for="BreedCode" class="form-control" asp-items="ViewBag.Breeds"></select>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Súly (kg)</label>

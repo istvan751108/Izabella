@@ -7,7 +7,12 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-card-list"></i> Aktív állomány</h2>
-        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Új állat kézi felvitele</a>
+        <div>
+            <button type="submit" form="salesForm" class="btn btn-warning fw-bold shadow-sm me-2">
+                <i class="bi bi-cart-check"></i> Kijelöltek értékesítése
+            </button>
+            <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Új állat kézi felvitele</a>
+        </div>
     </div>
 
     <div class="card shadow-sm mb-4 bg-light">
@@ -21,9 +26,12 @@
                     <label class="form-label small fw-bold">Korcsoport szűrés</label>
                     <select name="searchGroup" class="form-select">
                         <option value="">-- Összes --</option>
-                        @foreach (var group in ViewBag.AgeGroups)
+                        @if (ViewBag.AgeGroups != null)
                         {
-                            <option value="@group">@group</option>
+                            foreach (var group in ViewBag.AgeGroups)
+                            {
+                                <option value="@group">@group</option>
+                            }
                         }
                     </select>
                 </div>
@@ -37,58 +45,87 @@
         </div>
     </div>
 
-    <div class="table-responsive shadow-sm border rounded bg-white">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-dark">
-                <tr>
-                    <th>Fülszám</th>
-                    <th>ENAR</th>
-                    <th>Korcsoport</th>
-                    <th>Neme</th>
-                    <th>Született</th>
-                    <th>Tenyészet</th>
-                    <th>Marhalevél</th>
-                    <th class="text-center">Műveletek</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
+    <form id="salesForm" asp-controller="Sales" asp-action="Checkout" method="post">
+        <div class="table-responsive shadow-sm border rounded bg-white">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
                     <tr>
-                        <td class="fw-bold text-primary">@item.EarTag</td>
-                        <td class="small">@item.EnarNumber</td>
-                        <td>
-                            <span class="badge @(item.AgeGroup == "Tehén" ? "bg-success" : "bg-info text-dark")">
-                                @item.AgeGroup
-                            </span>
-                        </td>
-                        <td>@(item.Gender == Gender.Bika ? "♂ Bika" : "♀ Üsző")</td>
-                        <td>@item.BirthDate.ToString("yyyy.MM.dd.")</td>
-                        <td>@item.CurrentHerd?.Name</td>
-                        <td>
-                            <span class="text-muted small">@item.PassportNumber</span>
-                        </td>
-                        <td class="text-center">
-                            <div class="d-flex justify-content-center gap-2">
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-pencil"></i> Szerkesztés
-                                </a>
-                                <a asp-controller="Cattle" asp-action="RecordDeath" asp-route-id="@item.Id" class="btn btn-sm btn-danger">
-                                    <i class="bi bi-x-circle"></i> Elhullás
-                                </a>
-                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info text-dark">
-                                    <i class="bi bi-eye"></i> Adatlap
-                                </a>
-                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Biztosan törölni akarod ezt az állatot?');" style="display:inline;">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        <i class="bi bi-trash"></i> Törlés
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAll" class="form-check-input" title="Mind kijelöl" />
+                        </th>
+                        <th>Fülszám</th>
+                        <th>ENAR</th>
+                        <th>Korcsoport</th>
+                        <th>Neme</th>
+                        <th>Született</th>
+                        <th>Tenyészet</th>
+                        <th>Marhalevél</th>
+                        <th class="text-center">Műveletek</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="selectedCattleIds" value="@item.Id" class="form-check-input cattle-checkbox" />
+                            </td>
+                            <td class="fw-bold text-primary">@item.EarTag</td>
+                            <td class="small">@item.EnarNumber</td>
+                            <td>
+                                <span class="badge @(item.AgeGroup == "Tehén" ? "bg-success" : "bg-info text-dark")">
+                                    @item.AgeGroup
+                                </span>
+                            </td>
+                            <td>@(item.Gender == Gender.Bika ? "♂ Bika" : "♀ Üsző")</td>
+                            <td>@item.BirthDate.ToString("yyyy.MM.dd.")</td>
+                            <td>@item.CurrentHerd?.Name</td>
+                            <td>
+                                <span class="text-muted small">@item.PassportNumber</span>
+                            </td>
+                            <td class="text-end" style="min-width: 320px;">
+                                <div class="btn-group shadow-sm" role="group">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm">
+                                        <i class="bi bi-pencil"></i> Szerkeszt
+                                    </a>
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm text-white">
+                                        <i class="bi bi-eye"></i> Adatlap
+                                    </a>
+                                    <a asp-controller="Cattle" asp-action="RecordDeath" asp-route-id="@item.Id" class="btn btn-danger btn-sm">
+                                        <i class="bi bi-x-circle"></i> Elhullás
+                                    </a>
+                                </div>
+    
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-light text-danger ms-2 border" title="Törlés">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </form>
 </div>
+
+@section Scripts {
+    <script>
+        // Mind kijelölése funkció
+        document.getElementById('selectAll').onclick = function() {
+            var checkboxes = document.getElementsByClassName('cattle-checkbox');
+            for (var checkbox of checkboxes) {
+                checkbox.checked = this.checked;
+            }
+        }
+
+        // Ellenőrzés elküldés előtt: van-e kijelölt állat?
+        document.getElementById('salesForm').onsubmit = function(e) {
+            var checkedCount = document.querySelectorAll('.cattle-checkbox:checked').Length;
+            if (checkedCount === 0) {
+                alert('Kérlek, válassz ki legalább egy állatot az értékesítéshez!');
+                e.preventDefault();
+                return false;
+            }
+        };
+    </script>
+}

@@ -77,6 +77,10 @@
                 <span asp-validation-for="Gender" class="text-danger"></span>
             </div>
             <div class="form-group">
+                <label>Szarvasmarha fajtája</label>
+                <select asp-for="BreedCode" class="form-control" asp-items="ViewBag.Breeds"></select>
+            </div>
+            <div class="form-group">
                 <label asp-for="MotherEnar" class="control-label"></label>
                 <input asp-for="MotherEnar" class="form-control" />
                 <span asp-validation-for="MotherEnar" class="text-danger"></span>

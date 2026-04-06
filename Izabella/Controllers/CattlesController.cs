@@ -77,6 +77,7 @@ namespace Izabella.Controllers
         {
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name");
             ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "HerdCode");
+            PopulateBreeds();
             return View();
         }
 
@@ -101,6 +102,7 @@ namespace Izabella.Controllers
             // Ha hiba van, újraépítjük a listákat a nézethez
             ViewBag.CompanyId = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
             ViewBag.CurrentHerdId = new SelectList(_context.Herds, "Id", "Name", cattle.CurrentHerdId);
+            PopulateBreeds();
             return View(cattle);
         }
 
@@ -119,6 +121,7 @@ namespace Izabella.Controllers
             }
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
             ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "HerdCode", cattle.CurrentHerdId);
+            PopulateBreeds(cattle.BreedCode);
             return View(cattle);
         }
 
@@ -156,6 +159,7 @@ namespace Izabella.Controllers
             }
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
             ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "HerdCode", cattle.CurrentHerdId);
+            PopulateBreeds(cattle.BreedCode);
             return View(cattle);
         }
 
@@ -197,6 +201,24 @@ namespace Izabella.Controllers
         private bool CattleExists(int id)
         {
             return _context.Cattles.Any(e => e.Id == id);
+        }
+        private void PopulateBreeds(int? selectedBreed = 22)
+        {
+            var breeds = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "22", Text = "Holstein-fríz (22)" },
+                new SelectListItem { Value = "1", Text = "Magyartarka (1)" },
+                new SelectListItem { Value = "12", Text = "Jersey (12)" },
+                new SelectListItem { Value = "13", Text = "Európai barna (13)" },
+                new SelectListItem { Value = "19", Text = "Mokány (19)" },
+                new SelectListItem { Value = "20", Text = "Erdélyi borzderes (20)" },
+                new SelectListItem { Value = "33", Text = "Kárpáti borzderes (33)" },
+                new SelectListItem { Value = "63", Text = "Montbeliarde (63)" },
+                new SelectListItem { Value = "88", Text = "Brown Swiss (88)" },
+                new SelectListItem { Value = "99", Text = "Egyéb tejhasznú (99)" }
+            };
+
+            ViewBag.Breeds = new SelectList(breeds, "Value", "Text", selectedBreed);
         }
     }
 }

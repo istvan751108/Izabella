@@ -4,6 +4,7 @@ using Izabella.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Izabella.Migrations
 {
     [DbContext(typeof(IzabellaDbContext))]
-    partial class IzabellaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260406064944_AddBreedCodeToCattle")]
+    partial class AddBreedCodeToCattle
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -184,39 +187,6 @@ namespace Izabella.Migrations
                     b.ToTable("Companies");
                 });
 
-            modelBuilder.Entity("Izabella.Models.Customer", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TaxNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Customers");
-                });
-
             modelBuilder.Entity("Izabella.Models.DeathLog", b =>
                 {
                     b.Property<int>("Id")
@@ -350,53 +320,6 @@ namespace Izabella.Migrations
                     b.HasIndex("LiquidManureId");
 
                     b.ToTable("LiquidManureSplits");
-                });
-
-            modelBuilder.Entity("Izabella.Models.SaleTransaction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CattleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("int");
-
-                    b.Property<double>("DeductionPercentage")
-                        .HasColumnType("float");
-
-                    b.Property<decimal>("GrossWeight")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<decimal>("NetWeight")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<string>("ReceiptNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("SaleDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("TotalNetPrice")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18, 2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CattleId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("SaleTransactions");
                 });
 
             modelBuilder.Entity("Izabella.Models.SolidManure", b =>
@@ -820,25 +743,6 @@ namespace Izabella.Migrations
                     b.Navigation("LiquidManure");
                 });
 
-            modelBuilder.Entity("Izabella.Models.SaleTransaction", b =>
-                {
-                    b.HasOne("Izabella.Models.Cattle", "Cattle")
-                        .WithMany()
-                        .HasForeignKey("CattleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Izabella.Models.Customer", "Customer")
-                        .WithMany("Sales")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cattle");
-
-                    b.Navigation("Customer");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -893,11 +797,6 @@ namespace Izabella.Migrations
             modelBuilder.Entity("Izabella.Models.Cattle", b =>
                 {
                     b.Navigation("Breeding");
-                });
-
-            modelBuilder.Entity("Izabella.Models.Customer", b =>
-                {
-                    b.Navigation("Sales");
                 });
 
             modelBuilder.Entity("Izabella.Models.LiquidManure", b =>

@@ -87,6 +87,28 @@
         <dd class="col-sm-10">
             @(Model.Gender == Gender.Bika ? "Bika" : "Üsző")
         </dd>
+        <dt class="col-sm-2">
+            Fajta
+        </dt>
+        <dd class="col-sm-10">
+            @{
+                string breedName = Model.BreedCode switch
+                {
+                    22 => "Holstein-fríz (22)",
+                    1 => "Magyartarka (1)",
+                    12 => "Jersey (12)",
+                    13 => "Európai barna (13)",
+                    19 => "Mokány (19)",
+                    20 => "Erdélyi borzderes (20)",
+                    33 => "Kárpáti borzderes (33)",
+                    63 => "Montbeliarde (63)",
+                    88 => "Brown Swiss (88)",
+                    99 => "Egyéb tejhasznú (99)",
+                    _ => $"Ismeretlen kód ({Model.BreedCode})"
+                };
+            }
+            @breedName
+        </dd>
         <dt class = "col-sm-2">
             @Html.DisplayNameFor(model => model.MotherEnar)
         </dt>
@@ -99,18 +121,17 @@
         <dd class = "col-sm-10">
             @Html.DisplayFor(model => model.FatherKlsz)
         </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ExitDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ExitDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ExitType)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ExitType)
-        </dd>
+        @if (Model.ExitDate.HasValue)
+        {
+            <dt class="col-sm-2">@Html.DisplayNameFor(model => model.ExitDate)</dt>
+            <dd class="col-sm-10">@Html.DisplayFor(model => model.ExitDate)</dd>
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.ExitType)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.ExitType)
+            </dd>
+        }
         <dt class = "col-sm-2">
             @Html.DisplayNameFor(model => model.IsActive)
         </dt>

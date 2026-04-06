@@ -1,0 +1,103 @@
+﻿@model IEnumerable<Izabella.Models.Cattle>
+
+@{
+    ViewData["Title"] = "Értékesítés véglegesítése";
+}
+
+<div class="container mt-4">
+    <h2><i class="bi bi-cart-check"></i> Értékesítés véglegesítése</h2>
+    <hr />
+
+    <form asp-action="ConfirmSale" method="post">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-warning mb-4">
+                    <div class="card-header bg-warning text-dark fw-bold">Eladási adatok</div>
+                    <div class="card-body">
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold">Vevő kiválasztása</label>
+                            <select name="customerId" class="form-select" asp-items="ViewBag.CustomerId" required>
+                                <option value="">-- Válassz vevőt --</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold">Értékesítés típusa</label>
+                            <select name="saleType" class="form-select" asp-items="Html.GetEnumSelectList<SaleType>()"></select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold">Dátum</label>
+                            <input type="date" name="saleDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="form-label fw-bold">Bizonylatszám</label>
+                            <input type="text" name="receiptNumber" class="form-control" placeholder="Pl: SZ-2024/001" required />
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100 btn-lg shadow">
+                            <i class="bi bi-check-circle"></i> Tranzakció rögzítése
+                        </button>
+                        <a asp-controller="Cattles" asp-action="Index" class="btn btn-link w-100 mt-2 text-muted">Mégse</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white">Érintett állatok (@Model.Count() db)</div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fülszám / Korcsoport</th>
+                                    <th style="width: 150px;">Bruttó súly (kg)</th>
+                                    <th style="width: 150px;">Egységár (Ft/kg)</th>
+                                    <th class="text-center">Várható levonás</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="hidden" name="cattleIds" value="@item.Id" />
+                                            <div class="fw-bold">@item.EarTag</div>
+                                            <small class="text-muted">@item.AgeGroup</small>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="grossWeights" class="form-control" step="0.1" required placeholder="0.0" />
+                                        </td>
+                                        <td>
+                                            <input type="number" name="unitPrices" class="form-control" step="1" required placeholder="Ft" />
+                                        </td>
+                                        <td class="text-center">
+                                            @{
+                                                // Itt kényszerítjük a pontot a megjelenítésnél, hogy a HTML5 input ne zavarodjon össze
+                                                string defaultVal = "8.0";
+                                                if (item.AgeGroup.Contains("Borjú", StringComparison.OrdinalIgnoreCase)) defaultVal = "6.0";
+                                                else if (item.AgeGroup.Equals("Tehén", StringComparison.OrdinalIgnoreCase)) defaultVal = "8.5";
+                                            }
+                                            <div class="input-group input-group-sm">
+                                                <input type="number"
+                                                       name="deductions"
+                                                       class="form-control text-center"
+                                                       step="0.1"
+                                                       min="0"
+                                                       max="100"
+                                                       value="@defaultVal"
+                                                       required />
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

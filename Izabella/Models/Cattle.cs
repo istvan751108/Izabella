@@ -80,5 +80,7 @@ namespace Izabella.Models
 
         [Display(Name = "Aktív?")]
         public bool IsActive { get; set; } = true;
+        [Required]
+        public int BreedCode { get; set; } = 22; // Alapértelmezett a Holstein-fríz
     }
 }
