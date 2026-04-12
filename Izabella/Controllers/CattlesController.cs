@@ -220,5 +220,38 @@ namespace Izabella.Controllers
 
             ViewBag.Breeds = new SelectList(breeds, "Value", "Text", selectedBreed);
         }
+        [HttpPost]
+        public async Task<IActionResult> RecordDeath(int id, DateTime exitDate, string receiptNumber)
+        {
+            var cattle = await _context.Cattles.FindAsync(id);
+            if (cattle == null) return NotFound();
+
+            cattle.IsActive = false;
+            cattle.IsAlive = false;
+            cattle.ExitDate = exitDate;
+            cattle.ExitType = (ExitType)SaleType.Slaughter;
+
+            var deathTransaction = new SaleTransaction
+            {
+                CattleId = cattle.Id,
+                CustomerId = 2,
+                SaleDate = exitDate,
+                Type = SaleType.Slaughter,
+                // Ha nincs megadva, generáljunk egy "ELH-" kezdetű számot
+                ReceiptNumber = !string.IsNullOrEmpty(receiptNumber) ? receiptNumber : "ELH-" + cattle.EarTag + "-" + exitDate.ToString("yyyyMMdd"),
+                GrossWeight = 0,
+                NetWeight = 0,
+                UnitPrice = 0,
+                TotalNetPrice = 0,
+                DeductionPercentage = 0,
+                IsReported = false
+            };
+
+            _context.SaleTransactions.Add(deathTransaction);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"Elhullás rögzítve: {cattle.EarTag}";
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

@@ -13,12 +13,10 @@
             </a>
         </div>
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2><i class="bi bi-journal-check"></i> Értékesítési napló</h2>
             <div>
                 <a asp-action="DownloadPendingEnarXml" class="btn btn-primary shadow-sm">
                     <i class="bi bi-file-earmark-arrow-down"></i> ENAR Bejelentő (XML) Letöltése
                 </a>
-                <a asp-controller="Cattles" asp-action="Index" class="btn btn-outline-secondary">Vissza</a>
             </div>
         </div>
         <div class="card-body p-0">
@@ -41,30 +39,31 @@
                     <tbody>
                         @foreach (var item in Model)
                         {
-                            <tr>
+                            // Megkülönböztetjük az elhullást (0 Ft-os ár)
+                            var rowClass = item.UnitPrice == 0 ? "table-danger" : "";
+                            var typeLabel = item.UnitPrice == 0 ? "ELHULLÁS" : "ELADÁS";
+
+                            <tr class="@rowClass">
                                 <td><span class="badge bg-secondary">@item.SaleDate.ToString("yyyy.MM.dd")</span></td>
                                 <td>
                                     <div class="fw-bold text-primary">@item.Cattle.EarTag</div>
-                                    <small class="text-muted">@item.Cattle.AgeGroup</small>
+                                    <span class="badge bg-light text-dark border small">@typeLabel</span>
                                 </td>
                                 <td>@item.Customer.Name</td>
                                 <td><small class="fw-bold">@item.ReceiptNumber</small></td>
-                                <td class="text-end">@item.GrossWeight.ToString("N1")</td>
-                                <td class="text-end text-danger small">@item.DeductionPercentage%</td>
-                                <td class="text-end fw-bold">@item.NetWeight.ToString("N1")</td>
-                                <td class="text-end">@item.UnitPrice.ToString("N0")</td>
-                                <td class="text-end fw-bold text-success">
-                                    @item.TotalNetPrice.ToString("N0") Ft
-                                </td>
+                                @if (item.UnitPrice > 0)
+                                {
+                                    <td class="text-end">@item.GrossWeight.ToString("N1")</td>
+                                    <td class="text-end text-danger small">@item.DeductionPercentage%</td>
+                                    <td class="text-end fw-bold">@item.NetWeight.ToString("N1")</td>
+                                    <td class="text-end">@item.UnitPrice.ToString("N0")</td>
+                                    <td class="text-end fw-bold text-success">@item.TotalNetPrice.ToString("N0") Ft</td>
+                                }
+                                else
+                                {
+                                    <td colspan="5" class="text-center text-muted italic">Elhullás/Vágás kivezetve</td>
+                                }
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-info" title="Részletek">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a asp-action="Generate5136Xml" asp-route-transactionId="@item.Id" class="btn btn-outline-dark" title="ENAR 5136 XML">
-                                            <i class="bi bi-file-earmark-code"></i>
-                                        </a>
-                                    </div>
                                 </td>
                             </tr>
                         }

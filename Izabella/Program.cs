@@ -35,13 +35,13 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 // 2. Magyar nyelv beállítása (Localization)
-var supportedCultures = new[] { new CultureInfo("hu-HU") };
-app.UseRequestLocalization(new RequestLocalizationOptions
-{
-    DefaultRequestCulture = new RequestCulture("hu-HU"),
-    SupportedCultures = supportedCultures,
-    SupportedUICultures = supportedCultures
-});
+var supportedCultures = new[] { "en-US", "hu-HU" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("en-US") // A pont legyen az alapértelmezett tizedesjel
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
 
 app.UseAuthentication(); // Ki azonosította magát?
 app.UseAuthorization();  // Mit szabad csinálnia?

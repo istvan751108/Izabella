@@ -626,7 +626,7 @@ namespace Izabella.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ProcessDeath(int id, DateTime deathDate, string reason, double weight)
+        public async Task<IActionResult> ProcessDeath(int id, DateTime deathDate, string reason, double weight, string receiptNumber)
         {
             var cattle = await _context.Cattles.FindAsync(id);
             if (cattle == null) return NotFound();
@@ -635,15 +635,31 @@ namespace Izabella.Controllers
             {
                 try
                 {
-                    // 1. Állat állapotának frissítése (Ez az Excel "Életút" és "Istálló törlés" megfelelője)
+                    // 1. Állat állapotának frissítése
                     cattle.IsActive = false;
                     cattle.IsAlive = false;
                     cattle.ExitDate = deathDate;
-                    cattle.ExitType = ExitType.Elhullás; // Idézőjelek nélkül, a típus megadásával;
-                    // A súlyt elmenthetjük az utolsó súlyhoz is, ha van ilyen meződ
-                    cattle.BirthWeight = weight; // Vagy egy külön ExitWeight mezőbe
+                    cattle.ExitType = ExitType.Elhullás;
+                    cattle.BirthWeight = (double)weight;
 
-                    // 2. Elhullás naplózása (Ez az Excel "Elhullás" lapja)
+                    // 2. Tranzakció rögzítése a kézi bizonylatszámmal
+                    var saleTrans = new SaleTransaction
+                    {
+                        CattleId = cattle.Id,
+                        CustomerId = 2, // ATEV Zrt.
+                        SaleDate = deathDate,
+                        Type = SaleType.Slaughter,
+                        ReceiptNumber = receiptNumber,
+                        GrossWeight = (decimal)weight,
+                        NetWeight = 0,
+                        UnitPrice = 0,
+                        TotalNetPrice = 0,
+                        DeductionPercentage = 0,
+                        IsReported = false
+                    };
+                    _context.SaleTransactions.Add(saleTrans);
+
+                    // 3. Elhullás naplózása (a havi statisztikához és dögszállítóhoz)
                     var log = new DeathLog
                     {
                         CattleId = cattle.Id,
@@ -652,15 +668,16 @@ namespace Izabella.Controllers
                         EstimatedWeight = weight,
                         EarTagAtDeath = cattle.EarTag,
                         EnarNumberAtDeath = cattle.EnarNumber
+                        // Megjegyzés: Ha a DeathLog táblában is el akarod tárolni a papír tömb számát, 
+                        // akkor a DeathLog modellhez is hozzá kell adni egy ReceiptNumber mezőt!
                     };
-
                     _context.DeathLogs.Add(log);
-                    _context.Update(cattle);
 
+                    _context.Update(cattle);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    TempData["SuccessMessage"] = $"Az elhullás rögzítve: {cattle.EarTag}";
+                    TempData["SuccessMessage"] = $"Az elhullás rögzítve ({receiptNumber} sz. bizonylattal): {cattle.EarTag}";
                     return RedirectToAction("Index", "Cattles");
                 }
                 catch (Exception ex)

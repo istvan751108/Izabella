@@ -74,19 +74,20 @@
                                         </td>
                                         <td class="text-center">
                                             @{
-                                                // Itt kényszerítjük a pontot a megjelenítésnél, hogy a HTML5 input ne zavarodjon össze
-                                                string defaultVal = "8.0";
-                                                if (item.AgeGroup.Contains("Borjú", StringComparison.OrdinalIgnoreCase)) defaultVal = "6.0";
-                                                else if (item.AgeGroup.Equals("Tehén", StringComparison.OrdinalIgnoreCase)) defaultVal = "8.5";
+                                                // Számoljuk ki a nézetben az ajánlott értéket
+                                                double recommended = 8.0;
+                                                string groupName = item.AgeGroup ?? "";
+                                                if (groupName.Contains("Borjú", StringComparison.OrdinalIgnoreCase)) recommended = 6.0;
+                                                else if (groupName.Contains("Tehén", StringComparison.OrdinalIgnoreCase)) recommended = 8.5;
+        
+                                                // Kényszerítsük a pontot tizedesjelnek a HTML számára
+                                                string valForHtml = recommended.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
                                             }
                                             <div class="input-group input-group-sm">
-                                                <input type="number"
+                                                <input type="text"
                                                        name="deductions"
                                                        class="form-control text-center"
-                                                       step="0.1"
-                                                       min="0"
-                                                       max="100"
-                                                       value="@defaultVal"
+                                                       value="@valForHtml"
                                                        required />
                                                 <span class="input-group-text">%</span>
                                             </div>
