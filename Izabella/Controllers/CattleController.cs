@@ -258,7 +258,7 @@ namespace Izabella.Controllers
             _context.DeathLogs.Add(log);
         }
 
-        // --- ENAR GENERÁLÓ LOGIKA (A VBA kódod alapján) ---
+        // --- ENAR GENERÁLÓ LOGIKA  ---
         private string GenerateEnar(string earTag, string enarPrefix)
         {
             string numericPart = new string(earTag.Where(char.IsDigit).ToArray());

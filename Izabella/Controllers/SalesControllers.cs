@@ -1,7 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Izabella.Models;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Izabella.Models;
+using QuestPDF.Helpers;
+using QuestPDF.Fluent;
+using QuestPDF.Infrastructure;
+using System.IO.Compression;
+using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace Izabella.Controllers
 {
@@ -133,49 +140,173 @@ namespace Izabella.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction("Index");
         }
-        public async Task<IActionResult> GenerateEnar5136Xml()
+        [HttpPost]
+        public async Task<IActionResult> GenerateEnar5136Package(int[] selectedIds)
         {
-            // Minden olyan tranzakció, ami még nincs lejelentve
-            var pendingItems = await _context.SaleTransactions
-                .Include(s => s.Cattle)
+            if (selectedIds == null || selectedIds.Length == 0) return BadRequest("Nincs kijelölt tétel.");
+
+            // Adatok lekérése tenyészettel és marhával
+            var transactions = await _context.SaleTransactions
+                .Include(s => s.Cattle).ThenInclude(c => c.CurrentHerd)
                 .Include(s => s.Customer)
-                .Where(t => !t.IsReported)
+                .Where(t => selectedIds.Contains(t.Id))
                 .ToListAsync();
 
-            if (!pendingItems.Any())
+            // Csoportosítás tenyészetkód szerint
+            var groupedByHerd = transactions.GroupBy(t => t.Cattle?.CurrentHerd?.HerdCode ?? "467355");
+
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            using (var memoryStream = new MemoryStream())
             {
-                TempData["Info"] = "Nincs bejelentésre váró esemény.";
-                return RedirectToAction("Index");
+                using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                {
+                    foreach (var herdGroup in groupedByHerd)
+                    {
+                        string herdCode = herdGroup.Key;
+                        string timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+
+                        // --- 1. XML GENERÁLÁS (Tenyészetenként egy fájl) ---
+                        XNamespace ns2 = "http://e5136.client.enar.si.hu";
+                        var root = new XElement(ns2 + "SzmarhaBejelentok",
+                            new XAttribute(XNamespace.Xmlns + "ns2", ns2.NamespaceName)
+                        );
+
+                        int sorszam = 1;
+                        foreach (var item in herdGroup)
+                        {
+                            string enarOnly = item.Cattle?.EnarNumber?.Replace("HU", "").Trim() ?? "";
+                            string kikerulesKod = item.UnitPrice == 0 ? "3" : (item.Type == SaleType.Export ? "4" : "1");
+
+                            root.Add(new XElement("SzmarhaBejelento",
+                                new XElement("Sorszam", sorszam++),
+                                new XElement("AzonositoOrszagkodja", "HU"),
+                                new XElement("Azonosito", enarOnly),
+                                new XElement("KiadasiSorszam", item.Cattle?.PassportNumber ?? "01"),
+                                new XElement("TenyeszetKod", herdCode),
+                                new XElement("KikerulesKodja", kikerulesKod),
+                                new XElement("KikerulesDatuma", item.SaleDate.ToString("yyyy-MM-dd"))
+                            ));
+                            item.IsReported = true;
+                        }
+
+                        // XML mentése stringbe az elvárt formázással (idézőjelek és UTF-8 javítás)
+                        var settings = new XmlWriterSettings { Indent = false, Encoding = new UTF8Encoding(false) };
+                        string xmlString;
+                        using (var xmlMs = new MemoryStream())
+                        {
+                            using (var writer = XmlWriter.Create(xmlMs, settings)) { root.WriteTo(writer); }
+                            xmlString = Encoding.UTF8.GetString(xmlMs.ToArray()).Replace("\"", "'").Replace("encoding='utf-8'", "encoding='UTF-8'");
+                        }
+
+                        var xmlEntry = archive.CreateEntry($"kiker_{herdCode}_{timestamp}.xml");
+                        using (var entryStream = xmlEntry.Open())
+                        {
+                            byte[] xmlBytes = Encoding.UTF8.GetBytes(xmlString);
+                            entryStream.Write(xmlBytes, 0, xmlBytes.Length);
+                        }
+
+                        // --- 2. PDF GENERÁLÁS (Tenyészetenként egy dokumentum) ---
+                        var pdfDoc = CreateEnar5136Pdf(herdGroup.ToList(), herdCode);
+                        var pdfEntry = archive.CreateEntry($"kiker_lista_{herdCode}_{DateTime.Now:yyyyMMdd}.pdf");
+                        using (var entryStream = pdfEntry.Open())
+                        {
+                            byte[] pdfBytes = pdfDoc.GeneratePdf();
+                            entryStream.Write(pdfBytes, 0, pdfBytes.Length);
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return File(memoryStream.ToArray(), "application/zip", $"ENAR_5136_CSOMAG_{DateTime.Now:yyyyMMdd}.zip");
             }
-
-            // XML struktúra építése (az 5136 bizonylat sémája alapján)
-            var doc = new System.Xml.Linq.XDocument(
-                new System.Xml.Linq.XElement("EnarAdatcsere",
-                    new System.Xml.Linq.XElement("Fejlec",
-                        new System.Xml.Linq.XElement("BizonylatTipus", "5136"),
-                        new System.Xml.Linq.XElement("KuldőTenyészet", "1234567") // Ide írd a saját kódotokat
-                    ),
-                    new System.Xml.Linq.XElement("Mozgasok",
-                        pendingItems.Select(item => new System.Xml.Linq.XElement("Mozgas",
-                            new System.Xml.Linq.XElement("Fulszam", item.Cattle.EarTag),
-                            new System.Xml.Linq.XElement("Datum", item.SaleDate.ToString("yyyy-MM-dd")),
-                            new System.Xml.Linq.XElement("MozgasKod", item.UnitPrice == 0 ? "511" : "211"), // 511: Elhullás, 211: Eladás
-                            new System.Xml.Linq.XElement("Bizonylatszam", item.ReceiptNumber)
-                        ))
-                    )
-                )
-            );
-
-            // Miután legeneráltuk, megjelöljük őket, hogy ne kerüljenek bele újra
-            foreach (var item in pendingItems)
-            {
-                item.IsReported = true;
-            }
-            await _context.SaveChangesAsync();
-
-            var content = System.Text.Encoding.UTF8.GetBytes(doc.ToString());
-            return File(content, "application/xml", $"ENAR_5136_{DateTime.Now:yyyyMMdd_HHmm}.xml");
         }
+
+        // PDF Dokumentum struktúra metódus
+        private IDocument CreateEnar5136Pdf(List<SaleTransaction> items, string herdCode)
+        {
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Verdana));
+
+                    page.Header().Row(row =>
+                    {
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text("SZARVASMARHA KIKERÜLÉSI BIZONYLAT (5136)").FontSize(16).SemiBold().FontColor(Colors.Red.Medium);
+                            col.Item().Text($"Kijelentő tenyészet: {herdCode}").FontSize(11);
+                        });
+                        row.RelativeItem().AlignRight().Text($"{DateTime.Now:yyyy.MM.dd}").FontSize(10);
+                    });
+
+                    page.Content().PaddingVertical(10).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.ConstantColumn(30);  // Sorszám
+                            columns.RelativeColumn(3);   // ENAR
+                            columns.RelativeColumn(2);   // Dátum
+                            columns.RelativeColumn(1.5f);// Kód
+                            columns.RelativeColumn(4);   // Partner/Vevő
+                            columns.RelativeColumn(2);   // Marhalevél
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Element(PdfHeaderStyle).Text("Ssz.");
+                            header.Cell().Element(PdfHeaderStyle).Text("Állat ENAR");
+                            header.Cell().Element(PdfHeaderStyle).Text("Dátum");
+                            header.Cell().Element(PdfHeaderStyle).Text("Kód");
+                            header.Cell().Element(PdfHeaderStyle).Text("Partner / Célállomás");
+                            header.Cell().Element(PdfHeaderStyle).Text("Melléklet");
+                        });
+
+                        int sorszam = 1;
+                        foreach (var item in items)
+                        {
+                            string kikerulesTipus = item.UnitPrice == 0 ? "3 (Elh.)" : (item.Type == SaleType.Export ? "4 (Exp.)" : "1 (Ért.)");
+
+                            table.Cell().Element(PdfRowStyle).Text(sorszam++.ToString());
+                            table.Cell().Element(PdfRowStyle).Text(item.Cattle?.EnarNumber ?? "-");
+                            table.Cell().Element(PdfRowStyle).Text(item.SaleDate.ToString("yyyy.MM.dd"));
+                            table.Cell().Element(PdfRowStyle).Text(kikerulesTipus);
+                            table.Cell().Element(PdfRowStyle).Text($"{item.Customer?.Name}");
+                            table.Cell().Element(PdfRowStyle).Text(item.Cattle?.PassportNumber ?? "01");
+                        }
+                    });
+
+                    page.Footer().PaddingTop(20).Column(col => {
+                        col.Item().Row(row => {
+                            row.RelativeItem().PaddingTop(20).Column(c => {
+                                c.Item().LineHorizontal(0.5f);
+                                c.Item().AlignCenter().Text("Állattartó aláírása");
+                            });
+                            row.ConstantItem(50);
+                            row.RelativeItem().PaddingTop(20).Column(c => {
+                                c.Item().LineHorizontal(0.5f);
+                                c.Item().AlignCenter().Text("Hatósági állatorvos / Szállító");
+                            });
+                        });
+                    });
+                });
+            });
+        }
+
+        // Segédstílusok (ugyanaz mint a CattleControllerben)
+        private IContainer PdfHeaderStyle(IContainer container)
+        {
+            return container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Black);
+        }
+
+        private IContainer PdfRowStyle(IContainer container)
+        {
+            return container.PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
+        }
+
         public async Task<IActionResult> MonthlyReport(int? year, int? month)
         {
             var y = year ?? DateTime.Now.Year;

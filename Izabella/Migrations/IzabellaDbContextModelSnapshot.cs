@@ -17,7 +17,7 @@ namespace Izabella.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "10.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -371,6 +371,9 @@ namespace Izabella.Migrations
 
                     b.Property<decimal>("GrossWeight")
                         .HasColumnType("decimal(18, 2)");
+
+                    b.Property<bool>("IsReported")
+                        .HasColumnType("bit");
 
                     b.Property<decimal>("NetWeight")
                         .HasColumnType("decimal(18, 2)");
