@@ -126,16 +126,11 @@ namespace Izabella.Controllers
         }
 
         // POST: Cattles/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,EarTag,EnarNumber,PassportNumber,PassportSequence,CompanyId,CurrentHerdId,AgeGroup,IsTwin,IsAlive,DamAgeAtCalving,BirthDate,BirthWeight,Gender,MotherEnar,FatherKlsz,ExitDate,ExitType,IsActive")] Cattle cattle)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,EarTag,EnarNumber,PassportNumber,PassportSequence,CompanyId,CurrentHerdId,AgeGroup,IsTwin,IsAlive,DamAgeAtCalving,BirthDate,BirthWeight,Gender,MotherEnar,FatherKlsz,ExitDate,ExitType,IsActive,BreedCode")] Cattle cattle, string returnUrl = null)
         {
-            if (id != cattle.Id)
-            {
-                return NotFound();
-            }
+            if (id != cattle.Id) return NotFound();
 
             if (ModelState.IsValid)
             {
@@ -146,14 +141,12 @@ namespace Izabella.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!CattleExists(cattle.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    if (!CattleExists(cattle.Id)) return NotFound();
+                    else throw;
+                }
+                if (!string.IsNullOrEmpty(returnUrl))
+                {
+                    return LocalRedirect(returnUrl);
                 }
                 return RedirectToAction(nameof(Index));
             }
@@ -251,6 +244,21 @@ namespace Izabella.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Success"] = $"Elhullás rögzítve: {cattle.EarTag}";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UndoBirthReport(int id)
+        {
+            var cattle = await _context.Cattles.FindAsync(id);
+            if (cattle != null)
+            {
+                // Visszaállítjuk "Nincs" állapotra, így újra megjelenik az ENAR bejelentő oldalon
+                cattle.PassportNumber = "Nincs";
+                await _context.SaveChangesAsync();
+                TempData["Success"] = $"A(z) {cattle.EarTag} fülszámú állat bejelentése sikeresen visszavonva.";
+            }
             return RedirectToAction(nameof(Index));
         }
     }

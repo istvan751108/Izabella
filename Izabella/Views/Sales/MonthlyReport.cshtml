@@ -1,268 +1,324 @@
-﻿@using Izabella.Models @* Fontos, hogy az Enumok elérhetőek legyenek *@
+﻿@using Izabella.Models
 @model IEnumerable<Izabella.Models.SaleTransaction>
 
 @{
     ViewData["Title"] = "Havi Statisztikai Napló";
     var elhullasok = Model.Where(x => x.UnitPrice == 0).ToList();
     var ertekesitesek = Model.Where(x => x.UnitPrice > 0).ToList();
+    var newborns = ViewBag.Newborns as List<Cattle> ?? new List<Cattle>();
+    var mothers = ViewBag.Mothers as List<Cattle> ?? new List<Cattle>();
 }
 
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="bi bi-graph-up"></i> Statisztikai Napló - @ViewBag.Year. @ViewBag.Month. hónap</h2>
+    @* FEJLÉC - Letisztítva, csak a szűréssel *@
+    <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-white rounded shadow-sm border">
+        <div>
+            <h2 class="mb-0 text-dark"><i class="bi bi-calendar3 text-primary"></i> Statisztikai Napló + Enar ügyintézés</h2>
+            <span class="text-muted">@ViewBag.Year. @ViewBag.Month. hónap</span>
+        </div>
+        
         <form asp-action="MonthlyReport" method="get" class="d-flex gap-2">
             <input type="number" name="year" value="@ViewBag.Year" class="form-control" style="width: 100px;" />
             <select name="month" class="form-select" style="width: 150px;">
                 @for (int i = 1; i <= 12; i++)
                 {
-                    if (i == (int)ViewBag.Month)
-                    {
-                        <option value="@i" selected>@i. hónap</option>
-                    }
-                    else
-                    {
-                        <option value="@i">@i. hónap</option>
-                    }
+                    <option value="@i" selected="@(i == (int)ViewBag.Month)">@i. hónap</option>
                 }
             </select>
-            <button type="submit" class="btn btn-primary">Szűrés</button>
+            <button type="submit" class="btn btn-secondary">Szűrés</button>
         </form>
     </div>
 
-    @* --- ELHULLÁSOK --- *@
-    <div class="card shadow-sm mb-5 border-danger">
-        <div class="card-header bg-danger text-white"><h5>Elhullások</h5></div>
-        <div class="card-body p-0">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Dátum</th>
-                        <th>Fülszám</th>
-                        <th>Korcsoport</th>
-                        <th>Nem</th>
-                        <th>Tenyészet</th>
-                        <th class="text-end">Súly (kg)</th>
-                        <th>Ok / Bizonylat</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in elhullasok)
-                    {
-                        <tr>
-                            <td>@item.SaleDate.ToString("yyyy.MM.dd")</td>
-                            <td>@item.Cattle?.EarTag</td>
-                            <td>@item.Cattle?.AgeGroup</td>
-                            <td>@item.Cattle?.Gender</td>
-                            <td>@item.Cattle?.CurrentHerd?.HerdCode</td>
-                            <td class="text-end">@item.GrossWeight.ToString("N1")</td>
-                            <td>@item.ReceiptNumber</td>
-                        </tr>
-                    }
-                </tbody>
-                <tfoot class="table-secondary fw-bold">
-                    @foreach (var group in elhullasok.GroupBy(x => x.Cattle?.AgeGroup ?? "Ismeretlen"))
-                    {
-                        <tr>
-                            <td colspan="4">Összesítés: @group.Key</td>
-                            <td class="text-end">@group.Count() db</td>
-                            <td class="text-end">@group.Sum(x => (double)x.GrossWeight).ToString("N1") kg</td>
-                            <td></td>
-                        </tr>
-                    }
-                </tfoot>
-            </table>
+    @* --- ELLÉSEK SZEKCIÓ (Bejelentő gombbal és összefoglalóval) --- *@
+    <div class="card shadow-sm mb-5 border-primary">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0"><i class="bi bi-gender-ambiguous"></i> Ellések és Szaporulat</h5>
+            @* Ez a gomb váltja ki a régi menüpontot *@
+            <a asp-action="EnarReporting" asp-controller="Cattle" class="btn btn-light btn-sm fw-bold">
+                <i class="bi bi-megaphone"></i> Új ellések bejelentése
+            </a>
         </div>
-    </div>
-
-    @* --- ÉRTÉKESÍTÉSEK --- *@
-    <div class="card shadow-sm mb-4 border-success">
-        <div class="card-header bg-success text-white"><h5>Értékesítések</h5></div>
-        <div class="card-body p-0">
-            <table class="table table-sm table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Dátum</th>
-                        <th>Fülszám</th>
-                        <th>Korcsoport</th>
-                        <th>Nem</th>
-                        <th>Vevő</th>
-                        <th>Típus</th>
-                        <th>Tenyészet</th>
-                        <th class="text-end">Súly (kg)</th>
-                        <th class="text-end">Végösszeg</th>
-                        <th>Bizonylat</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in ertekesitesek)
-                    {
-                        <tr>
-                            <td>@item.SaleDate.ToString("yyyy.MM.dd")</td>
-                            <td class="fw-bold">@item.Cattle?.EarTag</td>
-                            <td>@item.Cattle?.AgeGroup</td>
-                            <td>@item.Cattle?.Gender</td>
-                            <td>@item.Customer?.Name</td>
-                            <td>
-                                <span class="badge bg-light text-dark border">
-                                    @{
-                                        switch (item.Type)
-                                        {
-                                            case SaleType.Slaughter:
-                                                @:Vágás
-                                                break;
-                                            case SaleType.FurtherBreeding:
-
-                                                @:Továbbtartás
-                                                break;
-                                            case SaleType.Export:
-
-                                                @:Export
-                                                break;
-                                            case SaleType.OwnershipChange:
-
-                                                @:Tulajdonosváltás
-                                                break;
-                                            default:
-
-                                                @item.Type.ToString()
-                                                break;
-                                        }
-                                    }
-                                </span>
-                            </td>
-                            <td>@item.Cattle?.CurrentHerd?.HerdCode</td>
-                            <td class="text-end">@item.NetWeight.ToString("N1")</td>
-                            <td class="text-end fw-bold">@item.TotalNetPrice.ToString("N0") Ft</td>
-                            <td>@item.ReceiptNumber</td>
-                        </tr>
-                    }
-                </tbody>
-                <tfoot class="table-secondary fw-bold">
-                    @foreach (var group in ertekesitesek.GroupBy(x => x.Cattle?.AgeGroup ?? "Ismeretlen"))
-                    {
-                        <tr>
-                            <td colspan="5">Összesítés: @group.Key</td>
-                            <td class="text-center">@group.Count() db</td>
-                            <td></td>
-                            <td class="text-end">@group.Sum(x => (double)x.NetWeight).ToString("N1") kg</td>
-                            <td class="text-end text-success">@group.Sum(x => x.TotalNetPrice).ToString("N0") Ft</td>
-                            <td></td>
-                        </tr>
-                    }
-                </tfoot>
-            </table>
-        </div>
-    </div>
-</div>
-@using Izabella.Models
-@{
-    var newborns = ViewBag.Newborns as List<Cattle> ?? new List<Cattle>();
-    var mothers = ViewBag.Mothers as List<Cattle> ?? new List<Cattle>();
-
-    // --- LOGIKA AZ ÖSSZESÍTŐHÖZ ---
-    var birthsByMother = newborns.GroupBy(n => n.MotherEnar).ToList();
-    
-    // Hullaellés: Az anyának csak halva született borja van az adott ellésnél
-    int hullaEllesTehen = 0;
-    int hullaEllesUszo = 0;
-    
-    foreach (var group in birthsByMother)
-    {
-        var anya = mothers.FirstOrDefault(m => m.EnarNumber == group.Key);
-        bool mindenHalott = group.All(b => b.IsAlive == false);
-        if (mindenHalott)
-        {
-            if (anya?.DamAgeAtCalving == "Tehén") hullaEllesTehen++;
-            else hullaEllesUszo++;
-        }
-    }
-}
-
-<div class="card shadow-sm mb-4 border-primary">
-    <div class="card-header bg-primary text-white"><h5>Ellések</h5></div>
-    <div class="card-body p-0">
-        <table class="table table-sm table-hover mb-0 text-center">
-            <thead class="table-light">
-                <tr>
-                    <th>Dátum</th>
-                    <th>Borjú Fülszám</th>
-                    <th>Anya ENAR</th>
-                    <th>Anya kora</th>
-                    <th>Súly</th>
-                    <th>Iker?</th>
-                    <th>Élve?</th>
-                    <th>Ivar</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var calf in newborns.OrderBy(n => n.BirthDate))
-                {
-                    var anya = mothers.FirstOrDefault(m => m.EnarNumber == calf.MotherEnar);
-                    <tr class="@(!calf.IsAlive ? "table-secondary text-muted" : "")">
-                        <td>@calf.BirthDate.ToString("yyyy.MM.dd")</td>
-                        <td>@(calf.IsAlive? calf.EarTag: "HALVA")</td>
-                        <td>@calf.MotherEnar</td>
-                        <td>@(anya?.DamAgeAtCalving ?? "Ismeretlen")</td>
-                        <td>@calf.BirthWeight kg</td>
-                        <td>@(calf.IsTwin ? "Igen" : "Nem")</td>
-                        <td>@(calf.IsAlive ? "Igen" : "NEM")</td>
-                        <td>@calf.Gender</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-    <div class="card-footer bg-white">
-        <div class="row text-center fw-bold">
-            @{
-                // Előre kiszámoljuk a pontos számokat a szűrt 'newborns' listából
-                var szurtBorjak = newborns.ToList();
-                var szurtEllesek = szurtBorjak.GroupBy(n => n.MotherEnar).ToList();
-            
-                int osszesBorju = szurtBorjak.Count;
-                int eloBika = szurtBorjak.Count(n => n.IsAlive && n.Gender == Gender.Bika);
-                int eloUszo = szurtBorjak.Count(n => n.IsAlive && n.Gender == Gender.Üsző);
-                int halvaSzuletett = szurtBorjak.Count(n => !n.IsAlive);
-
-                // Ikerellések száma (ahol az anyának több borja született aznap)
-                int ikerElles = szurtEllesek.Count(g => g.Count() > 1);
+        <div class="card-body">
+            @if (!newborns.Any())
+            {
+                <p class="text-muted text-center my-3">Ebben a hónapban nem történt ellés.</p>
             }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Dátum</th>
+                                <th>Borjú Fülszám</th>
+                                <th>Anya ENAR</th>
+                                <th>Anya kora</th>
+                                <th>Súly</th>
+                                <th>Iker?</th>
+                                <th>Élve?</th>
+                                <th>Ivar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var calf in newborns.OrderBy(n => n.BirthDate))
+                            {
+                                var anya = mothers.FirstOrDefault(m => m.EnarNumber == calf.MotherEnar);
+                                <tr class="@(!calf.IsAlive ? "table-danger-subtle text-danger" : "")">
+                                    <td>@calf.BirthDate.ToString("yyyy.MM.dd")</td>
+                                    <td class="fw-bold">@(calf.IsAlive? calf.EarTag: "HALVA SZÜLETETT")</td>
+                                    <td>@calf.MotherEnar</td>
+                                    <td>@(anya?.DamAgeAtCalving ?? "Ismeretlen")</td>
+                                    <td>@calf.BirthWeight kg</td>
+                                    <td>@(calf.IsTwin ? "Igen" : "Nem")</td>
+                                    <td>@(calf.IsAlive ? "Igen" : "Nem")</td>
+                                    <td>@(calf.Gender == Gender.Bika ? "♂ Bika" : "♀ Üsző")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
 
-            <div class="col-md-3 border-end">
-                <p class="text-primary mb-1">ELLÉSEK SZÁMA</p>
-                @{
-                    var tehenElles = szurtEllesek.Count(g => mothers.FirstOrDefault(m => m.EnarNumber == g.Key)?.DamAgeAtCalving == "Tehén");
-                    var uszoElles = szurtEllesek.Count - tehenElles;
-                }
-                Tehén: @tehenElles <br />
-                V. Üsző: @uszoElles <br />
-                Összes: @szurtEllesek.Count
-            </div>
-
-            <div class="col-md-3 border-end">
-                <p class="text-info mb-1">IKERELLÉSEK</p>
-                @{
-                    var ikerTehen = szurtEllesek.Where(g => g.Count() > 1)
-                                    .Count(g => mothers.FirstOrDefault(m => m.EnarNumber == g.Key)?.DamAgeAtCalving == "Tehén");
-                }
-                Tehén: @ikerTehen <br />
-                V. Üsző: @(ikerElles - ikerTehen) <br />
-                Összes: @ikerElles
-            </div>
-
-            <div class="col-md-3 border-end text-danger">
-                <p class="mb-1">HULLAELLÉSEK</p>
-                Tehén: @hullaEllesTehen <br />
-                V. Üsző: @hullaEllesUszo <br />
-                Összes: @(hullaEllesTehen + hullaEllesUszo)
-            </div>
-
-            <div class="col-md-3 text-success">
-                <p class="mb-1">SZAPORULAT (Élő)</p>
-                Bika: @eloBika <br />
-                Üsző: @eloUszo <br />
-                <span class="text-dark">Összes élő szaporulat: @(eloBika + eloUszo)</span>
-            </div>
+                @* ÖSSZEFOGLALÓ STATISZTIKA (Visszahozva) *@
+                <div class="row g-3 mt-2">
+                    @{
+                        var birthsByMother = newborns.GroupBy(n => n.MotherEnar).ToList();
+                        var tehenEllesCount = birthsByMother.Count(g => mothers.FirstOrDefault(m => m.EnarNumber == g.Key)?.DamAgeAtCalving == "Tehén");
+                        var uszoEllesCount = birthsByMother.Count - tehenEllesCount;
+                        var hullaEllesCount = birthsByMother.Count(g => g.All(b => !b.IsAlive));
+                    }
+                    <div class="col-md-3">
+                        <div class="p-2 border rounded bg-light text-center">
+                            <small class="text-muted d-block">Összes ellés</small>
+                            <span class="h5 mb-0">@birthsByMother.Count</span>
+                            <div class="small">Tehén: @tehenEllesCount | Üsző: @uszoEllesCount</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2 border rounded bg-light text-center">
+                            <small class="text-muted d-block">Ikerellések</small>
+                            <span class="h5 mb-0 text-info">@birthsByMother.Count(g => g.Count() > 1)</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2 border rounded bg-light text-center border-danger">
+                            <small class="text-danger d-block">Hullaellés</small>
+                            <span class="h5 mb-0 text-danger">@hullaEllesCount</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2 border rounded bg-success-subtle text-center border-success">
+                            <small class="text-success d-block">Élő szaporulat</small>
+                            <span class="h5 mb-0 text-success">@newborns.Count(n => n.IsAlive)</span>
+                            <div class="small text-success">@newborns.Count(n => n.IsAlive && n.Gender == Gender.Bika) B | @newborns.Count(n => n.IsAlive && n.Gender == Gender.Üsző) Ü</div>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
     </div>
+    @* --- 2. SZEKCIÓ: KIKERÜLÉSEK (Közös keretben az ENAR kijelentéshez) --- *@
+    <div class="card shadow border-0 bg-light p-4 mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0 text-dark"><i class="bi bi-box-arrow-right"></i> Kikerülések kezelése (ENAR 5136)</h4>
+            <div class="text-muted small">Válassza ki a bejelenteni kívánt tételeket a listákból!</div>
+        </div>
+
+        <form id="enarForm" asp-action="GenerateEnar5136Package" asp-controller="Sales" method="post">
+            @* ELHULLÁSOK AL-KÁRTYA *@
+            <div class="card shadow-sm mb-4 border-danger">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Elhullások kijelölése</h6>
+                    <div class="form-check">
+                        <input class="form-check-input select-all-section" type="checkbox" data-target="death-check" id="selectAllDeaths">
+                        <label class="form-check-label small" for="selectAllDeaths">Mind</label>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px;" class="ps-3"></th>
+                            <th>Dátum</th>
+                            <th>Fülszám</th>
+                            <th>Korcsoport</th>
+                            <th>Tenyészet</th>
+                            <th class="text-end">Súly (kg)</th>
+                            <th class="text-center">Státusz</th>
+                            <th class="text-end pe-3">Művelet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in elhullasok)
+                        {
+                            <tr class="@(item.IsReported ? "table-light" : "")">
+                                <td class="ps-3">
+                                    @if (!item.IsReported)
+                                    {
+                                        <input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input enar-check death-check border-danger">
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-cloud-check-fill text-success fs-5"></i>
+                                    }
+                                </td>
+                                <td>@item.SaleDate.ToString("yyyy.MM.dd")</td>
+                                <td>
+                                    <a asp-controller="Cattles" asp-action="Edit" asp-route-id="@item.CattleId"
+                                           asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString"
+                                           class="fw-bold text-decoration-none text-danger">
+                                        @item.Cattle?.EarTag
+                                    </a>
+                                </td>
+                                <td>@item.Cattle?.AgeGroup</td>
+                                <td><small class="text-muted">@item.Cattle?.CurrentHerd?.HerdCode</small></td>
+                                <td class="text-end">@item.GrossWeight.ToString("N1")</td>
+                                <td class="text-center">
+                                    @if (item.IsReported)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success">Beküldve</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning">Várakozik</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    @if (item.IsReported)
+                                    {
+                                        <button type="button" onclick="undoReport(@item.Id)" class="btn btn-sm btn-outline-warning" title="Visszavonás (újra beküldhető lesz)">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Visszavon
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+            @* ÉRTÉKESÍTÉSEK AL-KÁRTYA *@
+            <div class="card shadow-sm mb-4 border-success">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Értékesítések kijelölése</h6>
+                    <div class="form-check">
+                        <input class="form-check-input select-all-section" type="checkbox" data-target="sale-check" id="selectAllSales">
+                        <label class="form-check-label small" for="selectAllSales">Mind</label>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px;" class="ps-3"></th>
+                            <th>Dátum</th>
+                            <th>Fülszám</th>
+                            <th>Vevő</th>
+                            <th>Típus</th>
+                            <th class="text-end">Végösszeg</th>
+                            <th class="text-center">Státusz</th>
+                            <th class="text-end pe-3">Művelet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in ertekesitesek)
+                        {
+                            <tr class="@(item.IsReported ? "table-light" : "")">
+                                <td class="ps-3">
+                                    @if (!item.IsReported)
+                                    {
+                                        <input type="checkbox" name="selectedIds" value="@item.Id" class="form-check-input enar-check sale-check border-success">
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-cloud-check-fill text-success fs-5"></i>
+                                    }
+                                </td>
+                                <td>@item.SaleDate.ToString("yyyy.MM.dd")</td>
+                                <td>
+                                    <a asp-controller="Cattles" asp-action="Edit" asp-route-id="@item.CattleId"
+                                           asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString"
+                                           class="fw-bold text-decoration-none text-success">
+                                        @item.Cattle?.EarTag
+                                    </a>
+                                </td>
+                                <td>@item.Customer?.Name</td>
+                                <td><span class="badge bg-light text-dark border small">@item.Type.ToString()</span></td>
+                                <td class="text-end fw-bold">@item.TotalNetPrice.ToString("N0") Ft</td>
+                                <td class="text-center">
+                                    @if (item.IsReported)
+                                    {
+                                        <span class="badge bg-success-subtle text-success border border-success">Beküldve</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning">Várakozik</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    @if (item.IsReported)
+                                    {
+                                        <button type="button" onclick="undoReport(@item.Id)" class="btn btn-sm btn-outline-warning">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Visszavon
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+            @* A GOMB MOST MÁR ITT VAN ALUL, A KIJELÖLÉSEK UTÁN *@
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                <div id="checkCounter" class="me-3 align-self-center text-muted fw-bold" style="display:none;">
+                    <span id="selectedCount">0</span> tétel kijelölve
+                </div>
+                <button type="button" onclick="submitEnarPackage()" class="btn btn-success btn-lg shadow" id="btnMainExport" disabled>
+                    <i class="bi bi-file-zip-fill"></i> Kijelöltek ENAR kijelentése (ZIP generálása)
+                </button>
+            </div>
+    </form>
+    </div>
 </div>
+@* Rejtett form a visszavonáshoz (Sale visszavonás) *@
+<form id="undoSaleForm" asp-action="UndoReport" asp-controller="Sales" method="post" style="display:none;">
+    <input type="hidden" name="id" id="undoSaleId" />
+</form>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('.select-all-section').click(function () {
+                var targetClass = $(this).data('target');
+                $('.' + targetClass).prop('checked', this.checked);
+                updateMainButton();
+            });
+
+            $(document).on('change', '.enar-check', function() {
+                updateMainButton();
+            });
+
+            function updateMainButton() {
+                var checkedCount = $('.enar-check:checked').length;
+                $('#btnMainExport').prop('disabled', checkedCount === 0);
+                
+                if(checkedCount > 0) {
+                    $('#selectedCount').text(checkedCount);
+                    $('#checkCounter').fadeIn();
+                    $('#btnMainExport').html('<i class="bi bi-check-all"></i> ' + checkedCount + ' tétel beküldése (ZIP)');
+                } else {
+                    $('#checkCounter').hide();
+                    $('#btnMainExport').html('<i class="bi bi-file-zip-fill"></i> Kijelöltek ENAR kijelentése');
+                }
+            }
+        });
+
+        function submitEnarPackage() {
+            if (confirm('A kijelölt tételekről ENAR csomag készül. Folytatja?')) {
+                $('#enarForm').submit();
+                setTimeout(function() { location.reload(); }, 2000);
+            }
+        }
+    </script>
+}

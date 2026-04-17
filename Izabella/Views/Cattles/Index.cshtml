@@ -81,10 +81,32 @@
                             <td>@item.BirthDate.ToString("yyyy.MM.dd.")</td>
                             <td>@item.CurrentHerd?.Name</td>
                             <td>
-                                <span class="text-muted small">@item.PassportNumber</span>
+                                @if (item.PassportNumber == "Kérve")
+                                {
+                                    <span class="badge bg-warning text-dark border border-warning shadow-sm">
+                                        <i class="bi bi-hourglass-split"></i> Kérve
+                                    </span>
+                                }
+                                else if (item.PassportNumber == "Nincs")
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border">Nincs</span>
+                                }
+                                else
+                                {
+                                    <span class="text-dark fw-bold small">@item.PassportNumber</span>
+                                }
                             </td>
                             <td class="text-end" style="min-width: 320px;">
                                 <div class="btn-group shadow-sm" role="group">
+                                    @if (item.PassportNumber == "Kérve")
+                                    {
+                                        @* Gomb, ami nem form, de meghív egy mini javascriptet *@
+                                        <button type="button" class="btn btn-outline-warning btn-sm border-end-0"
+                                                onclick="submitUndo('@item.Id')">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Visszavon
+                                        </button>
+                                    }
+        
                                     <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm">
                                         <i class="bi bi-pencil"></i> Szerkeszt
                                     </a>
@@ -106,6 +128,10 @@
             </table>
         </div>
     </form>
+    <form id="globalUndoBirthForm" asp-action="UndoBirthReport" method="post" style="display:none;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" id="undoBirthId" />
+    </form>
 </div>
 
 @section Scripts {
@@ -118,14 +144,29 @@
             }
         }
 
-        // Ellenőrzés elküldés előtt: van-e kijelölt állat?
+        // Ellenőrzés elküldés előtt
         document.getElementById('salesForm').onsubmit = function(e) {
-            var checkedCount = document.querySelectorAll('.cattle-checkbox:checked').Length;
+            // Javítva: .length (kis l betűvel)
+            var checkedCount = document.querySelectorAll('.cattle-checkbox:checked').length;
             if (checkedCount === 0) {
                 alert('Kérlek, válassz ki legalább egy állatot az értékesítéshez!');
                 e.preventDefault();
                 return false;
             }
         };
+
+        // A visszavonásért felelős függvény - most már a script tagen belül
+        function submitUndo(id) {
+            if (confirm('Biztosan visszavonja a bejelentést?')) {
+                var input = document.getElementById('undoBirthId');
+                var form = document.getElementById('globalUndoBirthForm');
+                if (input && form) {
+                    input.value = id;
+                    form.submit();
+                } else {
+                    alert('Hiba: A visszavonási űrlap nem található az oldalon.');
+                }
+            }
+        }
     </script>
 }

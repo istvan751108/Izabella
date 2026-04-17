@@ -182,7 +182,7 @@ namespace Izabella.Controllers
                                 new XElement("Sorszam", sorszam++),
                                 new XElement("AzonositoOrszagkodja", "HU"),
                                 new XElement("Azonosito", enarOnly),
-                                new XElement("KiadasiSorszam", item.Cattle?.PassportNumber ?? "01"),
+                                new XElement("KiadasiSorszam", item.Cattle?.PassportSequence.ToString("D2") ?? "01"),
                                 new XElement("TenyeszetKod", herdCode),
                                 new XElement("KikerulesKodja", kikerulesKod),
                                 new XElement("KikerulesDatuma", item.SaleDate.ToString("yyyy-MM-dd"))
@@ -337,6 +337,21 @@ namespace Izabella.Controllers
             ViewBag.Mothers = mothers;
 
             return View(transactions);
+        }
+        // SalesController.cs
+        [HttpPost]
+        public async Task<IActionResult> UndoReport(int id)
+        {
+            var transaction = await _context.SaleTransactions.FindAsync(id);
+            if (transaction != null)
+            {
+                transaction.IsReported = false;
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "A kijelentés ténye visszavonva. Most már újra módosíthatja az adatokat és generálhat új XML-t.";
+            }
+
+            // Visszairányítjuk az előző oldalra (a havi jelentéshez)
+            return Redirect(Request.Headers["Referer"].ToString());
         }
     }
 }
