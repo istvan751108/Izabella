@@ -3,7 +3,7 @@
 namespace Izabella.Models
 {
     public enum Gender { Bika, Üsző }
-    public enum ExitType { Vágóhíd, Továbbtartás, Export, Elhullás }
+    public enum ExitType { Vágás, Továbbtartás, Export, Elhullás, Tulajdonosváltás }
 
     public class Cattle
     {
@@ -21,7 +21,7 @@ namespace Izabella.Models
         public string EnarNumber { get; set; }
 
         [Required]
-        [StringLength(20)]
+        [StringLength(20, ErrorMessage = "A marhalevél száma maximum 20 karakter lehet!")]
         [Display(Name = "Marhalevél szám")]
         public string PassportNumber { get; set; }
 
@@ -82,5 +82,9 @@ namespace Izabella.Models
         public bool IsActive { get; set; } = true;
         [Required]
         public int BreedCode { get; set; } = 22; // Alapértelmezett a Holstein-fríz
+                                                 // Cattle.cs
+        public double CurrentWeight { get; set; } // Aktuális súly
+        public string? Stall { get; set; }        // Istálló/Box helye
+        public bool RequiresEnar5147 { get; set; } // Jelző az ENAR jelentéshez
     }
 }

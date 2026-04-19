@@ -23,7 +23,6 @@ namespace Izabella.Controllers
 
         // --- 1. AZ ELLÉS ŰRLAP MEGJELENÍTÉSE ---
         [HttpGet]
-        [HttpGet]
         public IActionResult Calving()
         {
             var birthHerds = _context.Herds

@@ -221,6 +221,47 @@ namespace Izabella.Controllers
                 return File(memoryStream.ToArray(), "application/zip", $"ENAR_5136_CSOMAG_{DateTime.Now:yyyyMMdd}.zip");
             }
         }
+        public string GenerateEnar5135Xml(List<Cattle> selectedCattle, string newHerdCode, string certNumber, DateTime moveDate, string stampNumber = "0134")
+        {
+            XNamespace ns2 = "http://e5135.client.enar.si.hu";
+            var root = new XElement(ns2 + "SzmarhaBejelentok", new XAttribute(XNamespace.Xmlns + "ns2", ns2.NamespaceName));
+
+            int sorszam = 1;
+            foreach (var cattle in selectedCattle)
+            {
+                string cleanEnar = cattle.EnarNumber.Replace("HU", "").Trim();
+                string cleanMotherEnar = cattle.MotherEnar.Replace("HU", "").Trim();
+                string currentSequence = cattle.PassportSequence.ToString("D2");
+
+                root.Add(new XElement("SzmarhaBejelento",
+                    new XElement("Sorszam", sorszam++),
+                    new XElement("AzonositoOrszagkodja", "HU"),
+                    new XElement("Azonosito", cleanEnar),
+                    new XElement("KiadasiSorszam", currentSequence),
+                    new XElement("AnyaAzonOrszagkodja", "348"),
+                    new XElement("AnyaAzon", cleanMotherEnar),
+                    new XElement("TenyeszetKod", newHerdCode),
+                    new XElement("BekerulesDatuma", moveDate.ToString("yyyy-MM-dd")),
+                    new XElement("BizonyitvanySorszama", certNumber),
+                    new XElement("BizonyitvanyDatuma", moveDate.ToString("yyyy-MM-dd")),
+                    new XElement("KamaraiBelyegzoSzama", stampNumber)
+                ));
+            }
+
+            var settings = new XmlWriterSettings
+            {
+                Indent = false,
+                Encoding = new UTF8Encoding(false),
+                OmitXmlDeclaration = false
+            };
+
+            using (var ms = new MemoryStream())
+            {
+                using (var writer = XmlWriter.Create(ms, settings)) { root.Save(writer); }
+                // Kényszerítsük a nagybetűs UTF-8-at a stringben
+                return Encoding.UTF8.GetString(ms.ToArray()).Replace("utf-8", "UTF-8");
+            }
+        }
 
         // PDF Dokumentum struktúra metódus
         private IDocument CreateEnar5136Pdf(List<SaleTransaction> items, string herdCode)
@@ -335,23 +376,191 @@ namespace Izabella.Controllers
             ViewBag.Month = m;
             ViewBag.Newborns = newborns;
             ViewBag.Mothers = mothers;
-
+            ViewBag.Herds = await _context.Herds.OrderBy(h => h.Name).ToListAsync();
             return View(transactions);
         }
         // SalesController.cs
         [HttpPost]
         public async Task<IActionResult> UndoReport(int id)
         {
-            var transaction = await _context.SaleTransactions.FindAsync(id);
-            if (transaction != null)
+            var transaction = await _context.SaleTransactions
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (transaction == null) return NotFound();
+
+            // 1. Csak a jelentési státuszt állítjuk vissza
+            transaction.IsReported = false;
+
+            // 2. Opcionális: Ha a sorszámot is vissza akarod görgetni a marhánál, 
+            // mert az XML generáláskor növelted:
+            var cattle = await _context.Cattles.FirstOrDefaultAsync(c => c.Id == transaction.CattleId);
+            if (cattle != null && cattle.PassportNumber == "Kérve")
             {
-                transaction.IsReported = false;
-                await _context.SaveChangesAsync();
-                TempData["Success"] = "A kijelentés ténye visszavonva. Most már újra módosíthatja az adatokat és generálhat új XML-t.";
+                // Csak akkor nyúlunk hozzá, ha még mindig ebben a "köztes" állapotban van
+                if (cattle.PassportSequence > 1) cattle.PassportSequence -= 1;
+
+                // Itt döntened kell: ha visszavonod a jelentést, az állat 
+                // technikailag még a régi helyén van az adatbázis szerint? 
+                // Ha igen, akkor:
+                // cattle.PassportNumber = "Visszavont"; 
             }
 
-            // Visszairányítjuk az előző oldalra (a havi jelentéshez)
-            return Redirect(Request.Headers["Referer"].ToString());
+            _context.Update(transaction);
+            await _context.SaveChangesAsync();
+
+            // Visszatérünk a listához - most már újra ott lesz a checkbox!
+            return RedirectToAction(nameof(MonthlyReport));
+        }
+        [HttpPost]
+        public async Task<IActionResult> ProcessOwnerChange(int[] selectedCattleIds, string targetHerdCode, string targetOwnerName, string certNumber, string stampNumber, DateTime moveDate)
+        {
+            if (selectedCattleIds == null || selectedCattleIds.Length == 0)
+                return Content("Hiba: Nincs kijelölt állat!");
+
+            var targetHerd = await _context.Herds.AsNoTracking()
+                .FirstOrDefaultAsync(h => h.HerdCode == targetHerdCode);
+
+            if (targetHerd == null)
+                return Content($"Hiba: A cél tenyészet ({targetHerdCode}) nem található!");
+
+            var selectedCattle = await _context.Cattles
+                .Include(c => c.CurrentHerd)
+                .Include(c => c.Company)
+                .Where(c => selectedCattleIds.Contains(c.Id))
+                .ToListAsync();
+
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                {
+                    // --- A. 5135 XML GENERÁLÁS (Vétel) ---
+                    string xml5135 = GenerateEnar5135Xml(selectedCattle, targetHerdCode, certNumber, moveDate, stampNumber);
+                    var entry5135 = archive.CreateEntry($"ENAR_5135_vetel_{targetHerdCode}_{DateTime.Now:yyyyMMdd}.xml");
+                    using (var writer = new StreamWriter(entry5135.Open(), new UTF8Encoding(false)))
+                    {
+                        await writer.WriteAsync(xml5135);
+                    }
+
+                    // --- B. 5136 XML GENERÁLÁS (Eladás) ---
+                    // Itt deklaráljuk a változót, amit a hiba hiányolt
+                    var groupedByOldHerd = selectedCattle.GroupBy(c => c.CurrentHerd?.HerdCode ?? "ISMERETLEN");
+
+                    foreach (var herdGroup in groupedByOldHerd)
+                    {
+                        string oldHerdCode = herdGroup.Key;
+                        XNamespace ns2 = "http://e5136.client.enar.si.hu";
+                        var root5136 = new XElement(ns2 + "SzmarhaBejelentok", new XAttribute(XNamespace.Xmlns + "ns2", ns2.NamespaceName));
+
+                        int sorszam = 1;
+                        foreach (var cattle in herdGroup)
+                        {
+                            // Itt volt a hiba: külön sorba szedjük az adat-előkészítést
+                            string enarRaw = cattle.EnarNumber ?? "";
+                            string enarOnly = enarRaw.Replace("HU", "").Trim();
+                            string sequence = cattle.PassportSequence.ToString("D2");
+
+                            // Új elem létrehozása és hozzáadása
+                            var bejelento = new XElement("SzmarhaBejelento",
+                                new XElement("Sorszam", sorszam++),
+                                new XElement("AzonositoOrszagkodja", "HU"),
+                                new XElement("Azonosito", enarOnly),
+                                new XElement("KiadasiSorszam", sequence),
+                                new XElement("TenyeszetKod", oldHerdCode),
+                                new XElement("KikerulesKodja", "1"),
+                                new XElement("KikerulesDatuma", moveDate.ToString("yyyy-MM-dd")),
+                                new XElement("TenyeszetKodCel", targetHerdCode)
+                            );
+                            root5136.Add(bejelento);
+                        }
+
+                        var entry5136 = archive.CreateEntry($"ENAR_5136_eladas_{oldHerdCode}_{DateTime.Now:yyyyMMdd}.xml");
+                        using (var entryStream = entry5136.Open())
+                        {
+                            var settings = new XmlWriterSettings { Indent = false, Encoding = new UTF8Encoding(false) };
+                            using (var ms = new MemoryStream())
+                            {
+                                using (var writer = XmlWriter.Create(ms, settings)) { root5136.Save(writer); }
+                                string xmlContent = Encoding.UTF8.GetString(ms.ToArray()).Replace("utf-8", "UTF-8");
+                                byte[] bytes = Encoding.UTF8.GetBytes(xmlContent);
+                                entryStream.Write(bytes, 0, bytes.Length);
+                            }
+                        }
+
+                        // --- C. PDF GENERÁLÁS ---
+                        var fakeTransactions = herdGroup.Select(c => new SaleTransaction
+                        {
+                            Cattle = c,
+                            SaleDate = moveDate,
+                            Type = SaleType.OwnershipChange,
+                            Customer = new Customer { Name = targetOwnerName }
+                        }).ToList();
+
+                        var pdfDoc = CreateEnar5136Pdf(fakeTransactions, oldHerdCode);
+                        var pdfEntry = archive.CreateEntry($"Kiserojegy_5136_{oldHerdCode}_to_{targetHerdCode}.pdf");
+                        using (var entryStream = pdfEntry.Open())
+                        {
+                            byte[] pdfBytes = pdfDoc.GeneratePdf();
+                            await entryStream.WriteAsync(pdfBytes, 0, pdfBytes.Length);
+                        }
+                    }
+
+                    // --- D. ADATBÁZIS MENTÉS ---
+                    using (var dbTransaction = await _context.Database.BeginTransactionAsync())
+                    {
+                        try
+                        {
+                            // A cél cég ID-ja (ha a Herd-ben van CompanyId)
+                            var targetCompanyId = targetHerd.CompanyId;
+
+                            foreach (var cattle in selectedCattle)
+                            {
+                                cattle.PassportNumber = "Kérve";
+                                cattle.PassportSequence += 1;
+                                cattle.CurrentHerdId = targetHerd.Id;
+                                cattle.CompanyId = targetCompanyId;
+                                cattle.ExitDate = moveDate;
+                                cattle.ExitType = ExitType.Tulajdonosváltás;
+                                cattle.IsActive = true;
+
+                                // Navigációs tulajdonságok ürítése a mentéshez
+                                cattle.CurrentHerd = null;
+                                cattle.Company = null;
+
+                                _context.Attach(cattle);
+                                _context.Entry(cattle).State = EntityState.Modified;
+
+                                // Kényszerített frissítés
+                                _context.Entry(cattle).Property(x => x.CompanyId).IsModified = true;
+                                _context.Entry(cattle).Property(x => x.CurrentHerdId).IsModified = true;
+                            }
+
+                            // A tranzakciók frissítése (IsReported = true)
+                            // Megkeressük a tranzakciókat, amik ezekhez az állatokhoz tartoznak
+                            var transactionsToUpdate = await _context.SaleTransactions
+                                .Where(t => selectedCattleIds.Contains(t.CattleId) && t.Type == SaleType.OwnershipChange && !t.IsReported)
+                                .ToListAsync();
+
+                            foreach (var trans in transactionsToUpdate)
+                            {
+                                trans.IsReported = true;
+                                // Ha van Note meződ, oda írhatsz, ha nincs, hagyd el ezt a sort:
+                                // trans.Note = "Tulajdonosváltás lejelentve"; 
+                            }
+
+                            await _context.SaveChangesAsync();
+                            await dbTransaction.CommitAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            await dbTransaction.RollbackAsync();
+                            return Content("Adatbázis hiba: " + ex.Message);
+                        }
+                    }
+                }
+                return File(memoryStream.ToArray(), "application/zip", $"TULAJDONOSVALTAS_{DateTime.Now:yyyyMMdd}.zip");
+            }
         }
     }
 }

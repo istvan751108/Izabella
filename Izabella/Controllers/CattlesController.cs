@@ -82,8 +82,6 @@ namespace Izabella.Controllers
         }
 
         // POST: Cattles/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Cattle cattle)
@@ -138,18 +136,29 @@ namespace Izabella.Controllers
                 {
                     _context.Update(cattle);
                     await _context.SaveChangesAsync();
+
+                    if (!string.IsNullOrEmpty(returnUrl)) return LocalRedirect(returnUrl);
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+                catch (DbUpdateException ex)
                 {
-                    if (!CattleExists(cattle.Id)) return NotFound();
-                    else throw;
+                    // Ha az SQL dob hibát (pl. truncation), itt elkapjuk
+                    if (ex.InnerException?.Message.Contains("truncated") == true)
+                    {
+                        ModelState.AddModelError("PassportNumber", "Túl hosszú adatot adtál meg! Kérlek rövidítsd le.");
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("", "Adatbázis mentési hiba történt: " + ex.Message);
+                    }
                 }
-                if (!string.IsNullOrEmpty(returnUrl))
+                catch (Exception ex)
                 {
-                    return LocalRedirect(returnUrl);
+                    ModelState.AddModelError("", "Váratlan hiba: " + ex.Message);
                 }
-                return RedirectToAction(nameof(Index));
             }
+
+            // Ha idáig eljutunk, hiba volt, újraépítjük a listákat a nézethez
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
             ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "HerdCode", cattle.CurrentHerdId);
             PopulateBreeds(cattle.BreedCode);
@@ -261,5 +270,108 @@ namespace Izabella.Controllers
             }
             return RedirectToAction(nameof(Index));
         }
+        [HttpPost]
+        public async Task<IActionResult> ProcessMovement(
+            int[] selectedCattleIds,
+            DateTime moveDate,
+            string weightMode,
+            double? commonWeightValue,
+            Dictionary<int, double> individualWeights,
+            bool changeAgeGroup, string newAgeGroup,
+            bool changeLocation, int? newHerdId, string stallName)
+                {
+                    if (selectedCattleIds == null || selectedCattleIds.Length == 0) return RedirectToAction(nameof(Movement));
+
+                    // Korcsoport sorrend meghatározása
+                    var ageGroups = new List<string> {
+                "Itatásos borjú", "Borjú", "Növendék 6-9", "Növendék 9-12",
+                "Növendék 12 hó-tól", "Vemhes üsző", "Tehén"
+            };
+
+            var cattleList = await _context.Cattles.Where(c => selectedCattleIds.Contains(c.Id)).ToListAsync();
+
+            foreach (var cattle in cattleList)
+            {
+                // KORCSOPORT ELLENŐRZÉSE
+                if (changeAgeGroup)
+                {
+                    int currentIndex = ageGroups.IndexOf(cattle.AgeGroup);
+                    int nextIndex = ageGroups.IndexOf(newAgeGroup);
+
+                    // Csak akkor engedjük, ha ugyanaz marad (súlymérés miatt) vagy pontosan a következő
+                    if (nextIndex != currentIndex && nextIndex != currentIndex + 1)
+                    {
+                        TempData["Error"] = $"Hiba: {cattle.EarTag} nem ugorhat {cattle.AgeGroup} csoportból {newAgeGroup} csoportba!";
+                        continue;
+                    }
+                }
+
+                var history = new AnimalHistory
+                {
+                    CattleId = cattle.Id,
+                    EventDate = moveDate,
+                    OldAgeGroup = cattle.AgeGroup,
+                    OldHerdId = cattle.CurrentHerdId,
+                    Type = ""
+                };
+
+                // Súly kezelése
+                double oldWeight = cattle.CurrentWeight;
+                if (weightMode == "fixed") cattle.CurrentWeight = commonWeightValue ?? cattle.CurrentWeight;
+                else if (weightMode == "gain") cattle.CurrentWeight += commonWeightValue ?? 0;
+                else if (weightMode == "individual" && individualWeights.ContainsKey(cattle.Id))
+                    cattle.CurrentWeight = individualWeights[cattle.Id];
+
+                history.Weight = cattle.CurrentWeight;
+                history.WeightGain = cattle.CurrentWeight - oldWeight;
+
+                // Korcsoport frissítése
+                if (changeAgeGroup)
+                {
+                    cattle.AgeGroup = newAgeGroup;
+                    history.NewAgeGroup = newAgeGroup;
+                    history.Type += "Korosbítás ";
+                }
+
+                // Helyváltoztatás
+                if (changeLocation)
+                {
+                    if (newHerdId.HasValue && cattle.CurrentHerdId != newHerdId)
+                    {
+                        history.NewHerdId = newHerdId;
+                        cattle.CurrentHerdId = newHerdId.Value;
+                        cattle.RequiresEnar5147 = true; // Ez jelzi, hogy XML kell!
+                    }
+                    cattle.Stall = stallName; // Itt mentjük el az istállót (pl. "Ketrec" vagy "12")
+                    history.StallName = stallName;
+                    history.Type += "Áthelyezés";
+                }
+
+                if (string.IsNullOrEmpty(history.Type)) history.Type = "Súlymérés";
+                _context.AnimalHistories.Add(history);
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "Műveletek sikeresen rögzítve!";
+            return RedirectToAction(nameof(Movement));
+        }
+        // CattlesController.cs
+        public async Task<IActionResult> Movement()
+        {
+            // Lekérjük az összes aktív állatot
+            var model = await _context.Cattles
+                .Include(c => c.CurrentHerd)
+                .Where(c => c.IsActive)
+                .ToListAsync();
+
+            // Szükség van a tenyészetekre a lenyíló listához
+            ViewBag.Herds = await _context.Herds.ToListAsync();
+            ViewBag.ExistingStalls = await _context.Cattles
+                .Where(c => !string.IsNullOrEmpty(c.Stall))
+                .Select(c => c.Stall)
+                .Distinct()
+                .ToListAsync();
+            return View(model);
+        }
     }
-}
+    }

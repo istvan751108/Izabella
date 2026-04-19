@@ -949,4 +949,3 @@ C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\runtimes\win-x
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\runtimes\win-x86\native\qpdf.dll
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\runtimes\win-x86\native\zlib1.dll
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.Extensions.FileProviders.Embedded.dll
-C:\Users\istva\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.Extensions.FileProviders.Embedded.dll

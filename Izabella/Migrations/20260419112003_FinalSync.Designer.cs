@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Izabella.Migrations
 {
     [DbContext(typeof(IzabellaDbContext))]
-    [Migration("20260417091934_InitialClean")]
-    partial class InitialClean
+    [Migration("20260419112003_FinalSync")]
+    partial class FinalSync
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,7 +25,7 @@ namespace Izabella.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Herd", b =>
+            modelBuilder.Entity("Izabella.Models.AnimalHistory", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -33,28 +33,45 @@ namespace Izabella.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CompanyId")
+                    b.Property<int>("CattleId")
                         .HasColumnType("int");
 
-                    b.Property<string>("DefaultPrefix")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("EventDate")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("EnarPrefix")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HerdCode")
+                    b.Property<string>("NewAgeGroup")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Name")
+                    b.Property<int?>("NewHerdId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OldAgeGroup")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("OldHerdId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StallName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("Weight")
+                        .HasColumnType("float");
+
+                    b.Property<double>("WeightGain")
+                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyId");
+                    b.HasIndex("CattleId");
 
-                    b.ToTable("Herds");
+                    b.ToTable("AnimalHistories");
                 });
 
             modelBuilder.Entity("Izabella.Models.BreedingData", b =>
@@ -118,6 +135,9 @@ namespace Izabella.Migrations
                     b.Property<int>("CurrentHerdId")
                         .HasColumnType("int");
 
+                    b.Property<double>("CurrentWeight")
+                        .HasColumnType("float");
+
                     b.Property<string>("DamAgeAtCalving")
                         .HasColumnType("nvarchar(max)");
 
@@ -160,6 +180,12 @@ namespace Izabella.Migrations
 
                     b.Property<int>("PassportSequence")
                         .HasColumnType("int");
+
+                    b.Property<bool>("RequiresEnar5147")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Stall")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -286,6 +312,38 @@ namespace Izabella.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DeathReasons");
+                });
+
+            modelBuilder.Entity("Izabella.Models.Herd", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DefaultPrefix")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EnarPrefix")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HerdCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.ToTable("Herds");
                 });
 
             modelBuilder.Entity("Izabella.Models.LiquidManure", b =>
@@ -765,15 +823,15 @@ namespace Izabella.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Herd", b =>
+            modelBuilder.Entity("Izabella.Models.AnimalHistory", b =>
                 {
-                    b.HasOne("Izabella.Models.Company", "Company")
+                    b.HasOne("Izabella.Models.Cattle", "Cattle")
                         .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("CattleId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Company");
+                    b.Navigation("Cattle");
                 });
 
             modelBuilder.Entity("Izabella.Models.BreedingData", b =>
@@ -793,7 +851,7 @@ namespace Izabella.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Herd", "CurrentHerd")
+                    b.HasOne("Izabella.Models.Herd", "CurrentHerd")
                         .WithMany()
                         .HasForeignKey("CurrentHerdId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -813,6 +871,17 @@ namespace Izabella.Migrations
                         .IsRequired();
 
                     b.Navigation("Cattle");
+                });
+
+            modelBuilder.Entity("Izabella.Models.Herd", b =>
+                {
+                    b.HasOne("Izabella.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("Izabella.Models.LiquidManureSplit", b =>

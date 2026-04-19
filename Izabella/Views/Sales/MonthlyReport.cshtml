@@ -3,8 +3,17 @@
 
 @{
     ViewData["Title"] = "Havi Statisztikai Napló";
+
+    // 1. Elhullások (ahol nincs egységár)
     var elhullasok = Model.Where(x => x.UnitPrice == 0).ToList();
-    var ertekesitesek = Model.Where(x => x.UnitPrice > 0).ToList();
+    
+    // 2. Tulajdonosváltások (Enum alapján - Ügyelj a pontos OwnershipChange névre!)
+    var tulajdonosValtasok = Model.Where(x => x.Type == SaleType.OwnershipChange).ToList();
+    
+    // 3. Normál értékesítések (ami nem az előző kettő)
+    // Itt 'simaErtekesitesek' a neve!
+    var simaErtekesitesek = Model.Where(x => x.UnitPrice > 0 && x.Type != SaleType.OwnershipChange).ToList();
+
     var newborns = ViewBag.Newborns as List<Cattle> ?? new List<Cattle>();
     var mothers = ViewBag.Mothers as List<Cattle> ?? new List<Cattle>();
 }
@@ -197,6 +206,57 @@
             </div>
         </div>
 
+            @* TULAJDONOSVÁLTÁS AL-KÁRTYA *@
+            <div class="card shadow-sm mb-4 border-info">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-person-bounding-box"></i> Tulajdonosváltás kijelölése</h6>
+                    <div class="form-check">
+                        <input class="form-check-input select-all-section" type="checkbox" data-target="owner-check" id="selectAllOwners">
+                        <label class="form-check-label small" for="selectAllOwners">Mind</label>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        @foreach (var item in tulajdonosValtasok)
+                        {
+                            <tr class="@(item.IsReported ? "table-light text-muted" : "")">
+                                <td style="width: 40px;" class="ps-3">
+                                    @if (!item.IsReported)
+                                    {
+                                        <input type="checkbox" name="selectedCattleIds" value="@item.CattleId" class="form-check-input enar-check owner-check">
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-cloud-check-fill text-info fs-5"></i>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="@(item.IsReported ? "" : "fw-bold")">@item.Cattle?.EarTag</span>
+                                </td>
+                                <td><small>@item.Cattle?.EnarNumber</small></td>
+                                <td>
+                                    @if (item.IsReported)
+                                    {
+                                        <span class="badge bg-info-subtle text-info border border-info">Átvezetve ide: @item.Customer?.Name</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Új hely: <strong>@item.Customer?.Name</strong></span>
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    @if (item.IsReported)
+                                    {
+                                        <button type="button" onclick="undoReport(@item.Id)" class="btn btn-sm btn-outline-info">
+                                            <i class="bi bi-arrow-counterclockwise"></i> XML Újra
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
             @* ÉRTÉKESÍTÉSEK AL-KÁRTYA *@
             <div class="card shadow-sm mb-4 border-success">
                 <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
@@ -221,7 +281,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in ertekesitesek)
+                        @foreach (var item in simaErtekesitesek)
                         {
                             <tr class="@(item.IsReported ? "table-light" : "")">
                                 <td class="ps-3">
@@ -280,11 +340,54 @@
             </div>
     </form>
     </div>
+    <iframe name="download_frame" id="download_frame" style="display:none;"></iframe>
 </div>
 @* Rejtett form a visszavonáshoz (Sale visszavonás) *@
 <form id="undoSaleForm" asp-action="UndoReport" asp-controller="Sales" method="post" style="display:none;">
+    @Html.AntiForgeryToken()
     <input type="hidden" name="id" id="undoSaleId" />
 </form>
+
+<div class="modal fade" id="vetModal" tabindex="-1" aria-labelledby="vetModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="vetModalLabel"><i class="bi bi-hospital"></i> Állatorvosi adatok az 5135-öshöz</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-dark fw-bold">Cél tenyészet</label>
+                    <select class="form-select" id="targetHerdId" name="targetHerdId">
+                        @if (ViewBag.Herds != null)
+                        {
+                            foreach (var herd in (IEnumerable<Izabella.Models.Herd>)ViewBag.Herds)
+                            {
+                                <option value="@herd.HerdCode">@herd.Name (@herd.HerdCode)</option>
+                            }
+                        }
+                        else
+                        {
+                            <option value="">Nincsenek betöltött tenyészetek!</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="certNumber" class="form-label text-dark fw-bold">Bizonyítvány sorszáma</label>
+                    <input type="text" class="form-control" id="certNumber" value="BE">
+                </div>
+                <div class="mb-3">
+                    <label for="stampNumber" class="form-label text-dark fw-bold">Kamarai bélyegző száma</label>
+                    <input type="text" class="form-control" id="stampNumber" value="0134">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mégse</button>
+                <button type="button" onclick="confirmSubmit()" class="btn btn-info text-white">XML-ek generálása</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script>
@@ -315,9 +418,80 @@
         });
 
         function submitEnarPackage() {
-            if (confirm('A kijelölt tételekről ENAR csomag készül. Folytatja?')) {
-                $('#enarForm').submit();
-                setTimeout(function() { location.reload(); }, 2000);
+            var ownerChangeCount = $('.owner-check:checked').length;
+            var normalSaleCount = $('.sale-check:checked, .death-check:checked').length;
+
+            if (ownerChangeCount > 0) {
+                // Ha van tulajdonosváltás, először a modalt mutatjuk
+                var myModal = new bootstrap.Modal(document.getElementById('vetModal'));
+                myModal.show();
+            } else if (normalSaleCount > 0) {
+                if (confirm('A kijelölt tételekről ENAR 5136-os csomag készül. Folytatja?')) {
+                    executeSubmit(false); // false = sima kikerülés
+                }
+            }
+        }
+
+        function confirmSubmit() {
+            var cert = $('#certNumber').val();
+            if (cert.length < 5) {
+                alert('Kérlek add meg a bizonylat sorszámát!');
+                return;
+            }
+            executeSubmit(true); // true = tulajdonosváltás
+        }
+
+         function executeSubmit(isOwnerChange) {
+            var form = $('#enarForm');
+    
+            // TÖRLÉS: Ne legyen target, se iframe!
+            form.removeAttr('target');
+
+            if (isOwnerChange) {
+                form.attr('action', '/Sales/ProcessOwnerChange');
+                form.find('.temp-hidden').remove();
+
+                $('<input>').attr({type: 'hidden', name: 'targetHerdCode', value: $('#targetHerdId').val(), class: 'temp-hidden'}).appendTo(form);
+                $('<input>').attr({type: 'hidden', name: 'targetOwnerName', value: $('#targetHerdId option:selected').text(), class: 'temp-hidden'}).appendTo(form);
+                $('<input>').attr({type: 'hidden', name: 'certNumber', value: $('#certNumber').val(), class: 'temp-hidden'}).appendTo(form);
+                $('<input>').attr({type: 'hidden', name: 'stampNumber', value: $('#stampNumber').val(), class: 'temp-hidden'}).appendTo(form);
+                $('<input>').attr({type: 'hidden', name: 'moveDate', value: new Date().toISOString().split('T')[0], class: 'temp-hidden'}).appendTo(form);
+        
+                var modalInstance = bootstrap.Modal.getInstance(document.getElementById('vetModal'));
+                if(modalInstance) modalInstance.hide();
+            } else {
+                // SIMA 5136 (Elhullás/Eladás)
+                form.attr('action', '/Sales/GenerateEnar5136Package');
+            }
+
+            // Beküldés a főablakban
+            form.submit();
+
+            // Egyetlen figyelmeztetés
+            alert("A kért dokumentumok generálása elindult.");
+    
+            // Csak 5 másodperc múlva frissítünk, hogy a böngészőnek legyen ideje feldolgozni a letöltést
+            setTimeout(function() {
+                if(confirm("Szeretné frissíteni az oldalt a státuszok ellenőrzéséhez?")) {
+                    location.reload();
+                }
+            }, 5000);
+        }
+
+        // Segédfüggvény a tiszta kódhoz
+        function addHiddenField(form, name, value) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = value;
+            form.appendChild(input);
+        }
+        function undoReport(transactionId) {
+            if (confirm('Biztosan visszavonja az ENAR jelentés státuszát? Ezzel a tétel újra beküldhetővé válik.')) {
+                // Megkeressük a rejtett formot és a beviteli mezőjét
+                $('#undoSaleId').val(transactionId);
+                // Elküldjük a formot
+                $('#undoSaleForm').submit();
             }
         }
     </script>

@@ -1,0 +1,182 @@
+﻿@using Izabella.Models
+@model IEnumerable<Izabella.Models.Cattle>
+
+@{
+    ViewData["Title"] = "Állománymozgatás és Súlymérés";
+}
+
+<div class="container-fluid">
+    <h2 class="mb-4"><i class="bi bi-arrows-move"></i> Állománymozgatás és Súlymérés</h2>
+
+    <form asp-action="ProcessMovement" method="post" id="movementForm">
+        @* --- 1. SZEKCIÓ: VEZÉRLŐPANEL --- *@
+        <div class="card p-3 mb-4 shadow-sm bg-light border-primary">
+            <div class="row">
+                @* Súlymérés *@
+                <div class="col-md-3 border-end">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enableWeight" name="changeWeight">
+                        <label class="form-check-label fw-bold">Súlymérés / Hízás</label>
+                    </div>
+                    <div id="weightInputs" style="display:none;" class="mt-2">
+                        <select name="weightMode" id="weightMode" class="form-select form-select-sm mb-2">
+                            <option value="gain">Egységes hízás (+ kg)</option>
+                            <option value="fixed">Egységes új súly (fix kg)</option>
+                            <option value="individual">Egyéni súly (táblázatból)</option>
+                        </select>
+                        <input type="number" step="0.1" name="commonWeightValue" id="commonWeightValue" class="form-control form-control-sm" placeholder="Érték (kg)...">
+                    </div>
+                </div>
+
+                @* Korosbítás *@
+                <div class="col-md-3 border-end">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enableAge" name="changeAgeGroup">
+                        <label class="form-check-label fw-bold">Korcsoport váltás</label>
+                    </div>
+                    <div id="ageInputs" style="display:none;" class="mt-2">
+                        <select name="newAgeGroup" class="form-select form-select-sm">
+                            <option value="Itatásos borjú">Itatásos borjú (0-3 hó)</option>
+                            <option value="Borjú">Borjú (3-6 hó)</option>
+                            <option value="Növendék 6-9">Növendék (6-9 hó)</option>
+                            <option value="Növendék 9-12">Növendék (9-12 hó)</option>
+                            <option value="Növendék 12 hó-tól">Növendék 12 hó-tól</option>
+                            <option value="Vemhes üsző">Vemhes üsző</option>
+                            <option value="Tehén">Tehén</option>
+                        </select>
+                    </div>
+                </div>
+
+                @* Áthelyezés *@
+                <div class="col-md-3 border-end">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enableLoc" name="changeLocation">
+                        <label class="form-check-label fw-bold">Áthelyezés (Tenyészet/Istálló)</label>
+                    </div>
+                    <div id="locInputs" style="display:none;" class="mt-2">
+                        <select name="newHerdId" class="form-select form-select-sm mb-2">
+                            @foreach (var herd in ViewBag.Herds)
+                            {
+                                <option value="@herd.Id">@herd.Name (@herd.HerdCode)</option>
+                            }
+                        </select>
+                        @* Keressük meg a stallName inputot és módosítsuk *@
+                        <input type="text" name="stallName" class="form-control form-control-sm mb-2"
+                               list="stallList" placeholder="Istálló/Box...">
+                        <datalist id="stallList">
+                            @foreach (var s in (IEnumerable<string>)ViewBag.ExistingStalls)
+                            {
+                                <option value="@s"></option>
+                            }
+                        </datalist>
+                    </div>
+                </div>
+
+                @* Dátum és Indítás *@
+                <div class="col-md-3 text-center">
+                    <label class="fw-bold small">Esemény dátuma:</label>
+                    <input type="date" name="moveDate" class="form-control form-control-sm mb-2" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                    <button type="submit" class="btn btn-primary w-100 shadow-sm" id="submitBtn" disabled>
+                        <i class="bi bi-check-circle"></i> Végrehajtás
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @* --- 2. SZEKCIÓ: ÁLLATOK LISTÁJA --- *@
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 40px;" class="ps-3">
+                                <input type="checkbox" id="selectAll" class="form-check-input">
+                            </th>
+                            <th>Fülszám</th>
+                            <th>ENAR</th>
+                            <th>Aktuális Súly</th>
+                            <th style="width: 150px;">Új/Egyéni Súly</th>
+                            <th>Korcsoport</th>
+                            <th>Tenyészet</th>
+                            <th>Istálló</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-3">
+                                    <input type="checkbox" name="selectedCattleIds" value="@item.Id" class="form-check-input cattle-check">
+                                </td>
+                                <td><span class="fw-bold">@item.EarTag</span></td>
+                                <td><small class="text-muted">@item.EnarNumber</small></td>
+                                <td>@item.CurrentWeight kg</td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" step="0.1" name="individualWeights[@item.Id]"
+                                               class="form-control indiv-weight"
+                                               placeholder="Mért súly" disabled>
+                                        <span class="input-group-text">kg</span>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-light text-dark border">@item.AgeGroup</span></td>
+                                <td>@item.CurrentHerd?.HerdCode</td>
+                                <td>@item.Stall</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Checkboxok és gomb állapota
+            $('.cattle-check, #selectAll').on('change', function() {
+                updateSubmitButton();
+            });
+
+            $('#selectAll').on('click', function() {
+                $('.cattle-check').prop('checked', this.checked);
+                updateSubmitButton();
+            });
+
+            function updateSubmitButton() {
+                let checkedCount = $('.cattle-check:checked').length;
+                $('#submitBtn').prop('disabled', checkedCount === 0);
+            }
+
+            // Panelek kapcsolgatása
+            $('#enableWeight').on('change', function() {
+                $('#weightInputs').toggle(this.checked);
+                toggleIndividualInputs();
+            });
+            $('#enableAge').on('change', function() {
+                $('#ageInputs').toggle(this.checked);
+            });
+            $('#enableLoc').on('change', function() {
+                $('#locInputs').toggle(this.checked);
+            });
+
+            // Egyéni súly mezők kezelése
+            $('#weightMode').on('change', function() {
+                toggleIndividualInputs();
+            });
+
+            function toggleIndividualInputs() {
+                let isIndividual = $('#weightMode').val() === 'individual' && $('#enableWeight').is(':checked');
+                $('.indiv-weight').prop('disabled', !isIndividual);
+                
+                // Ha egységes súly van, tiltsuk le az egyénit és fordítva
+                if (isIndividual) {
+                    $('#commonWeightValue').prop('disabled', true).val('');
+                } else {
+                    $('#commonWeightValue').prop('disabled', false);
+                }
+            }
+        });
+    </script>
+}
