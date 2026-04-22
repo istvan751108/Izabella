@@ -353,30 +353,43 @@ namespace Izabella.Controllers
             var y = year ?? DateTime.Now.Year;
             var m = month ?? DateTime.Now.Month;
 
-            // 1. Értékesítések és Elhullások (mint eddig)
+            // 1. Értékesítések és Elhullások lekérése
             var transactions = await _context.SaleTransactions
                 .Include(s => s.Customer)
                 .Include(s => s.Cattle).ThenInclude(c => c.CurrentHerd)
                 .Where(s => s.SaleDate.Year == y && s.SaleDate.Month == m)
                 .ToListAsync();
 
-            // 2. Ellések (az adott hónapban született borjak)
-            // Beemeljük az anya adatait is a korcsoport miatt
+            // 2. Ellések (Újszülöttek és Anyák a statisztikához)
             var newborns = await _context.Cattles
                 .Where(c => c.BirthDate.Year == y && c.BirthDate.Month == m && c.MotherEnar != null)
                 .ToListAsync();
 
-            // Anya adatok lekérése a korcsoport statisztikához
             var motherEnars = newborns.Select(n => n.MotherEnar).Distinct().ToList();
             var mothers = await _context.Cattles
                 .Where(c => motherEnars.Contains(c.EnarNumber))
                 .ToListAsync();
 
+            // 3. Áthelyezések listázása a History-ból (Archívum szemlélet)
+            var monthlyMovements = await _context.AnimalHistories
+                .Include(h => h.Cattle)
+                .Where(h => h.Type == "Áthelyezés (Tenyészetváltás)" &&
+                            h.EventDate.Year == y &&
+                            h.EventDate.Month == m)
+                .OrderByDescending(h => h.EventDate)
+                .ToListAsync();
+
+            // Tenyészetkódok összegyűjtése (a gyorsabb megjelenítéshez)
+            var herdCodes = await _context.Herds.ToDictionaryAsync(h => h.Id, h => h.HerdCode);
+
             ViewBag.Year = y;
             ViewBag.Month = m;
             ViewBag.Newborns = newborns;
             ViewBag.Mothers = mothers;
+            ViewBag.MonthlyMovements = monthlyMovements; // Ezt adjuk át a régi helyett
+            ViewBag.HerdCodes = herdCodes;
             ViewBag.Herds = await _context.Herds.OrderBy(h => h.Name).ToListAsync();
+
             return View(transactions);
         }
         // SalesController.cs

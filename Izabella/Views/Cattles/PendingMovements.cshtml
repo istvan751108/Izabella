@@ -1,0 +1,82 @@
+﻿@using Izabella.Models
+@model IEnumerable<Izabella.Models.Cattle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2><i class="bi bi-list-check"></i> Átkötési ellenőrző lista (Várakozó)</h2>
+        <div>
+            <button type="submit" id="downloadBtn" form="enarForm" class="btn btn-primary shadow">
+                <i class="bi bi-file-zip"></i> XML + PDF Csomag letöltése
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <form asp-action="GenerateEnar5147Package" method="post" id="enarForm">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="selectAll" checked class="form-check-input"></th>
+                        <th>Sorszám</th>
+                        <th>ENAR szám</th>
+                        <th>Régi Tenyészet</th>
+                        <th>Új Tenyészet</th>
+                        <th>Melléklet (ssz)</th>
+                        <th>Dátum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int i = 1;
+                        var sourceHerds = ViewBag.SourceHerds as Dictionary<int, string>;
+                    }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="selectedIds" value="@item.Id" checked class="form-check-input cattle-check">
+                            </td>
+                            <td>@(i++)</td>
+                            <td>
+                                @{
+                                    string displayEnar = item.EnarNumber ?? "";
+                                    if (displayEnar.StartsWith("HU")) displayEnar = displayEnar.Substring(2);
+                                }
+                                <strong>HU @displayEnar</strong>
+                            </td>
+                            @* --- RÉGI TENYÉSZET MEGJELENÍTÉSE --- *@
+                            <td>
+                                <span class="text-secondary">
+                                    @(sourceHerds != null && sourceHerds.ContainsKey(item.Id) ? sourceHerds[item.Id] : "467355")
+                                </span>
+                            </td>
+                            @* ------------------------------------ *@
+                            <td><span class="badge bg-info text-dark">@item.CurrentHerd?.HerdCode</span></td>
+                            <td>@item.PassportSequence.ToString("D2")</td>
+                            <td>@DateTime.Now.ToString("yyyy.MM.dd")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $('#selectAll').click(function() {
+            $('.cattle-check').prop('checked', this.checked);
+        });
+    </script>
+    <script>
+                $(document).ready(function() {
+            $('#enarForm').on('submit', function() {
+                // Várunk egy kicsit (pl. 2 másodpercet), hogy a letöltés elinduljon,
+                // majd frissítjük az oldalt, hogy az eltűnt állatok listája aktualizálódjon.
+                setTimeout(function() {
+                    location.reload();
+                }, 2000);
+            });
+        });
+    </script>
+}

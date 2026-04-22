@@ -81,9 +81,11 @@ namespace Izabella.Models
         [Display(Name = "Aktív?")]
         public bool IsActive { get; set; } = true;
         [Required]
+        [Display(Name = "Fajta kód")]
         public int BreedCode { get; set; } = 22; // Alapértelmezett a Holstein-fríz
-                                                 // Cattle.cs
+        [Display(Name = "Aktuális súly")]
         public double CurrentWeight { get; set; } // Aktuális súly
+        [Display(Name = "Istálló / Box")]
         public string? Stall { get; set; }        // Istálló/Box helye
         public bool RequiresEnar5147 { get; set; } // Jelző az ENAR jelentéshez
     }

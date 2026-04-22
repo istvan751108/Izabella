@@ -1,11 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Izabella.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Izabella.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
+using System.IO.Compression;
+using System.Xml;
 
 namespace Izabella.Controllers
 {
@@ -96,7 +103,14 @@ namespace Izabella.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-
+            _context.AnimalHistories.Add(new AnimalHistory
+            {
+                CattleId = cattle.Id,
+                EventDate = DateTime.Now,
+                Weight = cattle.CurrentWeight,
+                WeightGain = 0,
+                Type = "Kézi rögzítés / Kezdő súly"
+            });
             // Ha hiba van, újraépítjük a listákat a nézethez
             ViewBag.CompanyId = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
             ViewBag.CurrentHerdId = new SelectList(_context.Herds, "Id", "Name", cattle.CurrentHerdId);
@@ -277,82 +291,146 @@ namespace Izabella.Controllers
             string weightMode,
             double? commonWeightValue,
             Dictionary<int, double> individualWeights,
-            bool changeAgeGroup, string newAgeGroup,
-            bool changeLocation, int? newHerdId, string stallName)
-                {
-                    if (selectedCattleIds == null || selectedCattleIds.Length == 0) return RedirectToAction(nameof(Movement));
+            string changeWeight,     // bool helyett string
+            string changeAgeGroup,   // bool helyett string
+            string changeLocation,   // bool helyett string
+            string newAgeGroup,
+            int? newHerdId,
+            string stallName)
+        {
+            if (selectedCattleIds == null || selectedCattleIds.Length == 0) return RedirectToAction(nameof(Movement));
 
-                    // Korcsoport sorrend meghatározása
-                    var ageGroups = new List<string> {
+            // Manuális konverzió bool-ra (mivel a checkbox "on" értéket küld, ha be van pipálva)
+            bool isWeightChange = changeWeight == "on" || changeWeight == "true";
+            bool isAgeChange = changeAgeGroup == "on" || changeAgeGroup == "true";
+            bool isLocChange = changeLocation == "on" || changeLocation == "true";
+
+            var ageGroups = new List<string> {
                 "Itatásos borjú", "Borjú", "Növendék 6-9", "Növendék 9-12",
                 "Növendék 12 hó-tól", "Vemhes üsző", "Tehén"
             };
 
             var cattleList = await _context.Cattles.Where(c => selectedCattleIds.Contains(c.Id)).ToListAsync();
 
+            // Számlálók a visszajelzéshez
+            int successCount = 0;
+            int errorCount = 0;
+
             foreach (var cattle in cattleList)
             {
-                // KORCSOPORT ELLENŐRZÉSE
-                if (changeAgeGroup)
-                {
-                    int currentIndex = ageGroups.IndexOf(cattle.AgeGroup);
-                    int nextIndex = ageGroups.IndexOf(newAgeGroup);
-
-                    // Csak akkor engedjük, ha ugyanaz marad (súlymérés miatt) vagy pontosan a következő
-                    if (nextIndex != currentIndex && nextIndex != currentIndex + 1)
-                    {
-                        TempData["Error"] = $"Hiba: {cattle.EarTag} nem ugorhat {cattle.AgeGroup} csoportból {newAgeGroup} csoportba!";
-                        continue;
-                    }
-                }
+                // Elmentjük az eredeti állapotot a naplózáshoz
+                string oldAgeGroup = cattle.AgeGroup;
+                int? oldHerdId = cattle.CurrentHerdId;
+                string oldStall = cattle.Stall;
 
                 var history = new AnimalHistory
                 {
                     CattleId = cattle.Id,
                     EventDate = moveDate,
-                    OldAgeGroup = cattle.AgeGroup,
-                    OldHerdId = cattle.CurrentHerdId,
+                    OldAgeGroup = oldAgeGroup,
+                    OldHerdId = oldHerdId,
+                    Weight = cattle.CurrentWeight,
+                    WeightGain = 0,
+                    StallName = oldStall,
                     Type = ""
                 };
 
-                // Súly kezelése
-                double oldWeight = cattle.CurrentWeight;
-                if (weightMode == "fixed") cattle.CurrentWeight = commonWeightValue ?? cattle.CurrentWeight;
-                else if (weightMode == "gain") cattle.CurrentWeight += commonWeightValue ?? 0;
-                else if (weightMode == "individual" && individualWeights.ContainsKey(cattle.Id))
-                    cattle.CurrentWeight = individualWeights[cattle.Id];
-
-                history.Weight = cattle.CurrentWeight;
-                history.WeightGain = cattle.CurrentWeight - oldWeight;
-
-                // Korcsoport frissítése
-                if (changeAgeGroup)
+                // 1. KORCSOPORT VÁLTÁS
+                if (isAgeChange)
                 {
+                    int currentIndex = ageGroups.IndexOf(oldAgeGroup);
+                    int nextIndex = ageGroups.IndexOf(newAgeGroup);
+
+                    if (nextIndex != currentIndex && nextIndex != currentIndex + 1)
+                    {
+                        TempData["Error"] = $"Hiba: {cattle.EarTag} nem ugorhat {oldAgeGroup} csoportból {newAgeGroup} csoportba!";
+                        errorCount++;
+                        continue; // Itt ugrik a következő állatra, nem növeli a successCount-ot
+                    }
+
                     cattle.AgeGroup = newAgeGroup;
                     history.NewAgeGroup = newAgeGroup;
                     history.Type += "Korosbítás ";
                 }
 
-                // Helyváltoztatás
-                if (changeLocation)
+                // 2. SÚLY KEZELÉSE
+                if (isWeightChange)
+                {
+                    // Ha még sosem volt mérve, de van születési súlya, induljunk onnan
+                    if (cattle.CurrentWeight <= 0 && cattle.BirthWeight > 0)
+                        cattle.CurrentWeight = cattle.BirthWeight;
+
+                    double oldWeight = cattle.CurrentWeight;
+
+                    if (weightMode == "fixed" && commonWeightValue.HasValue)
+                        cattle.CurrentWeight = commonWeightValue.Value;
+                    else if (weightMode == "gain" && commonWeightValue.HasValue)
+                        cattle.CurrentWeight += commonWeightValue.Value;
+                    else if (weightMode == "individual" && individualWeights != null && individualWeights.ContainsKey(cattle.Id))
+                        cattle.CurrentWeight = individualWeights[cattle.Id];
+
+                    // Frissítjük a history-t a tényleges új adatokkal
+                    history.Weight = cattle.CurrentWeight;
+                    history.WeightGain = cattle.CurrentWeight - oldWeight;
+
+                    if (!isAgeChange && !isLocChange) history.Type = "Súlymérés";
+                }
+                else
+                {
+                    // HA NINCS SÚLYMÉRÉS: 
+                    // A history.Weight már az alaphelyzetben megkapta a cattle.CurrentWeight-et,
+                    // a cattle.CurrentWeight-hez pedig hozzá sem nyúlunk, így marad a régi.
+                }
+                // 3. HELYVÁLTOZTATÁS
+                // ISTÁLLÓ: Ha van megadva új név, átírjuk. Ha nincs, marad a régi (nem töröljük!)
+                if (!string.IsNullOrEmpty(stallName))
+                {
+                    cattle.Stall = stallName;
+                    history.StallName = stallName;
+
+                    // Ha nem volt tenyészetváltás, csak istálló, akkor is jelezzük
+                    if (!isLocChange) history.Type += "Istálló váltás ";
+                }
+                else if (string.IsNullOrEmpty(cattle.Stall))
+                {
+                    // Ha valamiért tök üres lenne (pl. importált adat), legyen egy alapértelmezés
+                    cattle.Stall = "Borjúkert";
+                    history.StallName = "Borjúkert";
+                }
+                // TENYÉSZET (Csak ha be van pipálva a Tenyészetváltás)
+                if (isLocChange)
                 {
                     if (newHerdId.HasValue && cattle.CurrentHerdId != newHerdId)
                     {
                         history.NewHerdId = newHerdId;
                         cattle.CurrentHerdId = newHerdId.Value;
-                        cattle.RequiresEnar5147 = true; // Ez jelzi, hogy XML kell!
+                        cattle.RequiresEnar5147 = true;
+                        history.Type += "Áthelyezés (Tenyészetváltás) ";
                     }
-                    cattle.Stall = stallName; // Itt mentjük el az istállót (pl. "Ketrec" vagy "12")
-                    history.StallName = stallName;
-                    history.Type += "Áthelyezés";
                 }
 
-                if (string.IsNullOrEmpty(history.Type)) history.Type = "Súlymérés";
+                history.NewAgeGroup ??= cattle.AgeGroup;
+                history.NewHerdId ??= cattle.CurrentHerdId;
+
+                if (string.IsNullOrEmpty(history.Type)) history.Type = "Adatmódosítás";
+                successCount++;
+                _context.Update(cattle); // Biztosítjuk a frissítést
                 _context.AnimalHistories.Add(history);
             }
 
-            await _context.SaveChangesAsync();
-            TempData["Success"] = "Műveletek sikeresen rögzítve!";
+            if (successCount > 0)
+            {
+                await _context.SaveChangesAsync();
+                // Csak akkor írjuk ki a sikert, ha nem volt hiba, vagy ha legalább egy állat sikerült
+                if (errorCount == 0)
+                {
+                    TempData["Success"] = $"{successCount} állat adatai sikeresen frissítve.";
+                }
+                else
+                {
+                    TempData["Success"] = $"{successCount} állat frissítve, de {errorCount} állatnál hiba történt.";
+                }
+            }
             return RedirectToAction(nameof(Movement));
         }
         // CattlesController.cs
@@ -373,5 +451,230 @@ namespace Izabella.Controllers
                 .ToListAsync();
             return View(model);
         }
+        // Megjelenítjük a várakozó áthelyezéseket
+        public async Task<IActionResult> PendingMovements()
+        {
+            var pending = await _context.Cattles
+                .Include(c => c.CurrentHerd)
+                .Where(c => c.RequiresEnar5147 && c.IsActive)
+                .ToListAsync();
+
+            // Készítünk egy szótárat a régi tenyészetkódokhoz, hogy a View-ban ne kelljen SQL-ezni
+            var sourceHerds = new Dictionary<int, string>();
+            foreach (var c in pending)
+            {
+                var lastMove = await _context.AnimalHistories
+                    .Where(h => h.CattleId == c.Id && h.NewHerdId == c.CurrentHerdId)
+                    .OrderByDescending(h => h.EventDate)
+                    .FirstOrDefaultAsync();
+
+                if (lastMove?.OldHerdId != null)
+                {
+                    var oldHerd = await _context.Herds.FindAsync(lastMove.OldHerdId);
+                    sourceHerds[c.Id] = oldHerd?.HerdCode ?? "467355";
+                }
+                else
+                {
+                    sourceHerds[c.Id] = "467355"; // Alapértelmezett
+                }
+            }
+            ViewBag.SourceHerds = sourceHerds;
+
+            return View(pending);
+        }
+
+        // Tenyészetváltáshoz XML Generálása
+        [HttpPost]
+        public async Task<IActionResult> GenerateEnar5147Package(int[] selectedIds)
+        {
+            if (selectedIds == null || selectedIds.Length == 0)
+                return Content("<script>alert('Nincs kijelölt tétel!'); window.history.back();</script>", "text/html");
+
+            var cattleToReport = await _context.Cattles
+                .Include(c => c.CurrentHerd)
+                .Where(c => selectedIds.Contains(c.Id))
+                .ToListAsync();
+
+            QuestPDF.Settings.License = LicenseType.Community;
+
+            using (var memoryStream = new MemoryStream())
+            {
+                using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                {
+                    var groupedByTarget = cattleToReport.GroupBy(c => c.CurrentHerd?.HerdCode ?? "ISMERETLEN");
+
+                    foreach (var group in groupedByTarget)
+                    {
+                        string targetHerdCode = group.Key;
+                        string timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+
+                        XNamespace ns2 = "http://e5147.client.enar.si.hu";
+                        var root = new XElement(ns2 + "SzmarhaBejelentok", new XAttribute(XNamespace.Xmlns + "ns2", ns2.NamespaceName));
+
+                        var listForPdf = new List<Enar5147PdfModel>();
+                        int sorszam = 1;
+
+                        foreach (var cattle in group)
+                        {
+                            // Itt keressük meg a mozgást
+                            var lastHistory = await _context.AnimalHistories
+                               .Where(h => h.CattleId == cattle.Id &&
+                                h.NewHerdId == cattle.CurrentHerdId &&
+                                h.Type == "Áthelyezés (Tenyészetváltás)")
+                                .OrderByDescending(h => h.EventDate)
+                                .FirstOrDefaultAsync();
+
+                            // --- ÚJ RÉSZ: Státusz frissítése az archívumhoz ---
+                            if (lastHistory != null)
+                            {
+                                lastHistory.IsEnarReported = true; // Beállítjuk, hogy a havi naplóban zöld legyen
+                                _context.Entry(lastHistory).State = EntityState.Modified;
+                            }
+                            // ------------------------------------------------
+
+                            string sourceHerdCode = "467355";
+                            if (lastHistory?.OldHerdId != null)
+                            {
+                                var oldHerd = await _context.Herds.FindAsync(lastHistory.OldHerdId);
+                                sourceHerdCode = oldHerd?.HerdCode ?? "467355";
+                            }
+
+                            string enarRaw = cattle.EnarNumber ?? "";
+                            string enarOnly = enarRaw.StartsWith("HU") ? enarRaw.Substring(2).Trim() : enarRaw.Trim();
+
+                            root.Add(new XElement("SzmarhaBejelento",
+                                new XElement("Sorszam", sorszam++),
+                                new XElement("AzonositoOrszagkodja", "HU"),
+                                new XElement("Azonosito", enarOnly),
+                                new XElement("KiadasiSorszam", cattle.PassportSequence.ToString("D2")),
+                                new XElement("TenyeszetKodIndito", sourceHerdCode),
+                                new XElement("KikerulesDatuma", lastHistory?.EventDate.ToString("yyyy-MM-dd") ?? DateTime.Now.ToString("yyyy-MM-dd")),
+                                new XElement("TenyeszetKodFogado", targetHerdCode),
+                                new XElement("ErkezesDatuma", lastHistory?.EventDate.ToString("yyyy-MM-dd") ?? DateTime.Now.ToString("yyyy-MM-dd")),
+                                new XElement("SurgosseggelKezelendo", "2"),
+                                new XElement("MarhalevelTipusa", "2")
+                            ));
+
+                            listForPdf.Add(new Enar5147PdfModel
+                            {
+                                Sorszam = sorszam - 1,
+                                Enar = "HU " + enarOnly,
+                                SourceHerd = sourceHerdCode,
+                                TargetHerd = targetHerdCode,
+                                Date = lastHistory?.EventDate ?? DateTime.Now,
+                                PassportSeq = cattle.PassportSequence.ToString("D2")
+                            });
+
+                            cattle.PassportSequence += 1;
+                            cattle.PassportNumber = "Kérve";
+                            cattle.RequiresEnar5147 = false;
+                        }
+
+                        var settings = new XmlWriterSettings { Indent = false, Encoding = new UTF8Encoding(false) };
+                        string xmlString;
+                        using (var xmlMs = new MemoryStream())
+                        {
+                            using (var writer = XmlWriter.Create(xmlMs, settings)) { root.WriteTo(writer); }
+                            xmlString = Encoding.UTF8.GetString(xmlMs.ToArray())
+                                .Replace("\"", "'")
+                                .Replace("utf-8", "UTF-8");
+                        }
+
+                        var xmlEntry = archive.CreateEntry($"atrh_{targetHerdCode}_{timestamp}.xml");
+                        using (var entryWriter = new StreamWriter(xmlEntry.Open(), new UTF8Encoding(false)))
+                        {
+                            entryWriter.Write(xmlString);
+                        }
+
+                        var pdfDoc = CreateEnar5147Pdf(listForPdf, targetHerdCode);
+                        var pdfEntry = archive.CreateEntry($"atrh_lista_{targetHerdCode}_{DateTime.Now:yyyyMMdd}.pdf");
+                        using (var entryStream = pdfEntry.Open())
+                        {
+                            byte[] pdfBytes = pdfDoc.GeneratePdf();
+                            entryStream.Write(pdfBytes, 0, pdfBytes.Length);
+                        }
+                    }
+                }
+                await _context.SaveChangesAsync();
+                return File(memoryStream.ToArray(), "application/zip", $"ENAR_5147_{DateTime.Now:yyyyMMdd}.zip");
+            }
+        }
+
+        // Segédmodell a PDF-hez
+        public class Enar5147PdfModel
+        {
+            public int Sorszam { get; set; }
+            public string Enar { get; set; }
+            public string SourceHerd { get; set; }
+            public string TargetHerd { get; set; }
+            public DateTime Date { get; set; }
+            public string PassportSeq { get; set; }
+        }
+
+        private IDocument CreateEnar5147Pdf(List<Enar5147PdfModel> items, string targetHerdCode)
+        {
+            return Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(1, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(9).FontFamily(Fonts.Verdana));
+
+                    page.Header().Row(row =>
+                    {
+                        row.RelativeItem().Column(col =>
+                        {
+                            col.Item().Text("ÁTKÖTÉSI ELLENŐRZŐ LISTA (5147)").FontSize(14).SemiBold().FontColor(Colors.Blue.Medium);
+                            col.Item().Text($"Fogadó tenyészet: {targetHerdCode}").FontSize(10);
+                        });
+                        row.RelativeItem().AlignRight().Text($"{DateTime.Now:yyyy.MM.dd HH:mm}").FontSize(9);
+                    });
+
+                    page.Content().PaddingVertical(10).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.ConstantColumn(25);  // Ssz
+                            columns.RelativeColumn(2.5f);// ENAR
+                            columns.RelativeColumn(2);   // Régi teny.
+                            columns.RelativeColumn(2);   // Új teny.
+                            columns.RelativeColumn(1.5f);// Marhalevél
+                            columns.RelativeColumn(2);   // Dátum
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Element(PdfHeaderStyle).Text("Ssz.");
+                            header.Cell().Element(PdfHeaderStyle).Text("Állat ENAR");
+                            header.Cell().Element(PdfHeaderStyle).Text("Régi Teny.");
+                            header.Cell().Element(PdfHeaderStyle).Text("Új Teny.");
+                            header.Cell().Element(PdfHeaderStyle).Text("Melléklet");
+                            header.Cell().Element(PdfHeaderStyle).Text("Dátum");
+                        });
+
+                        foreach (var item in items)
+                        {
+                            table.Cell().Element(PdfRowStyle).Text(item.Sorszam.ToString());
+                            table.Cell().Element(PdfRowStyle).Text(item.Enar);
+                            table.Cell().Element(PdfRowStyle).Text(item.SourceHerd);
+                            table.Cell().Element(PdfRowStyle).Text(item.TargetHerd);
+                            table.Cell().Element(PdfRowStyle).Text(item.PassportSeq);
+                            table.Cell().Element(PdfRowStyle).Text(item.Date.ToString("yyyy.MM.dd"));
+                        }
+                    });
+                });
+            });
+        }
+        // Segédstílusok (ugyanaz mint a CattleControllerben)
+        private IContainer PdfHeaderStyle(IContainer container)
+        {
+            return container.DefaultTextStyle(x => x.SemiBold()).PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Black);
+        }
+
+        private IContainer PdfRowStyle(IContainer container)
+        {
+            return container.PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
+        }
     }
-    }
+}

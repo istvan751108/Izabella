@@ -37,8 +37,8 @@
                             <li><a class="dropdown-item" asp-controller="Cattle" asp-action="GenderChangeList">Borjú nemének megváltoztatása</a></li>
                             <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Index">Aktív Állomány listája</a></li>
                             <li><a class="dropdown-item" asp-controller="Sales" asp-action="Index">Kikerülési napló</a></li>
-                            <li><a class="dropdown-item" asp-controller="Sales" asp-action="MonthlyReport">Havi statisztikai napló + ENAR ügyintézés</a></li>
                             <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Movement">Állománymozgatás és Súlymérés</a></li>
+                            <li><a class="dropdown-item" asp-controller="Sales" asp-action="MonthlyReport">ENAR ügyintézés</a></li>
                             <li><hr class="dropdown-divider"></li>
                           
                             <li><a class="dropdown-item text-danger" asp-controller="Cattle" asp-action="DeathLogList">Elhullások naplója</a></li>
@@ -108,18 +108,19 @@
 
     <script>
         function showToast(message, isError = false) {
-            const toastElement = document.getElementById('liveToast');
-            const toastMessage = document.getElementById('toastMessage');
-            if (!toastElement) return;
+        const toastElement = document.getElementById('liveToast');
+        const toastMessage = document.getElementById('toastMessage');
+        if (!toastElement) return;
 
-            if (isError) {
-                toastElement.classList.replace('bg-success', 'bg-danger');
-            } else {
-                toastElement.classList.replace('bg-danger', 'bg-success');
-            }
-            toastMessage.innerText = message;
-            const toast = new bootstrap.Toast(toastElement);
-            toast.show();
+        // Szín beállítása
+        toastElement.classList.remove('bg-success', 'bg-danger');
+        toastElement.classList.add(isError ? 'bg-danger' : 'bg-success');
+
+        toastMessage.innerText = message;
+
+        // Autohide beállítása (5000ms = 5 másodperc)
+        const toast = new bootstrap.Toast(toastElement, { delay: 5000, autohide: true });
+        toast.show();
         }
     </script>
     @await RenderSectionAsync("Scripts", required: false)

@@ -64,5 +64,4 @@ using (var scope = app.Services.CreateScope())
 {
     await SeedData.Initialize(scope.ServiceProvider);
 }
-
 app.Run();

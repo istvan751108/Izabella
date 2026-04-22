@@ -145,10 +145,23 @@ namespace Izabella.Controllers
                             calf.EnarNumber = "HALVA-SZÜLETETT";
                         }
 
+                        // Biztosítsuk, hogy a BirthWeight nem null, mielőtt az aktuális súlyba kerül
+                        calf.CurrentWeight = calf.BirthWeight;
                         ProcessNewborn(calf, dam, alive1);
+                        // Explicit módon mondjuk meg az EF-nek, hogy ezek változtak
                         _context.Cattles.Add(calf);
                         await _context.SaveChangesAsync();
 
+                        // ÚJ: Születési napló bejegyzés
+                        _context.AnimalHistories.Add(new AnimalHistory
+                        {
+                            CattleId = calf.Id,
+                            EventDate = calf.BirthDate,
+                            NewAgeGroup = calf.AgeGroup,
+                            StallName = calf.Stall, // Ez lesz a "Borjúkert"
+                            Weight = calf.BirthWeight,
+                            Type = "Születés"
+                        });
                         if (!alive1) AddDeathLog(calf, "Halva született");
 
                         // 2. MÁSODIK BORJÚ (IKER)
@@ -160,11 +173,13 @@ namespace Izabella.Controllers
                                 MotherEnar = calf.MotherEnar,
                                 CurrentHerdId = calf.CurrentHerdId,
                                 Gender = (Gender2 == "Bika" ? Gender.Bika : Gender.Üsző),
-                                BirthWeight = BirthWeight2 ?? 35,
+                                BirthWeight = BirthWeight2 ?? 35.0,
                                 BreedCode = calf.BreedCode,
                                 IsTwin = true,
                                 IsAlive = alive2
                             };
+
+                            secondCalf.CurrentWeight = secondCalf.BirthWeight;
 
                             if (!alive2)
                             {
@@ -188,6 +203,7 @@ namespace Izabella.Controllers
                         if (dam != null)
                         {
                             dam.DamAgeAtCalving = "Tehén";
+                            if (dam.AgeGroup != "Tehén") dam.AgeGroup = "Tehén";
                             _context.Update(dam);
 
                             // Itt a javított sor:
@@ -225,19 +241,22 @@ namespace Izabella.Controllers
         // Segédmetódus az alapértékek beállításához
         private void ProcessNewborn(Cattle c, Cattle dam, bool isAlive)
         {
-            c.CompanyId = dam?.CompanyId ?? 0;
+            c.CompanyId = dam?.CompanyId ?? 1;
             c.PassportNumber = "Nincs";
             c.IsActive = isAlive;
+            c.CurrentWeight = c.BirthWeight;
 
             if (isAlive)
             {
                 c.AgeGroup = "Itatásos borjú";
+                c.Stall = "Borjúkert";
             }
             else
             {
                 c.AgeGroup = "Halva született"; // <--- Így nem keveredik az élő borjakkal
                 c.ExitDate = c.BirthDate;
                 c.ExitType = ExitType.Elhullás;
+                c.Stall = null;
             }
         }
 

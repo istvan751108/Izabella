@@ -125,6 +125,59 @@
             }
         </div>
     </div>
+    @* --- 3. SZEKCIÓ: ÁTHELYEZÉSEK (Áttekintő) --- *@
+    <div class="card shadow-sm mb-5 border-warning">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0"><i class="bi bi-truck"></i> Havi áthelyezések (ENAR 5147)</h5>
+                <a asp-action="PendingMovements" asp-controller="Cattles" class="btn btn-dark btn-sm fw-bold">
+                    <i class="bi bi-pencil-square"></i> Áthelyezések kezelése
+                </a>
+            </div>
+            <div class="card-body">
+                @if (ViewBag.MonthlyMovements != null && ((List<AnimalHistory>)ViewBag.MonthlyMovements).Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Dátum</th>
+                                    <th>Fülszám</th>
+                                    <th>Honnan</th>
+                                    <th>Hová</th>
+                                    <th class="text-center">Státusz</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var move in (List<AnimalHistory>)ViewBag.MonthlyMovements)
+                                {
+                                    var codes = ViewBag.HerdCodes as Dictionary<int, string>;
+                                    <tr>
+                                        <td>@move.EventDate.ToString("yyyy.MM.dd")</td>
+                                        <td class="fw-bold">@move.Cattle?.EarTag</td>
+                                        <td><small>@(move.OldHerdId.HasValue && codes.ContainsKey(move.OldHerdId.Value) ? codes[move.OldHerdId.Value] : "---")</small></td>
+                                        <td><span class="badge bg-light text-dark border">@(move.NewHerdId.HasValue && codes.ContainsKey(move.NewHerdId.Value) ? codes[move.NewHerdId.Value] : "---")</span></td>
+                                        <td class="text-center">
+                                            @if (move.IsEnarReported)
+                                            {
+                                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Beküldve</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> Bejelentésre vár</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted text-center my-3">Ebben a hónapban nem történt belső áthelyezés.</p>
+                }
+            </div>
+        </div>
     @* --- 2. SZEKCIÓ: KIKERÜLÉSEK (Közös keretben az ENAR kijelentéshez) --- *@
     <div class="card shadow border-0 bg-light p-4 mb-5">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -303,7 +356,21 @@
                                     </a>
                                 </td>
                                 <td>@item.Customer?.Name</td>
-                                <td><span class="badge bg-light text-dark border small">@item.Type.ToString()</span></td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border small">
+                                            @{
+                                                var typeName = item.Type switch
+                                                {
+                                                    SaleType.Slaughter => "Vágás",
+                                                    SaleType.FurtherBreeding => "Továbbtartás",
+                                                    SaleType.Export => "Export",
+                                                    SaleType.OwnershipChange => "Tulajdonosváltás",
+                                                    _ => item.Type.ToString()
+                                                };
+                                            }
+                                            @typeName
+                                        </span>
+                                    </td>
                                 <td class="text-end fw-bold">@item.TotalNetPrice.ToString("N0") Ft</td>
                                 <td class="text-center">
                                     @if (item.IsReported)
@@ -403,18 +470,20 @@
             });
 
             function updateMainButton() {
-                var checkedCount = $('.enar-check:checked').length;
-                $('#btnMainExport').prop('disabled', checkedCount === 0);
-                
-                if(checkedCount > 0) {
-                    $('#selectedCount').text(checkedCount);
-                    $('#checkCounter').fadeIn();
-                    $('#btnMainExport').html('<i class="bi bi-check-all"></i> ' + checkedCount + ' tétel beküldése (ZIP)');
-                } else {
-                    $('#checkCounter').hide();
-                    $('#btnMainExport').html('<i class="bi bi-file-zip-fill"></i> Kijelöltek ENAR kijelentése');
-                }
+            // Csak a kikerülések (elhullás, eladás, tulajdonosváltás) számlálása
+            var checkedCount = $('.death-check:checked, .sale-check:checked, .owner-check:checked').length;
+
+            $('#btnMainExport').prop('disabled', checkedCount === 0);
+
+            if(checkedCount > 0) {
+                $('#selectedCount').text(checkedCount);
+                $('#checkCounter').fadeIn();
+                $('#btnMainExport').html('<i class="bi bi-check-all"></i> ' + checkedCount + ' tétel beküldése (ZIP)');
+            } else {
+                $('#checkCounter').hide();
+                $('#btnMainExport').html('<i class="bi bi-file-zip-fill"></i> Kijelöltek ENAR kijelentése');
             }
+        }
         });
 
         function submitEnarPackage() {
