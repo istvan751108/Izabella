@@ -1,9 +1,10 @@
 ﻿using Izabella.Models;
+using Izabella.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using QuestPDF.Helpers;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System.IO.Compression;
 using System.Text;

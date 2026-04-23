@@ -474,3 +474,11 @@ C:\Users\Erzsike\source\repos\Izabella\Izabella\obj\Debug\net10.0\refint\Izabell
 C:\Users\Erzsike\source\repos\Izabella\Izabella\obj\Debug\net10.0\Izabella.pdb
 C:\Users\Erzsike\source\repos\Izabella\Izabella\obj\Debug\net10.0\Izabella.genruntimeconfig.cache
 C:\Users\Erzsike\source\repos\Izabella\Izabella\obj\Debug\net10.0\ref\Izabella.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\ClosedXML.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\ClosedXML.Parser.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\DocumentFormat.OpenXml.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\DocumentFormat.OpenXml.Framework.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\ExcelNumberFormat.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\RBush.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\SixLabors.Fonts.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\System.IO.Packaging.dll

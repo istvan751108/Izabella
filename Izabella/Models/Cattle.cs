@@ -88,5 +88,17 @@ namespace Izabella.Models
         [Display(Name = "Istálló / Box")]
         public string? Stall { get; set; }        // Istálló/Box helye
         public bool RequiresEnar5147 { get; set; } // Jelző az ENAR jelentéshez
+        
+        [Display(Name = "Utolsó termékenyítés dátuma")]
+        public DateTime? LastInseminationDate { get; set; }
+
+        [Display(Name = "Termékenyítő bika KLSZ")]
+        public string? InseminationBullKlsz { get; set; }
+
+        [Display(Name = "Vércső száma")]
+        public int? BloodTestTubeNumber { get; set; }
+
+        [Display(Name = "Utolsó vérvizsgálat dátuma")]
+        public DateTime? LastBloodTestDate { get; set; }
     }
 }

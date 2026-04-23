@@ -38,6 +38,7 @@
                             <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Index">Aktív Állomány listája</a></li>
                             <li><a class="dropdown-item" asp-controller="Cattle" asp-action="PassportUpdate">Marhalevél szám feltöltés</a></li>
                             <li><a class="dropdown-item" asp-controller="Sales" asp-action="Index">Kikerülési napló</a></li>
+                            <li><a class="dropdown-item" asp-controller="Cattles" asp-action="LivestockUnitSummary">Számos állat lekérdezés</a></li>
                             <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Movement">Állománymozgatás és Súlymérés</a></li>
                             <li><a class="dropdown-item" asp-controller="Sales" asp-action="MonthlyReport">ENAR ügyintézés</a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -45,7 +46,15 @@
                             <li><a class="dropdown-item text-danger" asp-controller="Cattle" asp-action="DeathLogList">Elhullások naplója</a></li>
                         </ul>
                     </li>
-
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-dark" href="#" id="examDropdown" role="button" data-bs-toggle="dropdown">
+                            Vizsgálatok
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" asp-controller="BloodTest" asp-action="BloodTestSelector">Vérvizsgálat (Mintavétel)</a></li>
+                            @* Itt jöhetnek majd a jövőben a TBC, Brucellózis, stb. vizsgálatok *@
+                        </ul>
+                    </li>
                     @if (User.Identity.IsAuthenticated)
                     {
                         <li class="nav-item dropdown">

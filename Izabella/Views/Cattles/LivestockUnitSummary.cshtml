@@ -1,0 +1,54 @@
+﻿@using Izabella.Models.ViewModels
+@model List<LivestockUnitReport>
+
+<div class="container mt-4">
+    <h2><i class="bi bi-calculator"></i> Számosállat Kimutatás - @DateTime.Now.ToString("yyyy.MM.dd")</h2>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-7">
+            <h4>Tenyészetenkénti részletezés</h4>
+            @foreach (var item in Model)
+            {
+                <div class="card mb-3 shadow-sm border-left-primary">
+                    <div class="card-header bg-light fw-bold">@item.GroupName</div>
+                    <div class="card-body py-2">
+                        <table class="table table-sm mb-0">
+                            <tr><td>Tehén:</td><td>@item.CowCount db</td><td class="text-end">@item.CowCount.ToString("N2") AE</td></tr>
+                            <tr><td>Növendék (0-6 hó):</td><td>@item.Age0To6Count db</td><td class="text-end">@((item.Age0To6Count * 0.4).ToString("N2")) AE</td></tr>
+                            <tr><td>Növendék (6-24 hó):</td><td>@item.Age6To24Count db</td><td class="text-end">@((item.Age6To24Count * 0.6).ToString("N2")) AE</td></tr>
+                            <tr><td>Növendék (24 hó felett):</td><td>@item.Over24Count db</td><td class="text-end">@item.Over24Count.ToString("N2") AE</td></tr>
+                            <tr class="table-secondary fw-bold">
+                                <td>Összesen:</td>
+                                <td>@item.TotalHeadCount db</td>
+                                <td class="text-end text-primary">@item.TotalLivestockUnit.ToString("N2") AE</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-5">
+            <h4>Tulajdonosonként</h4>
+            @foreach (var comp in ViewBag.ByCompany as List<LivestockUnitReport>)
+            {
+                <div class="alert alert-info border-info">
+                    <h5 class="alert-heading">@comp.GroupName</h5>
+                    <p class="mb-0">Állomány: <strong>@comp.TotalHeadCount db</strong></p>
+                    <p class="mb-0 text-dark">Számosállat: <strong>@comp.TotalLivestockUnit.ToString("N2") AE</strong></p>
+                </div>
+            }
+
+            <div class="card bg-dark text-white shadow">
+                <div class="card-body text-center">
+                    <h5>MINDÖSSZESEN</h5>
+                    <h2 class="display-4">@Model.Sum(x => x.TotalLivestockUnit).ToString("N2")</h2>
+                    <p>Állategység (AE)</p>
+                    <hr class="bg-light" />
+                    <p>Összes létszám: @Model.Sum(x => x.TotalHeadCount) db</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

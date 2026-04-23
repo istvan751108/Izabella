@@ -1,18 +1,19 @@
 ﻿using Izabella.Models;
+using Izabella.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System;
+using System.Collections.Generic;
 using System.IO.Compression;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace Izabella.Controllers
 {
@@ -675,6 +676,50 @@ namespace Izabella.Controllers
         private IContainer PdfRowStyle(IContainer container)
         {
             return container.PaddingVertical(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten3);
+        }
+
+        public async Task<IActionResult> LivestockUnitSummary()
+        {
+            var today = DateTime.Today;
+            var h6 = today.AddMonths(-6);
+            var h24 = today.AddMonths(-24);
+
+            // Minden élő állat lekérése a tenyészettel és tulajdonossal (Céggel) együtt
+            var allCattle = await _context.Cattles
+                .Include(c => c.CurrentHerd)
+                .Include(c => c.Company)
+                .Where(c => c.IsActive && !c.EnarNumber.Contains("HALVA"))
+                .ToListAsync();
+
+            // Csoportosítás Tenyészetenként (Herd)
+            var reportByHerd = allCattle
+                .GroupBy(c => c.CurrentHerd?.Name ?? "Ismeretlen")
+                .Select(g => CreateReport(g.Key, g.ToList(), h6, h24))
+                .ToList();
+
+            // Csoportosítás Tulajdonosonként (Company)
+            var reportByCompany = allCattle
+                .GroupBy(c => c.Company?.Name ?? "Ismeretlen")
+                .Select(g => CreateReport(g.Key, g.ToList(), h6, h24))
+                .ToList();
+
+            ViewBag.ByCompany = reportByCompany;
+            return View(reportByHerd);
+        }
+
+        // Segédfüggvény a csoportosításhoz (mint az Excelben az EgyediLapSzamolas)
+        private LivestockUnitReport CreateReport(string name, List<Cattle> animals, DateTime h6, DateTime h24)
+        {
+            return new LivestockUnitReport
+            {
+                GroupName = name,
+                CowCount = animals.Count(c => c.AgeGroup == "Tehén"),
+
+                // A növendékeknél pedig kizárjuk a teheneket, hogy ne számoljuk őket duplán
+                Age0To6Count = animals.Count(c => c.AgeGroup != "Tehén" && c.BirthDate > h6),
+                Age6To24Count = animals.Count(c => c.AgeGroup != "Tehén" && c.BirthDate <= h6 && c.BirthDate > h24),
+                Over24Count = animals.Count(c => c.AgeGroup != "Tehén" && c.BirthDate <= h24)
+            };
         }
     }
 }
