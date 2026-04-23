@@ -64,18 +64,28 @@
 
 @section Scripts {
     <script>
-        $('#selectAll').click(function() {
-            $('.cattle-check').prop('checked', this.checked);
-        });
-    </script>
-    <script>
-                $(document).ready(function() {
+        $(document).ready(function() {
+            // Mindent kijelöl funkció
+            $('#selectAll').click(function() {
+                $('.cattle-check').prop('checked', this.checked);
+            });
+
+            // Form beküldése és átirányítás
             $('#enarForm').on('submit', function() {
-                // Várunk egy kicsit (pl. 2 másodpercet), hogy a letöltés elinduljon,
-                // majd frissítjük az oldalt, hogy az eltűnt állatok listája aktualizálódjon.
+                const $btn = $('#downloadBtn');
+                const originalText = $btn.html();
+
+                // Vizuális visszajelzés: gomb letiltása és töltés jelzése
+                $btn.prop('disabled', true);
+                $btn.html('<span class="spinner-border spinner-border-sm"></span> Feldolgozás...');
+
+                // 1. A böngésző elindítja a letöltést (mivel a szerver FileResult-ot küld)
+                // 2. Mi pedig várunk 3 másodpercet, hogy a fájl generálása és a letöltési ablak megjelenése megtörténjen
                 setTimeout(function() {
-                    location.reload();
-                }, 2000);
+                    // Átirányítás a MonthlyReport oldalra
+                    // Megjegyzés: Ellenőrizd a pontos útvonalat (Controller/Action)
+                    window.location.href = '@Url.Action("MonthlyReport", "Sales")';
+                }, 3000);
             });
         });
     </script>

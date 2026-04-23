@@ -3,12 +3,28 @@
   "WorkspaceRootPath": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\controllers\\cattlescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\controllers\\cattlescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\controllers\\cattlecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\controllers\\cattlecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\views\\cattle\\passportupdate.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\views\\cattle\\passportupdate.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\views\\sales\\monthlyreport.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\views\\sales\\monthlyreport.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\models\\cattle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\models\\cattle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\views\\cattles\\pendingmovements.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -19,16 +35,8 @@
       "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\views\\cattles\\movement.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\controllers\\cattlescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\controllers\\cattlescontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\controllers\\salescontrollers.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\controllers\\salescontrollers.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\models\\cattle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|solutionrelative:izabella\\models\\cattle.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{1A5662CA-D490-421D-278A-A7155B170349}|Izabella\\Izabella.csproj|c:\\users\\erzsike\\source\\repos\\izabella\\izabella\\models\\animalhistory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -42,7 +50,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 11,
+          "SelectedChildIndex": 15,
           "Children": [
             {
               "$type": "Bookmark",
@@ -70,7 +78,33 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 2,
+              "Title": "_Layout.cshtml",
+              "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Shared\\_Layout.cshtml",
+              "RelativeDocumentMoniker": "Izabella\\Views\\Shared\\_Layout.cshtml",
+              "ToolTip": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Shared\\_Layout.cshtml",
+              "RelativeToolTip": "Izabella\\Views\\Shared\\_Layout.cshtml",
+              "ViewState": "AgIAABsAAAAAAAAAAAAAACYAAACPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-23T07:26:03.611Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "PassportUpdate.cshtml",
+              "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Cattle\\PassportUpdate.cshtml",
+              "RelativeDocumentMoniker": "Izabella\\Views\\Cattle\\PassportUpdate.cshtml",
+              "ToolTip": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Cattle\\PassportUpdate.cshtml",
+              "RelativeToolTip": "Izabella\\Views\\Cattle\\PassportUpdate.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-23T07:23:18.801Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
               "Title": "SalesControllers.cs",
               "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Controllers\\SalesControllers.cs",
               "RelativeDocumentMoniker": "Izabella\\Controllers\\SalesControllers.cs",
@@ -78,51 +112,49 @@
               "RelativeToolTip": "Izabella\\Controllers\\SalesControllers.cs",
               "ViewState": "AgIAAAsCAAAAAAAAAAAAABICAAAdAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-22T14:43:15.822Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-22T14:43:15.822Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "MonthlyReport.cshtml",
               "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Sales\\MonthlyReport.cshtml",
               "RelativeDocumentMoniker": "Izabella\\Views\\Sales\\MonthlyReport.cshtml",
               "ToolTip": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Sales\\MonthlyReport.cshtml",
               "RelativeToolTip": "Izabella\\Views\\Sales\\MonthlyReport.cshtml",
-              "ViewState": "AgIAAF0BAAAAAAAAAAAAAHQBAAApAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2026-04-22T11:15:28.207Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 6,
               "Title": "PendingMovements.cshtml",
               "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Cattles\\PendingMovements.cshtml",
               "RelativeDocumentMoniker": "Izabella\\Views\\Cattles\\PendingMovements.cshtml",
               "ToolTip": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Cattles\\PendingMovements.cshtml",
               "RelativeToolTip": "Izabella\\Views\\Cattles\\PendingMovements.cshtml",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAE8AAAALAAAAAAAAAA==",
+              "ViewState": "AgIAADsAAAAAAAAAAAAIwFYAAABPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-22T10:30:18.638Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-22T10:30:18.638Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 5,
               "Title": "Cattle.cs",
               "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Models\\Cattle.cs",
               "RelativeDocumentMoniker": "Izabella\\Models\\Cattle.cs",
               "ToolTip": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Models\\Cattle.cs",
               "RelativeToolTip": "Izabella\\Models\\Cattle.cs",
-              "ViewState": "AgIAAAQAAAAAAAAAAAAwwBkAAAAWAAAAAAAAAA==",
+              "ViewState": "AgIAAA4AAAAAAAAAAAAmwBkAAAAyAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-22T10:22:04.496Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 7,
               "Title": "Movement.cshtml",
               "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Views\\Cattles\\Movement.cshtml",
               "RelativeDocumentMoniker": "Izabella\\Views\\Cattles\\Movement.cshtml",
@@ -130,25 +162,24 @@
               "RelativeToolTip": "Izabella\\Views\\Cattles\\Movement.cshtml",
               "ViewState": "AgIAAOIAAAAAAAAAAAAAAOcAAABFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-04-21T14:18:36.112Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-21T14:18:36.112Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "CattleController.cs",
               "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Controllers\\CattleController.cs",
               "RelativeDocumentMoniker": "Izabella\\Controllers\\CattleController.cs",
               "ToolTip": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Controllers\\CattleController.cs",
               "RelativeToolTip": "Izabella\\Controllers\\CattleController.cs",
-              "ViewState": "AgIAALMAAAAAAAAAAAAwwM0AAABQAAAAAAAAAA==",
+              "ViewState": "AgIAACcDAAAAAAAAAAAmwDoDAAARAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-21T13:00:36.83Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 9,
               "Title": "AnimalHistory.cs",
               "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Models\\AnimalHistory.cs",
               "RelativeDocumentMoniker": "Izabella\\Models\\AnimalHistory.cs",
@@ -156,18 +187,17 @@
               "RelativeToolTip": "Izabella\\Models\\AnimalHistory.cs",
               "ViewState": "AgIAABQAAAAAAAAAAAAswBgAAAA5AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-04-21T12:38:43.024Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-04-21T12:38:43.024Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 0,
               "Title": "CattlesController.cs",
               "DocumentMoniker": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Controllers\\CattlesController.cs",
               "RelativeDocumentMoniker": "Izabella\\Controllers\\CattlesController.cs",
               "ToolTip": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Controllers\\CattlesController.cs",
               "RelativeToolTip": "Izabella\\Controllers\\CattlesController.cs",
-              "ViewState": "AgIAANQBAAAAAAAAAAAAAJ8BAAAfAAAAAAAAAA==",
+              "ViewState": "AgIAAJACAAAAAAAAAAAIwKgCAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-04-21T12:24:12.542Z",
               "EditorCaption": ""

@@ -1,0 +1,157 @@
+﻿@using Izabella.Models
+@model List<Cattle>
+
+<style>
+    /* Ez a stílus létrehoz egy jól látható zöld fogantyút */
+    .my-handle {
+        width: 34px;
+        height: 34px;
+        background-color: #f8f9fa;
+        border: 2px solid #198754;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: grab !important;
+        color: #198754;
+        transition: all 0.2s;
+    }
+
+        .my-handle:hover {
+            background-color: #198754;
+            color: white;
+        }
+
+        .my-handle:active {
+            cursor: grabbing !important;
+        }
+
+    /* Kiemelés húzás közben */
+    .sortable-ghost {
+        opacity: 0.3;
+        background-color: #d1e7dd !important;
+        border: 2px dashed #198754;
+    }
+
+    .sortable-chosen {
+        background-color: #fff3cd !important;
+    }
+</style>
+
+<div class="container mt-4">
+    <h2><i class="bi bi-card-checklist"></i> Tömeges marhalevél rögzítés</h2>
+
+    <form asp-action="ProcessPassportUpdate" method="post" id="passportForm">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <span>Állatok (Húzza a zöld négyzetet a rendezéshez)</span>
+                        <span class="badge bg-secondary">@Model.Count db váró</span>
+                    </div>
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;"></th>
+                                <th>Fülszám</th>
+                                <th>ENAR</th>
+                                <th>Született</th>
+                                <th>Sorrend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cattleList">
+                            @{
+                                int displayIndex = 1;
+                            }
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        @* JAVÍTÁS: my-handle osztály használata *@
+                                        <div class="my-handle">
+                                            <i class="bi bi-grip-vertical fs-5"></i>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="hidden" name="cattleIds" value="@item.Id" />
+                                        <strong>@item.EarTag</strong>
+                                    </td>
+                                    <td>@item.EnarNumber</td>
+                                    <td>@item.BirthDate.ToString("yyyy.MM.dd")</td>
+                                    <td class="row-index fw-bold">@(displayIndex++.ToString("D2"))</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card shadow-sm sticky-top" style="top: 20px;">
+                    <div class="card-body">
+                        <h5 class="card-title">Paraméterek</h5>
+                        <hr />
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Kezdő marhalevélszám (7 jegy):</label>
+                            <input type="text" id="startNumber" name="startPassportNumber"
+                                   class="form-control form-control-lg border-primary"
+                                   placeholder="Pl. 1234567" required>
+                            <div id="previewArea" class="mt-3"></div>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 btn-lg shadow">
+                            <i class="bi bi-save"></i> Adatok rögzítése
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+        var el = document.getElementById('cattleList');
+        if (el) {
+        new Sortable(el, {
+        handle: '.my-handle', // Pontosan az az osztály, ami a HTML-ben van
+        animation: 250,
+        forceFallback: true,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        onEnd: function() {
+        // Újraszámozás a listában
+        var rows = document.querySelectorAll('.row-index');
+        rows.forEach(function(cell, index) {
+        cell.innerText = (index + 1).toString().padStart(2, '0');
+        });
+        updatePreview();
+        }
+        });
+        }
+
+        var input = document.getElementById('startNumber');
+        if (input) {
+        input.addEventListener('input', updatePreview);
+        }
+
+        function updatePreview() {
+        var val = document.getElementById('startNumber').value;
+        var count = document.querySelectorAll('#cattleList tr').length;
+        var area = document.getElementById('previewArea');
+
+        if (val && !isNaN(val) && val.length > 0) {
+        var start = parseInt(val);
+        area.innerHTML = '<div class="alert alert-info border-info shadow-sm">' +
+        '<i class="bi bi-info-circle me-2"></i><strong>Előnézet:</strong><br>' +
+        '<span class="small">Első: <strong>' + start + '</strong></span><br>' +
+        '<span class="small">Utolsó: <strong>' + (start + count - 1) + '</strong></span>' +
+        '</div>';
+        } else {
+        area.innerHTML = '';
+        }
+        }
+        });
+    </script>
+}

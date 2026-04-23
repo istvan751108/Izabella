@@ -719,7 +719,8 @@ namespace Izabella.Controllers
 
             // Statisztika számítása korcsoportonként
             var stats = logs.GroupBy(l => l.Cattle.AgeGroup)
-                .Select(g => new {
+                .Select(g => new
+                {
                     Group = g.Key,
                     Count = g.Count(),
                     TotalWeight = g.Sum(x => x.EstimatedWeight)
@@ -779,5 +780,56 @@ namespace Izabella.Controllers
             var document = new TransportReceiptDocument(currentNormal, currentStillborn, pendingPassports, transportDate);
             return File(document.GeneratePdf(), "application/pdf", $"Bizonylat_{transportDate:yyyyMMdd}.pdf");
         }
-    }   
+        [HttpGet]
+        public async Task<IActionResult> PassportUpdate()
+        {
+            // Csak azok az állatok, ahol "Kérve" a marhalevél állapota
+            var pendingCattle = await _context.Cattles
+                .Where(c => c.PassportNumber == "Kérve" && c.IsActive)
+                .OrderBy(c => c.PassportSequence) // Alapértelmezett sorrend
+                .ToListAsync();
+
+            return View(pendingCattle);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ProcessPassportUpdate(int[] cattleIds, string startPassportNumber)
+        {
+            if (cattleIds == null || cattleIds.Length == 0 || string.IsNullOrEmpty(startPassportNumber))
+            {
+                TempData["Error"] = "Nincs kiválasztott állat vagy kezdőszám!";
+                return RedirectToAction(nameof(PassportUpdate));
+            }
+
+            // A stringből csinálunk egy számot, amit tudunk növelni
+            if (!long.TryParse(startPassportNumber, out long currentNum))
+            {
+                TempData["Error"] = "Érvénytelen kezdőszám!";
+                return RedirectToAction(nameof(PassportUpdate));
+            }
+
+            int seq = 1;
+            // Lekérjük az összes érintett állatot egyszerre
+            var cattleList = await _context.Cattles.Where(c => cattleIds.Contains(c.Id)).ToListAsync();
+
+            // A beküldött cattleIds tömb sorrendjében haladunk (ez a HTML sorrendje)
+            foreach (var id in cattleIds)
+            {
+                var cattle = cattleList.FirstOrDefault(c => c.Id == id);
+                if (cattle != null)
+                {
+                    cattle.PassportNumber = currentNum.ToString();
+                    cattle.PassportSequence = seq; // Frissítjük a belső sorszámot is
+
+                    currentNum++; // Következő marhalevél szám
+                    seq++;        // Következő belső sorszám
+                    _context.Update(cattle);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"{cattleIds.Length} marhalevél rögzítve.";
+            return RedirectToAction("MonthlyReport", "Sales");
+        }
+    }
 }
