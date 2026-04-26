@@ -2,29 +2,113 @@
     ViewData["Title"] = "Főoldal";
 }
 
-<div class="text-center mt-5">
-    <h1 class="display-4">Izabella Adatbázis</h1>
-    <p class="lead">Trágyakezelési és Nyilvántartási Rendszer</p>
-    <hr />
-    
-    <div class="row mt-5">
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Adatrögzítés</h5>
-                    <p class="card-text">Hígtrágya és istállótrágya napi beszállításainak rögzítése.</p>
-                    <a asp-controller="Manure" asp-action="Index" class="btn btn-primary btn-lg">Rögzítés indítása</a>
-                </div>
+<style>
+    /* Egyedi stílus a főoldali Hero részhez */
+    .hero-section {
+        background-color: white; /* Gradiens helyett fehér háttér */
+        padding: 40px;
+        border-radius: 15px;
+        margin-bottom: 40px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* Lágyabb árnyék */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 30px; /* Távolság a kép és a szöveg között */
+    }
+
+    .hero-logo-img {
+        max-height: 180px; /* Kontrollált magasság */
+        object-fit: contain;
+    }
+
+    .hero-text-block {
+        text-align: left; /* Szöveg balra igazítva */
+        color: #1a4a7a; /* A régi kék szín használata */
+    }
+
+    .nav-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        border-bottom: 5px solid transparent;
+    }
+
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.12) !important;
+            border-bottom-color: #0d6efd;
+        }
+
+    .nav-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        display: block;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="hero-section text-center shadow">
+        <img src="~/images/logo/izabella_logo_clean.png" alt="Izabella Tehenészet Logó" class="hero-logo-img" />
+
+        <div class="hero-text-block">
+            <h1 class="display-3 fw-bold mb-0">Izabella</h1>
+            <p class="lead fs-4">Komplex Telepirányítási és Nyilvántartási Rendszer</p>
+            <div class="mt-2">
+                <span class="badge bg-light text-primary border p-2 px-3">v2.1 Build 2026</span>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Elemzés & Riportok</h5>
-                    <p class="card-text">Havi statisztikák, bizonylatszámok és vizuális diagramok megtekintése.</p>
-                    <a asp-controller="Report" asp-action="Index" class="btn btn-success btn-lg">Riportok megnyitása</a>
+    </div>
+
+    <div class="row g-4 text-center">
+        <div class="col-md-3">
+            <a asp-controller="Weight" asp-action="QuickWeightEntry" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm nav-card">
+                    <div class="card-body py-4">
+                        <i class="bi bi-tablet-landscape nav-icon text-primary"></i>
+                        <h5 class="fw-bold">Helyszíni műveletek</h5>
+                        <p class="small text-muted">Súlymérés, Leltár, Vérvizsgálat</p>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
+
+        <div class="col-md-3">
+            <a asp-controller="Cattles" asp-action="Movement" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm nav-card">
+                    <div class="card-body py-4">
+                        <i class="bi bi-arrows-move nav-icon text-success"></i>
+                        <h5 class="fw-bold">Állományműveletek</h5>
+                        <p class="small text-muted">Mozgatás, Korosbítás, Eladások</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3">
+            <a asp-controller="Manure" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm nav-card">
+                    <div class="card-body py-4">
+                        <i class="bi bi-truck nav-icon text-warning"></i>
+                        <h5 class="fw-bold">Trágyakezelés</h5>
+                        <p class="small text-muted">Napi szállítások és bizonylatok</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-3">
+            <a asp-controller="Report" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card h-100 shadow-sm nav-card">
+                    <div class="card-body py-4">
+                        <i class="bi bi-graph-up-arrow nav-icon text-danger"></i>
+                        <h5 class="fw-bold">Admin & Riportok</h5>
+                        <p class="small text-muted">Statisztikák, Törzsadatok, Beállítások</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="text-center mt-5 text-muted">
+        <small>© 2026 Izabella Farm Management Software | Minden jog fenntartva</small>
     </div>
 </div>

@@ -1,0 +1,120 @@
+﻿@model IEnumerable<Izabella.Models.BullSemen>
+
+@{
+    ViewData["Title"] = "Bikasperma Készlet";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-5 fw-bold text-primary"><i class="bi bi-droplet-half"></i> Bikasperma Raktár</h1>
+            <p class="text-muted">Aktuális készlet és bevételezések kezelése</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary btn-lg shadow-sm">
+            <i class="bi bi-plus-lg"></i> Új sperma rögzítése
+        </a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Bika / KLSZ</th>
+                            <th>Termelési sz.</th>
+                            <th>Jellemzők</th>
+                            <th class="text-center">Készlet</th>
+                            <th>Konténer</th>
+                            <th>Utolsó haszn.</th>
+                            <th class="text-end pe-4">Műveletek</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr class="@(item.StockQuantity < 5 ? "table-warning" : "") @(item.StockQuantity == 0 ? "table-danger opacity-75" : "")">
+                                <td class="ps-4">
+                                    <div class="fw-bold fs-5">@item.BullName</div>
+                                    <div class="badge bg-secondary">KLSZ: @item.Klsz</div>
+                                    <div class="small text-muted">@item.Breed</div>
+                                </td>
+                                <td><code class="text-dark">@item.ProductionNumber</code></td>
+                                <td>
+                                    <span class="badge @(item.IsSexed ? "bg-info text-dark" : "bg-light text-dark border")">
+                                        <i class="bi bi-gender-ambiguous"></i> @(item.IsSexed ? "Szexált" : "Konvencionális")
+                                    </span>
+                                    <div class="small mt-1 text-muted">
+                                        @item.Type | @item.Origin
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="fs-4 fw-bold @(item.StockQuantity < 5 ? "text-danger" : "text-success")">
+                                        @item.StockQuantity
+                                    </span>
+                                    <span class="small text-muted"> adag</span>
+                                </td>
+                                <td>
+                                    <i class="bi bi-box-seam"></i> @(item.ContainerId ?? "Nincs megadva")
+                                </td>
+                                <td>
+                                    <small class="text-muted">@(item.LastUseDate?.ToString("yyyy.MM.dd.") ?? "Még nem volt")</small>
+                                </td>
+                                <td class="text-end" style="min-width: 320px;">
+                                    <div class="btn-group shadow-sm" role="group">
+                                         <a asp-action="Restock" asp-route-sourceId="@item.Id" class="btn btn-outline-success btn-sm">
+                                            <i class="bi bi-cart-plus"></i> Bevételezés
+                                        </a>
+        
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm">
+                                            <i class="bi bi-pencil"></i> Szerkeszt
+                                        </a>
+        
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm text-white">
+                                            <i class="bi bi-eye"></i> Adatlap
+                                        </a>
+                                    </div>
+    
+                                    @if (item.FirstUseDate == null)
+                                    {
+                                        @* Csak akkor mutatjuk a törlést, ha még nem használták *@
+                                        <form asp-action="Delete" asp-route-id="@item.Id" method="post" style="display:inline;"
+                                              onsubmit="return confirm('Biztosan véglegesen törlöd ezt a tételt?')">
+                                            <button type="submit" class="btn btn-sm btn-light text-danger ms-2 border" title="Törlés">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        @* Ha már használták, egy inaktív, szürke ikont mutathatunk magyarázattal *@
+                                        <button class="btn btn-sm btn-light text-muted ms-2 border" disabled title="Használt tétel nem törölhető">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                    Nincs rögzített sperma a készletben.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,211 @@
+﻿@model Izabella.Models.InseminationLog
+
+<div class="container-fluid mt-3">
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0"><i class="bi bi-needle"></i> Termékenyítés: @Model.CattleEarTag</h3>
+                    @if (ViewBag.CanReInseminate)
+                    {
+                        <button type="button" class="btn btn-warning fw-bold shadow-sm" onclick="applyReInsemination()">
+                            <i class="bi bi-arrow-repeat"></i> GYORS RÁTERMÉKENYÍTÉS
+                        </button>
+                    }
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Save" method="post" id="inseminationForm">
+                        <input type="hidden" asp-for="CattleEarTag" />
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Esemény ideje</label>
+                                <input asp-for="EventDate" class="form-control form-control-lg" type="datetime-local" />
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <div class="form-check form-switch fs-5">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsReInsemination" id="reInsemSwitch">
+                                    <label class="form-check-label" for="reInsemSwitch">Rátermékenyítés jelölése</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Inszeminátor</label>
+                                <select asp-for="InseminatorName" id="inseminatorSelect" class="form-select form-select-lg" required>
+                                    <option value="">-- Válassz --</option>
+                                    @foreach (var staff in ViewBag.Inseminators)
+                                    {
+                                        <option value="@staff.Name">@staff.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Jelölő</label>
+                                <select asp-for="MarkerName" id="markerSelect" class="form-select form-select-lg">
+                                    <option value="">-- Nincs megadva --</option>
+                                    @foreach (var staff in ViewBag.Markers)
+                                    {
+                                        <option value="@staff.Name">@staff.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Sperma választása</label>
+                            <div class="input-group shadow-sm">
+                                <select asp-for="BullSemenId" id="semenSelect" class="form-select form-select-lg border-primary" required>
+                                    <option value="">-- Válassz a készletből --</option>
+                                    @foreach (var s in (List<Izabella.Models.BullSemen>)ViewBag.Inventory)
+                                    {
+                                        <option value="@s.Id" data-klsz="@s.Klsz">
+                                            @s.Klsz - @s.BullName (@s.ProductionNumber) | Készlet: @s.StockQuantity
+                                        </option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-danger px-4" onclick="scrapCurrentSemen()">
+                                    <i class="bi bi-trash-fill"></i> Selejt
+                                </button>
+                            </div>
+                            <div id="scrapFeedback" class="alert d-none mt-2 small p-2"></div>
+                        </div>
+
+                        <div id="matingWarning" class="alert alert-danger d-none shadow-sm mb-3">
+                            <i class="bi bi-exclamation-octagon-fill"></i> <strong>Figyelem!</strong> Nem javasolt bika!
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-xl py-3 fw-bold fs-4 shadow">
+                                <i class="bi bi-check-circle"></i> RÖGZÍTÉS MENTÉSE
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">Vissza a keresőhöz</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-warning shadow mb-4">
+                <div class="card-header bg-warning fw-bold">Párosítási Javaslat</div>
+                <div class="card-body">
+                    @foreach (var sug in (List<Izabella.Models.MatingSuggestion>)ViewBag.Suggestions)
+                    {
+                        <div class="d-flex justify-content-between align-items-center p-2 mb-2 border rounded bg-white">
+                            <span><strong>@sug.SuggestedBullName</strong> (@sug.SuggestedKlsz)</span>
+                            <button type="button" class="btn btn-sm btn-success" onclick="selectBull('@sug.SuggestedKlsz')">Választ</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Rátermékenyítés adatok betöltése
+        function applyReInsemination() {
+            @if (ViewBag.LastInsem != null)
+            {
+                <text>
+                document.getElementById('inseminatorSelect').value = "@ViewBag.LastInsem.InseminatorName";
+                document.getElementById('markerSelect').value = "@ViewBag.LastInsem.MarkerName";
+                document.getElementById('semenSelect').value = "@ViewBag.LastInsem.BullSemenId";
+                document.getElementById('reInsemSwitch').checked = true;
+                checkMating();
+                
+                if (document.getElementById('semenSelect').value == "") {
+                    alert("Figyelem: Az eredeti sperma időközben elfogyott! Válasszon másikat.");
+                }
+                </text>
+            }
+        }
+
+        // Selejtezés AJAX
+        async function scrapCurrentSemen() {
+            let select = document.getElementById('semenSelect');
+            if (!select.value) { alert("Válasszon spermát!"); return; }
+            if (!confirm("Levonunk 1 adag selejtet?")) return;
+
+            const res = await fetch('@Url.Action("QuickScrap")', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `semenId=${select.value}`
+            });
+            const data = await res.json();
+            let fb = document.getElementById('scrapFeedback');
+            fb.className = `alert mt-2 small p-2 ${data.success ? 'alert-success' : 'alert-danger'}`;
+            fb.innerHTML = data.message;
+            fb.classList.remove('d-none');
+            
+            if(data.success) {
+                let opt = select.options[select.selectedIndex];
+                opt.text = opt.text.replace(/Készlet: \d+/, "Készlet: " + data.newQuantity);
+            }
+            setTimeout(() => fb.classList.add('d-none'), 3000);
+        }
+
+        function selectBull(klsz) {
+            if (!klsz) return;
+            // Kényszerítsük a KLSZ-t string formátumra a biztonság kedvéért
+            const targetKlsz = klsz.toString().trim();
+            const select = document.getElementById('semenSelect');
+            let found = false;
+
+            // Végigfutunk az összes opción
+            for (let i = 0; i < select.options.length; i++) {
+                const option = select.options[i];
+                const optionKlsz = option.getAttribute('data-klsz');
+
+                if (optionKlsz && optionKlsz.trim() === targetKlsz) {
+                    select.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) {
+                // Frissítjük a figyelmeztető ablak állapotát (hogy eltűnjön a piros jelzés)
+                checkMating();
+        
+                // Vizuális visszajelzés (opcionális: villantunk egyet a select mezőn)
+                select.classList.add('is-valid');
+                setTimeout(() => select.classList.remove('is-valid'), 1000);
+            } else {
+                alert("Sajnos a javasolt bika (" + targetKlsz + ") jelenleg nincs készleten!");
+            }
+        }
+        // PÁROSÍTÁS ELLENŐRZÉSE
+        function checkMating() {
+            let select = document.getElementById('semenSelect');
+            let warning = document.getElementById('matingWarning');
+            if (select.selectedIndex <= 0) {
+                warning.classList.add('d-none');
+                return;
+            }
+
+            let selectedKlsz = select.options[select.selectedIndex].getAttribute('data-klsz');
+            let suggestions = @Html.Raw(Json.Serialize(((List<Izabella.Models.MatingSuggestion>)ViewBag.Suggestions)?.Select(s => s.SuggestedKlsz) ?? new List<string>()));
+
+            if (suggestions.length > 0 && !suggestions.includes(selectedKlsz)) {
+                warning.classList.remove('d-none');
+            } else {
+                warning.classList.add('d-none');
+            }
+        }
+
+        document.getElementById('semenSelect').addEventListener('change', checkMating);
+
+        // Mentés előtti megerősítés, ha eltér a javaslattól
+        document.getElementById('inseminationForm').onsubmit = function() {
+            let warningVisible = !document.getElementById('matingWarning').classList.contains('d-none');
+            if (warningVisible) {
+                return confirm("A választott bika NEM javasolt ehhez az állathoz! Folytatja a mentést?");
+            }
+            return true;
+        };
+    </script>
+}

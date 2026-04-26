@@ -1,0 +1,170 @@
+﻿@model Izabella.Models.InseminationLog
+
+<div class="container mt-4">
+    <div class="card shadow-sm border-0 mb-4 bg-primary text-white">
+        <div class="card-body p-4">
+            <h2 class="mb-3"><i class="bi bi-search"></i> Termékenyítés Kereső</h2>
+            <form asp-action="Index" method="get" class="row g-2">
+                <div class="col-8 col-md-10">
+                    <input type="text" name="searchEarTag" class="form-control form-control-lg"
+                           placeholder="Írd be a tehén fülszámát..." value="@Model.CattleEarTag" autofocus />
+                </div>
+                <div class="col-4 col-md-2">
+                    <button type="submit" class="btn btn-light btn-lg w-100 fw-bold">KERESÉS</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.CattleEarTag))
+    {
+        <div class="row">
+            <div class="col-md-7">
+                <div class="card shadow border-0 p-4">
+                    <h4 class="text-primary border-bottom pb-2 mb-3">Adatok rögzítése</h4>
+                    
+                    @if (ViewBag.LastInsem != null)
+                    {
+                        <div class="alert alert-info d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Utolsó termékenyítés:</strong> @ViewBag.LastInsem.EventDate.ToShortDateString()
+                                <br /><small>Bika: @ViewBag.LastInsem.BullSemen.BullName</small>
+                            </div>
+                            <button type="button" class="btn btn-primary fw-bold" onclick="copyLastInsem()">
+                                <i class="bi bi-arrow-repeat"></i> RÁTERMÉKENYÍTÉS
+                            </button>
+                        </div>
+                    }
+
+                    <form asp-action="Save" method="post">
+                        <input type="hidden" asp-for="CattleEarTag" />
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Dátum</label>
+                            <input asp-for="EventDate" class="form-control" type="datetime-local" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Inszeminátor</label>
+                                <select asp-for="InseminatorName" class="form-select" required id="inseminator">
+                                    <option value="">-- Válassz --</option>
+                                    @foreach (var s in ViewBag.Inseminators)
+                                    {
+                                        <option value="@s.Name">@s.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Jelölő</label>
+                                <select asp-for="MarkerName" class="form-select">
+                                    <option value="">-- Nincs --</option>
+                                    @foreach (var s in ViewBag.Markers)
+                                    {
+                                        <option value="@s.Name">@s.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Sperma választása</label>
+                            <select asp-for="BullSemenId" id="semenSelect" class="form-select form-select-lg border-primary" required>
+                                <option value="">-- Válassz a készletből --</option>
+                                @foreach (var s in ViewBag.Inventory)
+                                {
+                                    <option value="@s.Id" data-klsz="@s.Klsz" data-name="@s.BullName">
+                                        @s.Klsz - @s.BullName (@s.ProductionNumber) | Készlet: @s.StockQuantity
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <div id="matingWarning" class="alert alert-warning d-none border-warning shadow-sm mb-3">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Figyelem!</strong> A választott bika nem szerepel a párosítási javaslatban. Biztosan ezzel akarod rögzíteni?
+                        </div>
+                        <button type="submit" class="btn btn-success btn-lg w-100 py-3 fw-bold shadow">
+                            <i class="bi bi-check-circle"></i> MENTÉS
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-5">
+                <div class="card shadow-sm border-warning mb-3">
+                    <div class="card-header bg-warning fw-bold">Párosítási terv</div>
+                    <div class="card-body">
+                        @foreach (var sug in ViewBag.Suggestions)
+                        {
+                            <div class="d-flex justify-content-between p-2 mb-2 border rounded align-items-center">
+                                <span><strong>@sug.SuggestedBullName</strong> (@sug.SuggestedKlsz)</span>
+                                <button type="button" class="btn btn-sm btn-success" onclick="selectBull('@sug.SuggestedKlsz')">Választ</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function selectBull(klsz) {
+            let sel = document.getElementById('semenSelect');
+            let found = false;
+            for(let i=0; i<sel.options.length; i++) {
+                if(sel.options[i].getAttribute('data-klsz') === klsz) {
+                    sel.selectedIndex = i;
+                    found = true;
+                    break;
+                }
+            }
+            if(!found) {
+                alert("Ez a bika nincs készleten!");
+            }
+            checkMating(); // Frissítjük a figyelmeztetést
+            document.getElementById('inseminationForm').onsubmit = function() {
+                let warningVisible = !document.getElementById('matingWarning').classList.contains('d-none');
+                if (warningVisible) {
+                    return confirm("A választott bika eltér a javasolttól! Folytatod a mentést?");
+                }
+                return true;
+            };
+        }
+
+        function checkMating() {
+            let select = document.getElementById('semenSelect');
+            if (select.selectedIndex === 0) return; // Ha nincs választva semmi
+
+            let selectedKlsz = select.options[select.selectedIndex].getAttribute('data-klsz');
+            
+            // Lekérjük a javasolt KLSZ-eket a ViewBag-ből (C# -> JS konverzió)
+            let suggestedKlszs = @Html.Raw(Json.Serialize(ViewBag.Suggestions != null ? ((List<Izabella.Models.MatingSuggestion>)ViewBag.Suggestions).Select(s => s.SuggestedKlsz) : new List<string>()));
+            
+            let warningDiv = document.getElementById('matingWarning');
+
+            // Ha van javaslat, de nem azt választottuk
+            if (suggestedKlszs.length > 0 && !suggestedKlszs.includes(selectedKlsz)) {
+                warningDiv.classList.remove('d-none');
+            } else {
+                warningDiv.classList.add('d-none');
+            }
+        }
+
+        // Figyeljük a manuális választást is
+        document.getElementById('semenSelect').addEventListener('change', checkMating);
+
+        // A "copyLastInsem" is hívja meg a checkMating-ot!
+        function copyLastInsem() {
+            @if (ViewBag.LastInsem != null)
+            {
+                    <text>
+                        document.getElementById('inseminator').value = "@ViewBag.LastInsem.InseminatorName";
+                        document.getElementById('semenSelect').value = "@ViewBag.LastInsem.BullSemenId";
+                        checkMating();
+                    </text>
+            }
+        }
+    </script>
+}

@@ -27,6 +27,11 @@ public class IzabellaDbContext : IdentityDbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<SaleTransaction> SaleTransactions { get; set; }
     public DbSet<AnimalHistory> AnimalHistories { get; set; }
+    public DbSet<WeightBuffer> WeightBuffers { get; set; }
+    public DbSet<BullSemen> BullSemens { get; set; }
+    public DbSet<Staff> Staffs { get; set; }
+    public DbSet<MatingSuggestion> MatingSuggestions { get; set; }
+    public DbSet<InseminationLog> InseminationLogs { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

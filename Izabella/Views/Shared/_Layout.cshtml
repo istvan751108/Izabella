@@ -48,11 +48,13 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-dark" href="#" id="examDropdown" role="button" data-bs-toggle="dropdown">
-                            Vizsgálatok
+                            Helyszíni műveletek
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" asp-controller="BloodTest" asp-action="BloodTestSelector">Vérvizsgálat (Mintavétel)</a></li>
-                            @* Itt jöhetnek majd a jövőben a TBC, Brucellózis, stb. vizsgálatok *@
+                            <li><a class="dropdown-item" asp-controller="Weight" asp-action="QuickWeightEntry">Súlymérés</a></li>
+                            <li><a class="dropdown-item" asp-controller="Inventory" asp-action="Index">Leltár</a></li>
+                            <li><a class="dropdown-item" asp-controller="Insemination" asp-action="Index">Termékenyítés rögzítése</a></li>
                         </ul>
                     </li>
                     @if (User.Identity.IsAuthenticated)
@@ -83,6 +85,9 @@
                                 <li><a class="dropdown-item" asp-controller="Herds" asp-action="Index">Tenyészetek kezelése</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" asp-controller="DeathReasons" asp-action="Index">Elhullás okok kezelése</a></li>
+                                <li><a class="dropdown-item" asp-controller="SemenInventory" asp-action="Index">Sperma készletkezelés</a></li>
+                                <li><a class="dropdown-item" asp-controller="Staff" asp-action="Index">Inszeminátorok és Jelölők</a></li>
+                                <li><a class="dropdown-item" asp-controller="Mating" asp-action="Index">Bika párosítási javaslat</a></li>
                                 <li><a class="dropdown-item" asp-controller="Customers" asp-action="Index">Vásárlók kezelése</a></li>
                                 <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Felhasználók kezelése</a></li>
                             </ul>

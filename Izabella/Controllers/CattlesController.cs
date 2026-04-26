@@ -432,25 +432,52 @@ namespace Izabella.Controllers
                     TempData["Success"] = $"{successCount} állat frissítve, de {errorCount} állatnál hiba történt.";
                 }
             }
+            if (successCount > 0)
+            {
+                // Töröljük a pufferből azokat az állatokat, amiket sikeresen feldolgoztunk
+                var processedEarTags = cattleList.Select(c => c.EarTag).ToList();
+                var buffersToDelete = await _context.WeightBuffers
+                    .Where(wb => processedEarTags.Contains(wb.EarTag))
+                    .ToListAsync();
+
+                _context.WeightBuffers.RemoveRange(buffersToDelete);
+                await _context.SaveChangesAsync();
+            }
             return RedirectToAction(nameof(Movement));
         }
         // CattlesController.cs
         public async Task<IActionResult> Movement()
         {
-            // Lekérjük az összes aktív állatot
             var model = await _context.Cattles
                 .Include(c => c.CurrentHerd)
                 .Where(c => c.IsActive)
                 .ToListAsync();
 
-            // Szükség van a tenyészetekre a lenyíló listához
+            // Lekérjük az összes még fel nem dolgozott pufferelt súlyt
+            var bufferedWeights = await _context.WeightBuffers
+                .Where(wb => !wb.IsProcessed)
+                .ToListAsync();
+
+            // Dictionary-be tesszük a gyors kereséshez (EarTag -> Weight)
+            ViewBag.BufferedWeights = bufferedWeights.ToDictionary(wb => wb.EarTag, wb => wb.Weight);
+
             ViewBag.Herds = await _context.Herds.ToListAsync();
             ViewBag.ExistingStalls = await _context.Cattles
                 .Where(c => !string.IsNullOrEmpty(c.Stall))
                 .Select(c => c.Stall)
                 .Distinct()
                 .ToListAsync();
+
             return View(model);
+        }
+        [HttpPost]
+        public async Task<IActionResult> ClearWeightBuffer()
+        {
+            var buffers = await _context.WeightBuffers.Where(wb => !wb.IsProcessed).ToListAsync();
+            _context.WeightBuffers.RemoveRange(buffers);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = "A mérési puffer sikeresen ürítve.";
+            return RedirectToAction(nameof(Movement));
         }
         // Megjelenítjük a várakozó áthelyezéseket
         public async Task<IActionResult> PendingMovements()

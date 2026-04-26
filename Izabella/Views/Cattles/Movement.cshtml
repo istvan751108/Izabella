@@ -5,6 +5,19 @@
     ViewData["Title"] = "Állománymozgatás és Súlymérés";
 }
 
+@if (ViewBag.BufferedWeights != null && ((Dictionary<string, decimal>)ViewBag.BufferedWeights).Any())
+{
+    <div class="alert alert-info d-flex justify-content-between align-items-center shadow-sm">
+        <span><i class="bi bi-info-circle-fill"></i> <strong>@(((Dictionary<string, decimal>)ViewBag.BufferedWeights).Count) db</strong> pufferelt mérési adat várakozik.</span>
+        <div class="d-flex gap-2">
+            <button type="button" onclick="applyBufferSettings()" class="btn btn-info btn-sm fw-bold text-white">Beállítások alkalmazása</button>
+            <button type="submit" form="clearBufferForm" class="btn btn-outline-danger btn-sm">Puffer törlése</button>
+        </div>
+    </div>
+}
+
+@* Egy rejtett segéd-form a törléshez *@
+<form id="clearBufferForm" asp-action="ClearWeightBuffer" method="post" onsubmit="return confirm('Biztosan törlöd az összes eddig rögzített (tablet) mérési adatot?');"></form>
 <div class="container-fluid">
     <h2 class="mb-4"><i class="bi bi-arrows-move"></i> Állománymozgatás és Súlymérés</h2>
 
@@ -142,20 +155,22 @@
                         {
                             // 3. PONT: ELLENŐRZÉS - Csak akkor engedjük, ha van sorszám
                             bool isLocked = string.IsNullOrEmpty(item.PassportNumber) || item.PassportNumber == "Kérve" || item.PassportNumber == "Nincs";
-
-                            <tr class="@(isLocked ? "table-light text-muted" : "")">
+                            // Ellenőrizzük, van-e ehhez az állathoz pufferelt súly
+                            decimal? bufferedWeight = null;
+                            var bufferedDict = ViewBag.BufferedWeights as Dictionary<string, decimal>;
+                            if (bufferedDict != null && bufferedDict.ContainsKey(item.EarTag))
+                            {
+                                bufferedWeight = bufferedDict[item.EarTag];
+                            }
+                            <tr class="@(isLocked ? "table-light text-muted" : "") @(bufferedWeight.HasValue ? "table-info" : "")">
                                 <td class="ps-3">
                                     <input type="checkbox" name="selectedCattleIds" value="@item.Id"
                                            class="form-check-input cattle-check"
-                                    @(isLocked ? "disabled" : "")>
+                                    @((isLocked && !bufferedWeight.HasValue) ? "disabled" : "")
+                                    @(bufferedWeight.HasValue ? "checked" : "")>
                                 </td>
-                                <td>
-                                    <span class="fw-bold">@item.EarTag</span>
-                                    @if (isLocked)
-                                    {
-                                        <i class="bi bi-lock-fill text-danger" title="Marhalevél hiányzik vagy Kérve állapotú!"></i>
-                                    }
-                                </td>
+                                <td><span class="fw-bold">@item.EarTag</span></td>
+                                   
                                 <td><small>@item.EnarNumber</small></td>
                                 <td>
                                     @if (item.PassportNumber == "Kérve")
@@ -171,7 +186,8 @@
                                 <td>
                                     <input type="number" step="0.1" name="individualWeights[@item.Id]"
                                            class="form-control form-control-sm indiv-weight"
-                                    @(isLocked ? "readonly" : "disabled")>
+                                           value="@(bufferedWeight?.ToString() ?? "")"
+                                    @(isLocked ? "readonly" : (bufferedWeight.HasValue ? "" : "disabled"))>
                                 </td>
                                 <td><span class="badge bg-light text-dark border">@item.AgeGroup</span></td>
                                 <td>@item.CurrentHerd?.HerdCode</td>
@@ -271,6 +287,18 @@
         @if (TempData["Error"] != null)
         {
                 <text>showToast(@Html.Raw(Json.Serialize(TempData["Error"])), true);</text>
+        }
+        function applyBufferSettings() {
+        // 1. Bekapcsoljuk a súlymérés kapcsolót
+        $('#enableWeight').prop('checked', true).trigger('change');
+    
+        // 2. Beállítjuk az üzemmódot "Egyéni súly"-ra
+        $('#weightMode').val('individual').trigger('change');
+    
+        // 3. Frissítjük a végrehajtás gombot
+        updateSubmitButton();
+    
+        showToast("Pufferelt adatok előkészítve. Ellenőrizze a táblázatot!");
         }
     </script>
 }

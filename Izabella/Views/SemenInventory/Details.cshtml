@@ -1,0 +1,116 @@
+﻿## Details.cshtml
+
+```cshtml
+@model Izabella.Models.BullSemen
+
+@{
+    ViewData["Title"] = "Bikasperma adatlap";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-6 fw-bold text-info">
+                <i class="bi bi-eye"></i> Bikasperma adatlap
+            </h1>
+            <p class="text-muted mb-0">Részletes készlet- és törzsadatok</p>
+        </div>
+        <div class="btn-group">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Szerkesztés
+            </a>
+            <a asp-action="Restock" asp-route-sourceId="@Model.Id" class="btn btn-success">
+                <i class="bi bi-cart-plus"></i> Bevételezés
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Vissza
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-droplet-half"></i> @Model.BullName
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">KLSZ</dt>
+                                <dd class="col-sm-7"><span class="badge bg-secondary">@Model.Klsz</span></dd>
+
+                                <dt class="col-sm-5">Bika neve</dt>
+                                <dd class="col-sm-7 fw-bold">@Model.BullName</dd>
+
+                                <dt class="col-sm-5">Termelési szám</dt>
+                                <dd class="col-sm-7"><code>@Model.ProductionNumber</code></dd>
+
+                                <dt class="col-sm-5">Fajta</dt>
+                                <dd class="col-sm-7">@Model.Breed</dd>
+
+                                <dt class="col-sm-5">Szállító</dt>
+                                <dd class="col-sm-7">@(Model.SupplierName ?? "Nincs megadva")</dd>
+                            </dl>
+                        </div>
+
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-6">Beszerzési ár</dt>
+                                <dd class="col-sm-6">@(Model.PurchasePrice?.ToString("N0") ?? "-") Ft/adag</dd>
+
+                                <dt class="col-sm-6">Tárolóhely</dt>
+                                <dd class="col-sm-6">@(Model.ContainerId ?? "Nincs megadva")</dd>
+
+                                <dt class="col-sm-6">Első felhasználás</dt>
+                                <dd class="col-sm-6">@(Model.FirstUseDate?.ToString("yyyy.MM.dd.") ?? "Még nem volt")</dd>
+
+                                <dt class="col-sm-6">Utolsó felhasználás</dt>
+                                <dd class="col-sm-6">@(Model.LastUseDate?.ToString("yyyy.MM.dd.") ?? "Még nem volt")</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body text-center">
+                    <h6 class="text-muted">Aktuális készlet</h6>
+                    <div class="display-3 fw-bold @(Model.StockQuantity < 5 ? "text-danger" : "text-success")">
+                        @Model.StockQuantity
+                    </div>
+                    <div class="text-muted">adag</div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header">Jellemzők</div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <span class="badge bg-@(Model.IsSexed ? "info text-dark" : "secondary") p-2">
+                            @(Model.IsSexed ? "Szexált sperma" : "Konvencionális sperma")
+                        </span>
+
+                        <span class="badge bg-light text-dark border p-2">@Model.Type</span>
+                        <span class="badge bg-light text-dark border p-2">@Model.Origin</span>
+                        <span class="badge bg-light text-dark border p-2">@Model.ProductionMethod</span>
+
+                        @if (Model.IsCycleBull)
+                        {
+                            <span class="badge bg-warning text-dark p-2">Ciklusbika</span>
+                        }
+
+                        <span class="badge bg-@(Model.IsActive ? "success" : "danger") p-2">
+                            @(Model.IsActive ? "Aktív" : "Inaktív")
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

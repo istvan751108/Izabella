@@ -1,0 +1,89 @@
+﻿@model IEnumerable<Izabella.Models.Cattle>
+
+<style>
+    .inventory-card { transition: all 0.2s; cursor: pointer; border-left: 10px solid #dc3545; } /* Alapból piros */
+    .inventory-card.is-present { border-left-color: #198754; background-color: #eafff5 !important; }
+    .inventory-card input[type="checkbox"] { transform: scale(2); }
+    .st-input { font-size: 0.8rem; height: 30px; }
+</style>
+
+<div class="container-fluid mt-3">
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <form method="get" class="row g-2">
+                <div class="col-6 col-md-4">
+                    <select name="ageGroup" class="form-select form-select-lg" onchange="this.form.submit()">
+                        <option value="">Összes korcsoport</option>
+                        @foreach (var g in ViewBag.AgeGroups) { <option value="@g">@g</option> }
+                    </select>
+                </div>
+                <div class="col-6 col-md-4">
+                    <select name="stall" class="form-select form-select-lg" onchange="this.form.submit()">
+                        <option value="">Összes istálló</option>
+                        @foreach (var s in ViewBag.Stalls) { <option value="@s">@s</option> }
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <form asp-action="SaveInventory" method="post">
+        <div class="list-group mb-5">
+            @foreach (var item in Model)
+            {
+                <div class="list-group-item list-group-item-action inventory-card mb-2 shadow-sm p-3" onclick="togglePresence(@item.Id)">
+                    <div class="row align-items-center">
+                        <div class="col-2 text-center">
+                            <input type="checkbox" name="presentIds" value="@item.Id" id="cb-@item.Id" 
+                                   class="form-check-input me-3" onclick="event.stopPropagation()">
+                        </div>
+                        <div class="col-6">
+                            <h3 class="mb-0">@item.EarTag</h3>
+                            <div class="text-muted small">@item.AgeGroup | <i class="bi bi-house"></i> @item.Stall</div>
+                        </div>
+                        <div class="col-4">
+                            <input type="text" name="stallChanges[@item.Id]" 
+                                   class="form-control st-input" 
+                                   placeholder="Új istálló..." 
+                                   onclick="event.stopPropagation()"
+                                   value="@item.Stall">
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="fixed-bottom p-3 bg-white border-top shadow-lg">
+            <button type="submit" class="btn btn-success btn-lg w-100 fs-2 shadow">
+                <i class="bi bi-cloud-upload"></i> Leltár Mentése (<span id="count">0</span> db)
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        function togglePresence(id) {
+            const cb = document.getElementById('cb-' + id);
+            cb.checked = !cb.checked;
+            updateUI(id, cb.checked);
+        }
+
+        // Ha közvetlenül a checkboxra kattintanak
+        document.querySelectorAll('.form-check-input').forEach(cb => {
+            cb.addEventListener('change', function() {
+                updateUI(this.value, this.checked);
+            });
+        });
+
+        function updateUI(id, isChecked) {
+            const card = document.getElementById('cb-' + id).closest('.inventory-card');
+            if (isChecked) {
+                card.classList.add('is-present');
+            } else {
+                card.classList.remove('is-present');
+            }
+            document.getElementById('count').innerText = document.querySelectorAll('input[name="presentIds"]:checked').length;
+        }
+    </script>
+}

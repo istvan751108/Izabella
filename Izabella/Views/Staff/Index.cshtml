@@ -1,0 +1,80 @@
+﻿@model IEnumerable<Izabella.Models.Staff>
+
+<div class="container mt-4">
+    <h2 class="mb-4"><i class="bi bi-people-fill text-primary"></i> Személyzet kezelése</h2>
+
+    <div class="card shadow-sm mb-5 border-primary">
+        <div class="card-body bg-light">
+            <h5 class="card-title">Új munkatárs hozzáadása</h5>
+            <form asp-action="Create" method="post" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold">Név</label>
+                    <input name="Name" class="form-control" placeholder="Pl. Kovács János" required />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Szerepkör</label>
+                    <select name="Role" class="form-select" asp-items="Html.GetEnumSelectList<StaffRole>()"></select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-plus-lg"></i> Hozzáadás
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white fw-bold">
+                    <i class="bi bi-droplet-fill"></i> Inszeminátorok
+                </div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var s in Model.Where(x => x.Role == StaffRole.Inszeminátor))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center @(s.IsActive ? "" : "bg-light opacity-75")">
+                            <span class="@(s.IsActive ? "fw-bold" : "text-decoration-line-through text-muted")">@s.Name</span>
+                            <div class="btn-group">
+                                <form asp-action="ToggleStatus" asp-route-id="@s.Id" method="post">
+                                    <button type="submit" class="btn btn-sm @(s.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                        @(s.IsActive ? "Inaktivál" : "Aktivál")
+                                    </button>
+                                </form>
+                                <form asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Törlöd a listáról?')">
+                                    <button type="submit" class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-info text-white fw-bold">
+                    <i class="bi bi-eye-fill"></i> Jelölők
+                </div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var s in Model.Where(x => x.Role == StaffRole.Jelölő))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center @(s.IsActive ? "" : "bg-light opacity-75")">
+                            <span class="@(s.IsActive ? "fw-bold" : "text-decoration-line-through text-muted")">@s.Name</span>
+                            <div class="btn-group">
+                                <form asp-action="ToggleStatus" asp-route-id="@s.Id" method="post">
+                                    <button type="submit" class="btn btn-sm @(s.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                        @(s.IsActive ? "Inaktivál" : "Aktivál")
+                                    </button>
+                                </form>
+                                <form asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Törlöd a listáról?')">
+                                    <button type="submit" class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

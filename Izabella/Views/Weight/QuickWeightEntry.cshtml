@@ -1,0 +1,98 @@
+﻿@model IEnumerable<Izabella.Models.WeightBuffer>
+
+<div class="container mt-4 text-center">
+    <h2 class="mb-4"><i class="bi bi-speedometer2"></i> Gyors súlymérés (Tablet)</h2>
+    
+    <div class="card shadow mx-auto" style="max-width: 500px;">
+        <div class="card-body p-4">
+            <div id="statusAlert" class="alert d-none"></div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold fs-4">Fülszám (utolsó 4 szám):</label>
+                <input type="number" id="lastFour" class="form-control form-control-lg text-center fs-1"
+                       placeholder="0000" maxlength="4" autocomplete="off">
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold fs-4">Mért súly (kg):</label>
+                <input type="number" id="weight" class="form-control form-control-lg text-center fs-1"
+                       placeholder="000" autocomplete="off">
+            </div>
+
+            <button type="button" id="btnSubmit" class="btn btn-success btn-lg w-100 fs-3">
+                <i class="bi bi-check-circle"></i> Rögzítés
+            </button>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h4>Legutóbbi mérések (Puffer)</h4>
+        <div id="historyList" class="list-group"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const inputFour = document.getElementById('lastFour');
+        const inputWeight = document.getElementById('weight');
+        const btnSubmit = document.getElementById('btnSubmit');
+
+        // 1. Automatikus ugrás, ha megvan a 4 számjegy
+        inputFour.addEventListener('input', () => {
+            if (inputFour.value.length === 4) {
+                inputWeight.focus();
+            }
+        });
+
+        // 2. Beküldés ENTER-re a súly mezőben
+        inputWeight.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                submitData();
+            }
+        });
+
+        btnSubmit.addEventListener('click', submitData);
+
+        function submitData() {
+            const data = {
+                lastFour: inputFour.value,
+                weight: inputWeight.value
+            };
+
+            if (!data.lastFour || !data.weight) return;
+
+            fetch('/Weight/SubmitWeight', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(data)
+            })
+            .then(res => res.json())
+            .then(res => {
+                const alert = document.getElementById('statusAlert');
+                alert.classList.remove('d-none', 'alert-success', 'alert-danger');
+                
+                if (res.success) {
+                    alert.classList.add('alert-success');
+                    alert.innerText = "Sikeres: " + res.earTag + " -> " + data.weight + " kg";
+                    addToHistory(res.earTag, data.weight);
+                    
+                    // Mezők ürítése és visszaugrás
+                    inputFour.value = '';
+                    inputWeight.value = '';
+                    inputFour.focus();
+                } else {
+                    alert.classList.add('alert-danger');
+                    alert.innerText = "Hiba: " + res.message;
+                }
+            });
+        }
+
+        function addToHistory(tag, w) {
+            const hist = document.getElementById('historyList');
+            const item = document.createElement('div');
+            item.className = "list-group-item d-flex justify-content-between align-items-center";
+            item.innerHTML = `<span>${tag}</span> <span class="badge bg-primary fs-6">${w} kg</span>`;
+            hist.prepend(item);
+        }
+    </script>
+}
