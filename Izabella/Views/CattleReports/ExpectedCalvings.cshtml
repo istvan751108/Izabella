@@ -1,0 +1,90 @@
+﻿@model IEnumerable<Izabella.Models.ExpectedCalvingViewModel>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar-check"></i> Várható ellések</h2>
+        <a asp-action="AbortionReport" class="btn btn-outline-danger btn-sm">Vetélések megtekintése</a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light"><strong>Várható születések havi eloszlása</strong></div>
+        <div class="card-body">
+            <canvas id="calvingChart" style="max-height: 300px;"></canvas>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover border">
+            <thead class="table-dark">
+                <tr>
+                    <th>Fülszám</th>
+                    <th>Várható ellés</th>
+                    <th>Napok száma</th>
+                    <th>Állapot</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr class="@item.StatusColor">
+                        <td><strong>@item.EarTag</strong></td>
+                        <td>@item.ExpectedDate.ToString("yyyy.MM.dd")</td>
+                        <td>@item.DaysSinceInsem / 276 nap</td>
+                        <td>
+                            @if (item.IsOverdue)
+                            {
+                                <span class="badge bg-danger">TÚLHORDOTT</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-info text-dark">Folyamatban</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('calvingChart').getContext('2d');
+        new Chart(ctx, {
+        type: 'bar',
+        data: {
+        labels: @Html.Raw(Json.Serialize(ViewBag.ChartLabels)),
+        datasets: [
+        {
+        label: 'Összes várható ellés',
+        data: @Html.Raw(Json.Serialize(ViewBag.ChartTotals)),
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgb(54, 162, 235)',
+        borderWidth: 1
+        },
+        {
+        label: 'Ebből túlhordott (>300 nap)',
+        data: @Html.Raw(Json.Serialize(ViewBag.ChartOverdue)),
+        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+        borderColor: 'rgb(255, 99, 132)',
+        borderWidth: 1
+        }
+        ]
+        },
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+        y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+        }
+        },
+        plugins: {
+        legend: { position: 'top' }
+        }
+        }
+        });
+    </script>
+}

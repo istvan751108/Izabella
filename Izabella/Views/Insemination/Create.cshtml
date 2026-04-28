@@ -87,18 +87,47 @@
             </div>
         </div>
 
-        <div class="col-lg-5">
-            <div class="card border-warning shadow mb-4">
-                <div class="card-header bg-warning fw-bold">Párosítási Javaslat</div>
-                <div class="card-body">
+        <div class="card shadow-sm border-warning mb-3">
+            <div class="card-header bg-warning text-dark fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-lightbulb"></i> PÁROSÍTÁSI TERV</span>
+                <a asp-controller="Mating" asp-action="Index" class="btn btn-sm btn-outline-dark">Kezelés</a>
+            </div>
+            <div class="card-body bg-light">
+                @if (ViewBag.Suggestions != null && ((List<Izabella.Models.MatingSuggestion>)ViewBag.Suggestions).Any())
+                {
                     @foreach (var sug in (List<Izabella.Models.MatingSuggestion>)ViewBag.Suggestions)
                     {
-                        <div class="d-flex justify-content-between align-items-center p-2 mb-2 border rounded bg-white">
-                            <span><strong>@sug.SuggestedBullName</strong> (@sug.SuggestedKlsz)</span>
-                            <button type="button" class="btn btn-sm btn-success" onclick="selectBull('@sug.SuggestedKlsz')">Választ</button>
+                        <div class="card mb-2 border-0 shadow-sm">
+                            <div class="card-body p-2 d-flex justify-content-between align-items-center bg-white rounded">
+                                <div>
+                                    <span class="badge bg-primary">@sug.Priority.</span>
+                                    <span class="fw-bold">@sug.SuggestedBullName</span>
+                                    <small class="text-muted">(@sug.SuggestedKlsz)</small>
+                                </div>
+                        
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-success"
+                                            onclick="selectBull('@sug.SuggestedKlsz')">
+                                        <i class="bi bi-check"></i>
+                                    </button>
+                            
+                                    <form asp-controller="Mating" asp-action="DeleteFromCreate" method="post"
+                                          onsubmit="return confirm('Biztosan törlöd ezt a javaslatot?')">
+                                        <input type="hidden" name="id" value="@sug.Id" />
+                                        <input type="hidden" name="earTag" value="@Model.CattleEarTag" />
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     }
-                </div>
+                }
+                else
+                {
+                    <p class="text-muted small text-center mb-0">Nincs rögzített javaslat.</p>
+                }
             </div>
         </div>
     </div>
@@ -113,7 +142,7 @@
                 <text>
                 document.getElementById('inseminatorSelect').value = "@ViewBag.LastInsem.InseminatorName";
                 document.getElementById('markerSelect').value = "@ViewBag.LastInsem.MarkerName";
-                document.getElementById('semenSelect').value = "@ViewBag.LastInsem.BullSemenId";
+                document.getElementById('semenSelect').value = "@(ViewBag.LastInsem?.BullSemenId)";
                 document.getElementById('reInsemSwitch').checked = true;
                 checkMating();
                 
@@ -201,6 +230,10 @@
 
         // Mentés előtti megerősítés, ha eltér a javaslattól
         document.getElementById('inseminationForm').onsubmit = function() {
+            let isVemhes = @Json.Serialize(ViewBag.CurrentStatus == PregnancyStatus.Vemhes);
+            if (isVemhes) {
+                return confirm("FIGYELEM! Ez az állat a nyilvántartás szerint VEMHES. Biztosan újra termékenyíti (pl. vetélés miatt)?");
+            }
             let warningVisible = !document.getElementById('matingWarning').classList.contains('d-none');
             if (warningVisible) {
                 return confirm("A választott bika NEM javasolt ehhez az állathoz! Folytatja a mentést?");

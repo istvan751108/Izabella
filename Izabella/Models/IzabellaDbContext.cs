@@ -32,6 +32,8 @@ public class IzabellaDbContext : IdentityDbContext
     public DbSet<Staff> Staffs { get; set; }
     public DbSet<MatingSuggestion> MatingSuggestions { get; set; }
     public DbSet<InseminationLog> InseminationLogs { get; set; }
+    public DbSet<SemenTransaction> SemenTransactions { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

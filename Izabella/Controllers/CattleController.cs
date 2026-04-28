@@ -119,9 +119,80 @@ namespace Izabella.Controllers
             bool alive1 = (IsAlive == "on" || IsAlive == "true");
             bool alive2 = (IsAlive2 == "on" || IsAlive2 == "true");
 
-            // Az anya adatainak lekérése a Cég és Tenyészet miatt
+            // 1. ANYA ÉS TERMÉKENYÍTÉSI ADATOK LEKÉRÉSE
             var dam = await _context.Cattles.FirstOrDefaultAsync(c => c.EnarNumber == calf.MotherEnar);
 
+            if (dam == null)
+            {
+                ModelState.AddModelError("", "Az anya fülszáma nem található a rendszerben!");
+                return View("Calving", calf);
+            }
+
+            // Számoljuk ki a vemhességi időt
+            int gestationDays = -1; // Alapértelmezett érték, ha nincs adat
+            if (dam.LastInseminationDate.HasValue)
+            {
+                // A TotalDays-t használjuk, hogy biztosan pontos egész számot kapjunk
+                gestationDays = (int)(calf.BirthDate.Date - dam.LastInseminationDate.Value.Date).TotalDays;
+            }
+
+            // 2. VETÉLÉS LOGIKA (240 nap alatt)
+            if (dam.LastInseminationDate.HasValue && gestationDays >= 0 && gestationDays < 240)
+            {
+                using (var transaction = await _context.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        if (dam.LastInseminationDate.HasValue)
+                        {
+                            // Megkeressük az utolsó termékenyítést, és KÖTELEZŐEN betöltjük a bikát is (.Include)
+                            var lastInsem = await _context.InseminationLogs
+                                .Include(l => l.BullSemen) // <--- EZ HIÁNYZOTT!
+                                .Where(l => l.CattleEarTag == dam.EarTag)
+                                .OrderByDescending(l => l.EventDate)
+                                .FirstOrDefaultAsync();
+
+                            // Csak akkor próbáljuk menteni a javaslatot, ha a rekord ÉS a bika is megvan
+                            if (lastInsem != null && lastInsem.BullSemen != null)
+                            {
+                                _context.MatingSuggestions.Add(new MatingSuggestion
+                                {
+                                    CattleEarTag = dam.EarTag,
+                                    SuggestedKlsz = lastInsem.BullSemen.Klsz,
+                                    SuggestedBullName = lastInsem.BullSemen.BullName,
+                                    Priority = 1,
+                                    CreatedDate = DateTime.Now
+                                });
+                            }
+                        }
+                        // Most már nullázhatjuk az anya vemhességi adatait
+                        dam.PregnancyStatus = PregnancyStatus.Üres;
+                        dam.LastInseminationDate = null;
+
+                        _context.AnimalHistories.Add(new AnimalHistory
+                        {
+                            CattleId = dam.Id,
+                            EventDate = calf.BirthDate,
+                            Type = "Vetélés",
+                            Comment = $"Vemhesség {gestationDays}. napján vetélt el. Állapot: Üres. Automata párosítás rögzítve."
+                        });
+
+                        await _context.SaveChangesAsync();
+                        await transaction.CommitAsync();
+
+                        TempData["SuccessMessage"] = $"VETÉLÉS RÖGZÍTVE! (Vemhesség: {gestationDays} nap). A tehén státusza Üres, párosítási javaslat elkészült.";
+                        return RedirectToAction("Calving");
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        ModelState.AddModelError("", "Hiba a vetélés rögzítésekor: " + ex.Message);
+                        return View("Calving", calf);
+                    }
+                }
+            }
+
+            // 3. NORMÁL ELLÉS VAGY HULLAELLÉS (240 nap felett)
             // Mivel a halva születettnek nincs fülszáma, a validátornak megengedjük az üres mezőt
             ModelState.Remove("EarTag");
             ModelState.Remove("EnarNumber");

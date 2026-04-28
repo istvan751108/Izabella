@@ -84,37 +84,51 @@ namespace Izabella.Controllers
         public IActionResult Create()
         {
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name");
-            ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "HerdCode");
+            ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "Name"); // Itt javítottam HerdCode-ról Name-re a jobb olvashatóságért
+
+            // Fix korcsoport lista összeállítása
+            var ageGroups = new List<string> {
+                "Itatásos borjú", "Borjú", "Növendék 6-9", "Növendék 9-12",
+                "Növendék 12 hó-tól", "Vemhes üsző", "Tehén"
+            };
+            ViewBag.AgeGroupList = new SelectList(ageGroups);
+
             PopulateBreeds();
             return View();
         }
 
-        // POST: Cattles/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Cattle cattle)
         {
-            // Kényszerítsük ki az érvényességet azokra a mezőkre, amik üresek maradhatnak
             ModelState.Remove("CurrentHerd");
             ModelState.Remove("Company");
 
             if (ModelState.IsValid)
             {
                 _context.Add(cattle);
+
+                // A history-t a mentés előtt adjuk hozzá, így egy tranzakcióban mennek le
+                _context.AnimalHistories.Add(new AnimalHistory
+                {
+                    CattleId = cattle.Id,
+                    EventDate = DateTime.Now,
+                    Weight = cattle.CurrentWeight,
+                    Type = "Kézi rögzítés",
+                    Comment = "Indító adatok felvétele"
+                });
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            _context.AnimalHistories.Add(new AnimalHistory
-            {
-                CattleId = cattle.Id,
-                EventDate = DateTime.Now,
-                Weight = cattle.CurrentWeight,
-                WeightGain = 0,
-                Type = "Kézi rögzítés / Kezdő súly"
-            });
-            // Ha hiba van, újraépítjük a listákat a nézethez
-            ViewBag.CompanyId = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
-            ViewBag.CurrentHerdId = new SelectList(_context.Herds, "Id", "Name", cattle.CurrentHerdId);
+
+            // Hiba esetén újra kell tölteni a listákat!
+            ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
+            ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "Name", cattle.CurrentHerdId);
+
+            var ageGroups = new List<string> { "Itatásos borjú", "Borjú", "Növendék 6-9", "Növendék 9-12", "Növendék 12 hó-tól", "Vemhes üsző", "Tehén" };
+            ViewBag.AgeGroupList = new SelectList(ageGroups, cattle.AgeGroup);
+
             PopulateBreeds();
             return View(cattle);
         }

@@ -1,0 +1,83 @@
+﻿@model List<Izabella.Models.Cattle>
+@using Izabella.Models
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-clipboard2-pulse text-danger"></i> Vemhességi vizsgálati lista</h2>
+        <span class="badge bg-dark fs-6">Várakozók: @Model.Count db</span>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fülszám</th>
+                        <th>Utolsó termékenyítés</th>
+                        <th>Alkalmazott bika</th>
+                        <th>Eltelt napok</th>
+                        <th>Jelenlegi státusz</th>
+                        <th class="text-center">Vizsgálati eredmény rögzítése</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center p-5 text-muted">
+                                <i class="bi bi-check-all fs-1 d-block"></i>
+                                Jelenleg nincs vizsgálatra váró állat.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var c in Model)
+                    {
+                        var daysSince = (DateTime.Now - (c.LastInseminationDate ?? DateTime.Now)).Days;
+                        
+                        <tr>
+                            <td class="fw-bold fs-5">@c.EarTag</td>
+                            <td>@c.LastInseminationDate?.ToShortDateString()</td>
+                            <td><small class="text-muted">@c.InseminationBullKlsz</small></td>
+                            <td>
+                                <span class="badge @(daysSince >= 30 ? "bg-warning text-dark" : "bg-light text-dark border")">
+                                    @daysSince napja
+                                </span>
+                            </td>
+                            <td>
+                                @if (c.PregnancyStatus == PregnancyStatus.Visszaivarzott)
+                                {
+                                    <span class="badge bg-danger">VISSZAIVARZOTT</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-info text-dark">NEM VIZSGÁLT</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group shadow-sm">
+                                    <form asp-action="RecordResult" method="post" class="d-inline">
+                                        <input type="hidden" name="cattleId" value="@c.Id" />
+                                        <input type="hidden" name="result" value="@PregnancyStatus.Vemhes" />
+                                        <button type="submit" class="btn btn-success fw-bold px-3">VEMHES</button>
+                                    </form>
+                                    
+                                    <form asp-action="RecordResult" method="post" class="d-inline">
+                                        <input type="hidden" name="cattleId" value="@c.Id" />
+                                        <input type="hidden" name="result" value="@PregnancyStatus.Üres" />
+                                        <button type="submit" class="btn btn-outline-danger fw-bold px-3">ÜRES</button>
+                                    </form>
+
+                                    <form asp-action="RecordResult" method="post" class="d-inline">
+                                        <input type="hidden" name="cattleId" value="@c.Id" />
+                                        <input type="hidden" name="result" value="@PregnancyStatus.Visszaivarzott" />
+                                        <button type="submit" class="btn btn-warning fw-bold px-3">VISSZAIVARZOTT</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

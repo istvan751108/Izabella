@@ -4,6 +4,13 @@ namespace Izabella.Models
 {
     public enum Gender { Bika, Üsző }
     public enum ExitType { Vágás, Továbbtartás, Export, Elhullás, Tulajdonosváltás }
+    public enum PregnancyStatus
+    {
+        Üres = 0,           // Még nem termékenyített vagy negatív vizsgálat
+        NemVizsgált = 1,    // Termékenyített, de még vár a VEX-re
+        Vemhes = 2,         // Pozitív VEX
+        Visszaivarzott = 3  // Termékenyítés utáni ivarzás (még VEX előtt)
+    }
 
     public class Cattle
     {
@@ -100,5 +107,11 @@ namespace Izabella.Models
 
         [Display(Name = "Utolsó vérvizsgálat dátuma")]
         public DateTime? LastBloodTestDate { get; set; }
+
+        [Display(Name = "Vemhességi állapot")]
+        public PregnancyStatus PregnancyStatus { get; set; } = PregnancyStatus.Üres;
+
+        [Display(Name = "Utolsó vemhességi vizsgálat dátuma")]
+        public DateTime? LastPregnancyTestDate { get; set; }
     }
 }

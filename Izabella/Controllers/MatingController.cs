@@ -47,5 +47,41 @@ namespace Izabella.Controllers
             }
             return RedirectToAction(nameof(Index));
         }
+        // MatingController.cs kiegészítés
+
+        // Törlés a Create oldalról (visszairányít a Create-re)
+        [HttpPost]
+        public async Task<IActionResult> DeleteFromCreate(int id, string earTag)
+        {
+            var suggestion = await _context.MatingSuggestions.FindAsync(id);
+            if (suggestion != null)
+            {
+                _context.MatingSuggestions.Remove(suggestion);
+                await _context.SaveChangesAsync();
+                TempData["Success"] = "Javaslat törölve!";
+            }
+            // Visszaküldjük a rögzítéshez
+            return RedirectToAction("Create", "Insemination", new { earTag = earTag });
+        }
+
+        // Gyors hozzáadás a Create oldalon
+        [HttpPost]
+        public async Task<IActionResult> QuickAdd(string earTag, string klsz, int priority)
+        {
+            var bull = await _context.BullSemens.FirstOrDefaultAsync(b => b.Klsz == klsz);
+
+            var suggestion = new MatingSuggestion
+            {
+                CattleEarTag = earTag,
+                SuggestedKlsz = klsz,
+                SuggestedBullName = bull?.BullName ?? "Ismeretlen bika",
+                Priority = priority
+            };
+
+            _context.MatingSuggestions.Add(suggestion);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Create", "Insemination", new { earTag = earTag });
+        }
     }
 }

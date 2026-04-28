@@ -41,7 +41,9 @@
             </div>
             <div class="form-group">
                 <label asp-for="AgeGroup" class="control-label"></label>
-                <input asp-for="AgeGroup" class="form-control" />
+                <select asp-for="AgeGroup" class="form-control" asp-items="ViewBag.AgeGroupList">
+                    <option value="">-- Válassz korcsoportot --</option>
+                </select>
                 <span asp-validation-for="AgeGroup" class="text-danger"></span>
             </div>
             <div class="form-group form-check">

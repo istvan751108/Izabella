@@ -22,6 +22,7 @@
         public string? StallName { get; set; } // Istálló/Box neve vagy száma
 
         public string? Type { get; set; } // "Súlymérés", "Korosbítás", "Áthelyezés"
+        public string? Comment { get; set; }
         public bool IsEnarReported { get; set; } = false;
     }
 }

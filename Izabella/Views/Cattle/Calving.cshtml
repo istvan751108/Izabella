@@ -42,6 +42,7 @@
                 <div class="card shadow-sm">
                     <div class="card-header bg-primary text-white">Borjú adatai</div>
                     <div class="card-body">
+                        <div id="gestationAlert" class="alert d-none shadow-sm mb-3"></div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Születési hely (Tenyészet)</label>
@@ -244,29 +245,58 @@
                     $(targetInputId).val(data.enar);
                 });
             }
-                    // IsAlive kapcsoló figyelése
-        $('#IsAlive').change(function() {
-            if (!this.checked) {
-                $('#CalfEarTag').val('').prop('disabled', true);
-                $('#CalfEnar').val('HALVA SZÜLETETT').prop('disabled', true);
-            } else {
-                $('#CalfEarTag').prop('disabled', false);
-                $('#CalfEnar').prop('disabled', false);
-                updateIdentifiers(); // Újra generáljuk a következőt
-            }
-        });
+            // IsAlive kapcsoló figyelése
+            $('#IsAlive').change(function() {
+                if (!this.checked) {
+                    $('#CalfEarTag').val('').prop('disabled', true);
+                    $('#CalfEnar').val('HALVA SZÜLETETT').prop('disabled', true);
+                } else {
+                    $('#CalfEarTag').prop('disabled', false);
+                    $('#CalfEnar').prop('disabled', false);
+                    updateIdentifiers(); // Újra generáljuk a következőt
+                }
+            });
 
-        // IsAlive2 (Iker) kapcsoló figyelése
-        $('#IsAlive2').change(function() {
-            if (!this.checked) {
-                $('#CalfEarTag2').val('').prop('disabled', true);
-                $('#CalfEnar2').val('HALVA SZÜLETETT').prop('disabled', true);
-            } else {
-                $('#CalfEarTag2').prop('disabled', false);
-                $('#CalfEnar2').prop('disabled', false);
-                syncTwinTag(); // Újra generáljuk az iker számát
-            }
+            // IsAlive2 (Iker) kapcsoló figyelése
+            $('#IsAlive2').change(function() {
+                if (!this.checked) {
+                    $('#CalfEarTag2').val('').prop('disabled', true);
+                    $('#CalfEnar2').val('HALVA SZÜLETETT').prop('disabled', true);
+                } else {
+                    $('#CalfEarTag2').prop('disabled', false);
+                    $('#CalfEnar2').prop('disabled', false);
+                    syncTwinTag(); // Újra generáljuk az iker számát
+                }
+            });
         });
+        // Amikor változik az ellés dátuma vagy az anya fülszáma
+        $('#BirthDate, #MotherEnar').on('change', function() {
+            let motherEnar = $('#MotherEnar').val();
+            let birthDate = new Date($('#BirthDate').val());
+
+            if (motherEnar && birthDate) {
+                // AJAX-szal lekérjük az anya utolsó termékenyítési dátumát
+                $.get('/Cattle/GetLastInseminationDate', { enar: motherEnar }, function(data) {
+                        if (data.insemDate) {
+                            let insemDate = new Date(data.insemDate);
+                            // Időbélyegek normalizálása (csak a dátum számítson, az óra/perc ne)
+                            insemDate.setHours(0,0,0,0);
+                            birthDate.setHours(0,0,0,0);
+
+                            let diffTime = birthDate - insemDate; // Itt ne használj Math.abs-t, mert a negatív érték is hiba!
+                            let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                            let alertDiv = $('#gestationAlert');
+                            if (diffDays >= 0 && diffDays < 240) {
+                                alertDiv.removeClass('d-none alert-info').addClass('alert-danger')
+                                        .html('<i class="bi bi-exclamation-triangle"></i> <strong>Vetélés/Hiba!</strong> A vemhesség csak ' + diffDays + ' napos.');
+                            } else if (diffDays > 285) {
+                            alertDiv.removeClass('d-none alert-danger').addClass('alert-info')
+                                    .html('<i class="bi bi-info-circle"></i> Vemhességi idő: ' + diffDays + ' nap (Normál tartomány).');
+                        }
+                    }
+                });
+            }
         });
     </script>
     @if (TempData["SuccessMessage"] != null)

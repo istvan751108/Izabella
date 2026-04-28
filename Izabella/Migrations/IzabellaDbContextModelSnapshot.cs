@@ -33,6 +33,9 @@ namespace Izabella.Migrations
                     b.Property<int>("CattleId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Comment")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("EventDate")
                         .HasColumnType("datetime2");
 
@@ -243,6 +246,9 @@ namespace Izabella.Migrations
                     b.Property<DateTime?>("LastInseminationDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("LastPregnancyTestDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("MotherEnar")
                         .HasColumnType("nvarchar(max)");
 
@@ -252,6 +258,9 @@ namespace Izabella.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("PassportSequence")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PregnancyStatus")
                         .HasColumnType("int");
 
                     b.Property<bool>("RequiresEnar5147")
@@ -602,6 +611,42 @@ namespace Izabella.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("SaleTransactions");
+                });
+
+            modelBuilder.Entity("Izabella.Models.SemenTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BullSemenId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CattleEarTag")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PerformedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BullSemenId");
+
+                    b.ToTable("SemenTransactions");
                 });
 
             modelBuilder.Entity("Izabella.Models.SolidManure", b =>
@@ -1113,6 +1158,17 @@ namespace Izabella.Migrations
                     b.Navigation("Cattle");
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("Izabella.Models.SemenTransaction", b =>
+                {
+                    b.HasOne("Izabella.Models.BullSemen", "BullSemen")
+                        .WithMany()
+                        .HasForeignKey("BullSemenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BullSemen");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
