@@ -58,7 +58,6 @@ C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.Enti
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.Sqlite.dll
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.EntityFrameworkCore.SqlServer.dll
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.Extensions.DependencyModel.dll
-C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.Extensions.FileProviders.Embedded.dll
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.Identity.Client.dll
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.Identity.Client.Extensions.Msal.dll
 C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.IdentityModel.Abstractions.dll
@@ -966,3 +965,18 @@ C:\Users\istva\source\repos\Izabella\Izabella\obj\Debug\net10.0\refint\Izabella.
 C:\Users\istva\source\repos\Izabella\Izabella\obj\Debug\net10.0\Izabella.pdb
 C:\Users\istva\source\repos\Izabella\Izabella\obj\Debug\net10.0\Izabella.genruntimeconfig.cache
 C:\Users\istva\source\repos\Izabella\Izabella\obj\Debug\net10.0\ref\Izabella.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\BouncyCastle.Cryptography.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.barcodes.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.bouncy-castle-connector.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.forms.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.io.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.kernel.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.layout.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.pdfa.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.pdfua.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.sign.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.styledxmlparser.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.svg.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.bouncy-castle-adapter.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\itext.commons.dll
+C:\Users\Erzsike\source\repos\Izabella\Izabella\bin\Debug\net10.0\Microsoft.DotNet.PlatformAbstractions.dll

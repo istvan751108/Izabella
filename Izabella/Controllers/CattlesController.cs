@@ -106,17 +106,20 @@ namespace Izabella.Controllers
 
             if (ModelState.IsValid)
             {
+                // Létrehozunk egy új állatot
                 _context.Add(cattle);
 
-                // A history-t a mentés előtt adjuk hozzá, így egy tranzakcióban mennek le
-                _context.AnimalHistories.Add(new AnimalHistory
+                // Az ID helyett a Cattle objektumot rendeljük hozzá
+                var history = new AnimalHistory
                 {
-                    CattleId = cattle.Id,
+                    Cattle = cattle, // Itt a lényeg! Nem CattleId, hanem Cattle
                     EventDate = DateTime.Now,
                     Weight = cattle.CurrentWeight,
                     Type = "Kézi rögzítés",
                     Comment = "Indító adatok felvétele"
-                });
+                };
+
+                _context.AnimalHistories.Add(history);
 
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));

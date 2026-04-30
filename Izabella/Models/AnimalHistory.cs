@@ -1,4 +1,6 @@
-﻿namespace Izabella.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Izabella.Models
 {
     public class AnimalHistory
     {
@@ -24,5 +26,12 @@
         public string? Type { get; set; } // "Súlymérés", "Korosbítás", "Áthelyezés"
         public string? Comment { get; set; }
         public bool IsEnarReported { get; set; } = false;
+        [Display(Name = "Vevő")]
+        public int? CustomerId { get; set; }
+        public virtual Customer? Customer { get; set; }
+
+        [Display(Name = "Tenyészet")] // Fontos: a vágáskori tenyészetkódhoz!
+        public int? HerdId { get; set; }
+        public virtual Herd? Herd { get; set; }
     }
 }

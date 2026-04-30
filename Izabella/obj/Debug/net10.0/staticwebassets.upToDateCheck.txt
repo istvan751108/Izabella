@@ -62,6 +62,7 @@ wwwroot\lib\jquery\dist\jquery.slim.js
 wwwroot\lib\jquery\dist\jquery.slim.min.js
 wwwroot\lib\jquery\dist\jquery.slim.min.map
 wwwroot\lib\jquery\LICENSE.txt
+wwwroot\templates\2334_sablon.pdf
 C:\Users\Erzsike\source\repos\Izabella\Izabella\wwwroot\css\site.css
 C:\Users\Erzsike\source\repos\Izabella\Izabella\wwwroot\favicon.ico
 C:\Users\Erzsike\source\repos\Izabella\Izabella\wwwroot\js\site.js

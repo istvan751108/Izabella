@@ -30,4 +30,3 @@ namespace Izabella.Models
         public string? EnarPrefix { get; set; }
     }
 }
-

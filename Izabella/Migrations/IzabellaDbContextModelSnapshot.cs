@@ -36,8 +36,14 @@ namespace Izabella.Migrations
                     b.Property<string>("Comment")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("EventDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("HerdId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("IsEnarReported")
                         .HasColumnType("bit");
@@ -69,6 +75,10 @@ namespace Izabella.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CattleId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("HerdId");
 
                     b.ToTable("AnimalHistories");
                 });
@@ -285,6 +295,11 @@ namespace Izabella.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -801,6 +816,55 @@ namespace Izabella.Migrations
                     b.ToTable("Staffs");
                 });
 
+            modelBuilder.Entity("Izabella.Models.SupportFormConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FilingPlace")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LicenseeClientId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LicenseeName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Medication1Agent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Medication1Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Medication2Agent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Medication2Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Medication3Agent")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Medication3Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SupportFormConfigs");
+                });
+
             modelBuilder.Entity("Izabella.Models.Voucher", b =>
                 {
                     b.Property<int>("Id")
@@ -1066,7 +1130,19 @@ namespace Izabella.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Izabella.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId");
+
+                    b.HasOne("Izabella.Models.Herd", "Herd")
+                        .WithMany()
+                        .HasForeignKey("HerdId");
+
                     b.Navigation("Cattle");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Herd");
                 });
 
             modelBuilder.Entity("Izabella.Models.BreedingData", b =>

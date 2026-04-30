@@ -93,6 +93,7 @@
                             </li>
                         </ul>
                     </li>
+
                     @if (User.Identity.IsAuthenticated)
                     {
                         <li class="nav-item dropdown">
@@ -110,6 +111,24 @@
                             </ul>
                         </li>
                     }
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-info" href="#" id="supportDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-file-earmark-pdf-fill"></i> Támogatások kérése
+                        </a>
+                        <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="supportDropdown">
+                            <li>
+                                <a class="dropdown-item" asp-controller="CattleReports" asp-action="SlaughterSupportIndex">
+                                    <i class="bi bi-truck me-2"></i>Vágóhídi támogatás (2334)
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" asp-controller="CattleReports" asp-action="EditSupportConfig">
+                                    <i class="bi bi-sliders me-2"></i>Nyomtatvány beállítások
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                     @if (User.IsInRole("Admin"))
                     {
                         <li class="nav-item dropdown">

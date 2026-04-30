@@ -55,13 +55,18 @@ namespace Izabella.Controllers
         // POST: Sales/ConfirmSale - A véglegesítés és mentés (Már a súlyokkal és bizonylatszámmal)
         [HttpPost]
         public async Task<IActionResult> ConfirmSale(int[] cattleIds, int customerId, SaleType saleType,
-    DateTime saleDate, string receiptNumber, decimal[] grossWeights, decimal[] unitPrices, string[] deductions) // string[]-ként fogadjuk a biztonság kedvéért
+    DateTime saleDate, string receiptNumber, decimal[] grossWeights, decimal[] unitPrices, string[] deductions)
         {
             if (cattleIds == null) return RedirectToAction("Index", "Cattles");
 
+            var customer = await _context.Customers.FindAsync(customerId);
+
             for (int i = 0; i < cattleIds.Length; i++)
             {
-                var cattle = await _context.Cattles.FindAsync(cattleIds[i]);
+                var cattle = await _context.Cattles
+                    .Include(c => c.CurrentHerd) // Kell a tenyészetkód a history-hoz
+                    .FirstOrDefaultAsync(c => c.Id == cattleIds[i]);
+
                 if (cattle == null) continue;
 
                 // --- ÚJ LOGIKA A LEVONÁS MEGHATÁROZÁSÁHOZ ---
@@ -70,7 +75,6 @@ namespace Izabella.Controllers
                 // 1. Megpróbáljuk kiolvasni a tömbből, amit a felhasználó beírt
                 if (deductions != null && deductions.Length > i)
                 {
-                    // Megpróbáljuk értelmezni a számot (ponttal és vesszővel is)
                     string rawValue = deductions[i].Replace(",", ".");
                     double.TryParse(rawValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out finalDeduction);
                 }
@@ -107,6 +111,19 @@ namespace Izabella.Controllers
                     TotalNetPrice = total,
                     IsReported = false
                 };
+                // --- ÚJ RÉSZ: BEJEGYZÉS AZ ANIMALHISTORY-BA ---
+                var history = new AnimalHistory
+                {
+                    CattleId = cattle.Id,
+                    EventDate = saleDate,
+                    // Ha vágás, akkor "Vágás", egyébként "Értékesítés"
+                    Type = (saleType == SaleType.Slaughter) ? "Vágás" : "Értékesítés",
+                    HerdId = cattle.CurrentHerdId,
+                    CustomerId = customerId,
+                    // A megjegyzésbe beírjuk a vevőt és a bizonylatszámot, hogy a PDF generátor megtalálja
+                    Comment = $"Vevő: {customer?.Name}, Bizonylat: {receiptNumber}"
+                };
+                _context.AnimalHistories.Add(history);
 
                 // Állat kivezetése
                 cattle.IsActive = false;
@@ -559,8 +576,6 @@ namespace Izabella.Controllers
                             foreach (var trans in transactionsToUpdate)
                             {
                                 trans.IsReported = true;
-                                // Ha van Note meződ, oda írhatsz, ha nincs, hagyd el ezt a sort:
-                                // trans.Note = "Tulajdonosváltás lejelentve"; 
                             }
 
                             await _context.SaveChangesAsync();

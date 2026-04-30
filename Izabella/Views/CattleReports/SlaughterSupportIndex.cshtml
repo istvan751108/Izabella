@@ -1,0 +1,46 @@
+﻿@model IEnumerable<Izabella.Models.ViewModels.SlaughterSupportViewModel>
+@{
+    ViewData["Title"] = "Vágóhídi Támogatás Generálása";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Vágóhídra eladott állatok támogatás kérése (2334)</h6>
+        <a asp-action="EditSupportConfig" class="btn btn-sm btn-secondary">
+            <i class="fas fa-cog"></i> Alapbeállítások szerkesztése
+        </a>
+    </div>
+    <div class="card-body">
+        <form asp-action="GenerateSlaughterPdf" method="get" target="_blank">
+            <div class="row align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Cég (Kérelmező)</label>
+                    <select name="companyId" class="form-control" asp-items="@(new SelectList(ViewBag.Companies, "Id", "Name"))"></select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Év</label>
+                    <input type="number" name="year" class="form-control" value="@ViewBag.SelectedYear" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Hónap</label>
+                    <select name="month" class="form-control">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(i == (int)ViewBag.SelectedMonth)">@i.ToString("D2")</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-file-pdf"></i> PDF Generálása és Letöltése
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i>
+    A PDF generálás az <strong>AnimalHistories</strong> táblából gyűjti össze a "Vágás" típusú eseményeket a megadott időszakra vonatkozóan.
+</div>

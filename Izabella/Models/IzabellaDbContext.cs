@@ -33,6 +33,7 @@ public class IzabellaDbContext : IdentityDbContext
     public DbSet<MatingSuggestion> MatingSuggestions { get; set; }
     public DbSet<InseminationLog> InseminationLogs { get; set; }
     public DbSet<SemenTransaction> SemenTransactions { get; set; }
+    public DbSet<SupportFormConfig> SupportFormConfigs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
