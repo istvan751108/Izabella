@@ -1,0 +1,67 @@
+﻿@model IEnumerable<Izabella.Models.Cattle>
+@{
+    ViewData["Title"] = "Vemhes üsző támogatás kérése";
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-info">
+            <i class="bi bi-gender-female"></i> Vemhes üsző támogatás kérése (2335)
+        </h6>
+        <a asp-action="EditSupportConfig" class="btn btn-sm btn-secondary">
+            <i class="bi bi-gear"></i> Alapbeállítások szerkesztése
+        </a>
+    </div>
+    <div class="card-body">
+        <form asp-action="GeneratePregnantHeiferPdf" method="get" target="_blank">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Cég (Kérelmező)</label>
+                    <select name="companyId" class="form-control" asp-items="@(new SelectList(ViewBag.Companies, "Id", "Name"))">
+                        <option value="">-- Válasszon céget --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Év</label>
+                    <input type="number" name="year" class="form-control" value="@DateTime.Now.Year" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Hónap</label>
+                    <select name="month" class="form-control">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(i == DateTime.Now.Month)">@i.ToString("D2")</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-info text-white w-100">
+                        <i class="bi bi-file-earmark-zip"></i> PDF-ek generálása (ZIP)
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-light border shadow-sm">
+    <h5><i class="bi bi-info-circle text-info"></i> Szűrési feltételek:</h5>
+    <hr />
+    <ul class="mb-0">
+        <li><strong>Korcsoport:</strong> Nem "Tehén" (üsző korcsoportú állatok).</li>
+        <li><strong>Vemhesség:</strong> Csak a "Vemhes" státuszú egyedek.</li>
+        <li><strong>Időtartam:</strong> Legalább 90 nap telt el az utolsó termékenyítés óta.</li>
+        <li><strong>Státusz:</strong> Csak az aktív állományban lévő állatok.</li>
+    </ul>
+</div>
+
+<div class="mt-3 text-muted">
+    <small><i class="bi bi-exclamation-triangle"></i> Figyelem: A PDF generálása a céghez tartozó összes tenyészetet külön fájlba válogatja, majd egy ZIP archívumba csomagolja.</small>
+</div>

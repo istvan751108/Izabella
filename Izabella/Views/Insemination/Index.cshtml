@@ -60,4 +60,22 @@
             </div>
         </div>
     }
+    @if (ViewBag.Cattle != null)
+    {
+        <div class="mt-4 p-3 border rounded bg-light">
+            <h5>Kiválasztott állat: @ViewBag.Cattle.EarTag</h5>
+            <div class="btn-group">
+                <a asp-action="Create" asp-route(earTag="@ViewBag.Cattle.EarTag" ) class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> Másik állat termékenyítése
+                </a>
+            
+                <!-- ÚJ GOMB: Felugró ablakban nyitja meg a history-t -->
+                <a href="javascript:void(0);"
+                       onclick="window.open('@Url.Action("History", new { earTag = ViewBag.Cattle.EarTag })', 'historyWindow', 'width=900,height=700')"
+                       class="btn btn-outline-primary">
+                    <i class="bi bi-journal-text"></i> Előzmények megtekintése
+                </a>
+            </div>
+        </div>
+    }
 </div>

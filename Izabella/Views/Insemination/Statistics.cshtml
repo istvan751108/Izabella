@@ -1,0 +1,229 @@
+﻿@model Izabella.Models.ViewModels.InseminationStatsViewModel
+@using Izabella.Models.ViewModels
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h3><i class="bi bi-bar-chart-line"></i> Szaporodásbiológiai Statisztika</h3>
+        </div>
+        <div class="col-md-6 text-end">
+            <form method="get" class="row g-2 justify-content-end">
+                <div class="col-auto">
+                    <input type="number" name="year" class="form-control" value="@Model.Year" />
+                </div>
+                <div class="col-auto">
+                    <select name="month" class="form-select">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(Model.Month == i)">@i. hónap</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">Szűrés</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Spermaindex Kártyák -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h6>Összesített Spermaindex</h6>
+                    <h2 class="fw-bold">@Model.TotalIndex.ToString("N2")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h6>Tehén Spermaindex</h6>
+                    <h2 class="fw-bold">@Model.CowIndex.ToString("N2")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h6>Üsző Spermaindex</h6>
+                    <h2 class="fw-bold">@Model.HeiferIndex.ToString("N2")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Táblázat -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Részletes Jelölőnkénti Teljesítmény (@Model.Year. @Model.Month. hónap)</span>
+                <span class="badge bg-warning text-dark">Spermaindex = Összes Term. / Összes Vemh.</span>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead class="table-secondary text-center small align-middle">
+                        <tr>
+                            <th rowspan="2">Jelölő</th>
+                            <th colspan="4" class="table-info">TEHÉN</th>
+                            <th colspan="4" class="table-success">ÜSZŐ</th>
+                            <th colspan="4" class="table-dark text-white">ÖSSZESEN</th>
+                        </tr>
+                        <tr>
+                            <!-- Tehén -->
+                            <th title="Termékenyítés">Term.</th>
+                            <th title="Vemhes">Vemh.</th>
+                            <th title="Vizsgálatra vár">Váró</th>
+                            <th>Index</th>
+                            <!-- Üsző -->
+                            <th title="Termékenyítés">Term.</th>
+                            <th title="Vemhes">Vemh.</th>
+                            <th title="Vizsgálatra vár">Váró</th>
+                            <th>Index</th>
+                            <!-- Összesen -->
+                            <th>Term.</th>
+                            <th>Vemh.</th>
+                            <th>Váró</th>
+                            <th>Index</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-center">
+                        @foreach (var m in Model.MarkerStats)
+                        {
+                            <tr>
+                                <td class="text-start fw-bold">@m.MarkerName</td>
+                        
+                                <!-- Tehén adatok -->
+                                <td>@m.CowInsem</td>
+                                <td class="text-success fw-bold">@m.CowPreg</td>
+                                <td class="text-muted italic">@m.CowPending</td>
+                                <td class="bg-light">@m.CowIndex.ToString("N2")</td>
+
+                                <!-- Üsző adatok -->
+                                <td>@m.HeiferInsem</td>
+                                <td class="text-success fw-bold">@m.HeiferPreg</td>
+                                <td class="text-muted italic">@m.HeiferPending</td>
+                                <td class="bg-light">@m.HeiferIndex.ToString("N2")</td>
+
+                                <!-- Összesített adatok -->
+                                <td class="table-secondary">@m.TotalInsem</td>
+                                <td class="table-secondary text-success fw-bold">@m.TotalPreg</td>
+                                <td class="table-secondary text-warning fw-bold">@m.TotalPending</td>
+                                <td class="bg-warning fw-bold">@m.TotalIndex.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-dark text-center fw-bold">
+                        <tr>
+                            <td class="text-start">MINDÖSSZESEN:</td>
+                            <td>@Model.CowInsem</td>
+                            <td>@Model.CowPreg</td>
+                            <td>@Model.MarkerStats.Sum(x => x.CowPending)</td>
+                            <td>@Model.CowIndex.ToString("N2")</td>
+
+                            <td>@Model.HeiferInsem</td>
+                            <td>@Model.HeiferPreg</td>
+                            <td>@Model.MarkerStats.Sum(x => x.HeiferPending)</td>
+                            <td>@Model.HeiferIndex.ToString("N2")</td>
+
+                            <td>@Model.TotalInsem</td>
+                            <td>@Model.TotalPreg</td>
+                            <td class="text-warning">@Model.MarkerStats.Sum(x => x.TotalPending)</td>
+                            <td class="text-warning">@Model.TotalIndex.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        
+    <div class="row g-4 mb-4">
+        <!-- 1. Összesített Diagram -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-dark text-white text-center fw-bold">Összesített Állomány</div>
+                <div class="card-body" style="height: 300px;">
+                    <canvas id="totalChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Tehén Diagram -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-info text-white text-center fw-bold">Tehenek</div>
+                <div class="card-body" style="height: 300px;">
+                    <canvas id="cowChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Üsző Diagram -->
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white text-center fw-bold">Üszők</div>
+                <div class="card-body" style="height: 300px;">
+                    <canvas id="heiferChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.MarkerName)));
+    
+    const commonOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: { y: { beginAtZero: true, stacked: false } },
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+    };
+
+    // Színkonstansok
+    const colorInsem = '#3498db'; // Kék
+    const colorPreg = '#2ecc71';  // Zöld (Vemhes)
+    const colorPending = '#f1c40f'; // Sárga (Vizsgálatra vár)
+
+    // 1. Összesített Chart
+    new Chart(document.getElementById('totalChart'), {
+    type: 'bar',
+    data: {
+    labels: labels,
+    datasets: [
+    { label: 'Term.', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.TotalInsem))), backgroundColor: colorInsem },
+    { label: 'Vemh.', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.TotalPreg))), backgroundColor: colorPreg },
+    { label: 'Váró', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.TotalPending))), backgroundColor: colorPending }
+    ]
+    },
+    options: commonOptions
+    });
+
+    // 2. Tehén Chart
+    new Chart(document.getElementById('cowChart'), {
+    type: 'bar',
+    data: {
+    labels: labels,
+    datasets: [
+    { label: 'Term.', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.CowInsem))), backgroundColor: colorInsem },
+    { label: 'Vemh.', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.CowPreg))), backgroundColor: colorPreg },
+    { label: 'Váró', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.CowPending))), backgroundColor: colorPending }
+    ]
+    },
+    options: commonOptions
+    });
+
+    // 3. Üsző Chart
+    new Chart(document.getElementById('heiferChart'), {
+    type: 'bar',
+    data: {
+    labels: labels,
+    datasets: [
+    { label: 'Term.', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.HeiferInsem))), backgroundColor: colorInsem },
+    { label: 'Vemh.', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.HeiferPreg))), backgroundColor: colorPreg },
+    { label: 'Váró', data: @Html.Raw(Json.Serialize(Model.MarkerStats.Select(m => m.HeiferPending))), backgroundColor: colorPending }
+    ]
+    },
+    options: commonOptions
+    });
+</script>

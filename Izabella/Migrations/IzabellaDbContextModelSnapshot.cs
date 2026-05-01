@@ -296,6 +296,10 @@ namespace Izabella.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ClientId")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -826,6 +830,24 @@ namespace Izabella.Migrations
 
                     b.Property<string>("FilingPlace")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HeiferMed1Agent")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HeiferMed1Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HeiferMed2Agent")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HeiferMed2Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HeiferMed3Agent")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HeiferMed3Name")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LicenseeClientId")

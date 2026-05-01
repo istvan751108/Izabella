@@ -53,7 +53,7 @@ namespace Izabella.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,ClientId")] Company company)
+        public async Task<IActionResult> Create([Bind("Id,Name,ClientId,Address")] Company company)
         {
             if (ModelState.IsValid)
             {
@@ -85,7 +85,7 @@ namespace Izabella.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,ClientId")] Company company)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,ClientId, Address")] Company company)
         {
             if (id != company.Id)
             {

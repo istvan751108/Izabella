@@ -1,48 +1,48 @@
-﻿@model Herd
+﻿@model Izabella.Models.Herd
 
-@{
-    ViewData["Title"] = "Create";
-}
+<div class="container-fluid px-4 py-3">
+    <div class="row justify-content-center">
+        <div class="col-xl-8">
+            <form asp-action="Create">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white py-3">
+                        <h5 class="card-title mb-0"><i class="bi bi-pencil-square me-2"></i>Új Tenyészet felvitele</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger p-2 small"></div>
+                        <input type="hidden" asp-for="Id" />
 
-<h1>Új Tenyészet felvitele</h1>
-
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="HerdCode" class="control-label"></label>
-                <input asp-for="HerdCode" class="form-control" />
-                <span asp-validation-for="HerdCode" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CompanyId" class="control-label"></label>
-                <select asp-for="CompanyId" class ="form-control" asp-items="ViewBag.CompanyId"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="DefaultPrefix" class="control-label"></label>
-                <input asp-for="DefaultPrefix" class="form-control" />
-                <span asp-validation-for="DefaultPrefix" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="EnarPrefix" class="control-label"></label>
-                <input asp-for="EnarPrefix" class="form-control" />
-                <span asp-validation-for="EnarPrefix" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Létrehozás" class="btn btn-primary" />|
-                <a asp-action="Index" class="btn btn-secondary">Vissza a Tenyészetek listához</a>
-            </div>
-        </form>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Name" class="form-label fw-bold"></label>
+                                <input asp-for="Name" class="form-control shadow-sm" />
+                                <span asp-validation-for="Name" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="HerdCode" class="form-label fw-bold"></label>
+                                <input asp-for="HerdCode" class="form-control shadow-sm" />
+                                <span asp-validation-for="HerdCode" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-12">
+                                <label asp-for="CompanyId" class="form-label fw-bold">Vállalat</label>
+                                <select asp-for="CompanyId" class="form-select shadow-sm" asp-items="ViewBag.CompanyId"></select>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="DefaultPrefix" class="form-label fw-bold"></label>
+                                <input asp-for="DefaultPrefix" class="form-control shadow-sm" placeholder="Pl. IT" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="EnarPrefix" class="form-label fw-bold"></label>
+                                <input asp-for="EnarPrefix" class="form-control shadow-sm" placeholder="Pl. 1" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light d-flex justify-content-between p-3">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Mégse</a>
+                        <button type="submit" class="btn btn-success px-5 shadow-sm">Mentés</button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}

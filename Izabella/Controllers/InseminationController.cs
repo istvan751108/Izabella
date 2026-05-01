@@ -80,9 +80,25 @@ namespace Izabella.Controllers
             var semen = await _context.BullSemens.FindAsync(log.BullSemenId);
             var cattle = await _context.Cattles.FirstAsync(c => c.EarTag == log.CattleEarTag);
 
-            // Készlet ellenőrzés és levonás
+            // 1. Készlet ellenőrzés
             if (semen.StockQuantity <= 0) return BadRequest("Nincs készleten!");
 
+            // --- ÚJ LOGIKA: Előző állapot lezárása ---
+            // Ha az állat jelenleg "Vemhes" volt, de újra termékenyítjük, 
+            // naplózzuk a változást a history-ba, mielőtt felülírjuk.
+            if (cattle.PregnancyStatus == PregnancyStatus.Vemhes)
+            {
+                _context.AnimalHistories.Add(new AnimalHistory
+                {
+                    CattleId = cattle.Id,
+                    EventDate = log.EventDate,
+                    Type = "Vemhesség megszakadása",
+                    Comment = "Újabb termékenyítés miatt az állapot automatikusan Üresre módosítva."
+                });
+            }
+            // -----------------------------------------
+
+            // 2. Készlet levonás és tranzakció
             semen.StockQuantity--;
             _context.SemenTransactions.Add(new SemenTransaction
             {
@@ -93,17 +109,16 @@ namespace Izabella.Controllers
                 CattleEarTag = log.CattleEarTag,
                 PerformedBy = log.InseminatorName
             });
+
             if (semen.FirstUseDate == null) semen.FirstUseDate = log.EventDate;
             semen.LastUseDate = log.EventDate;
 
-            // Állapotváltás: Termékenyítés után az állat státusza "Nem vizsgált" lesz
+            // 3. Állapotváltás: Most már biztosan "Nem vizsgált" lesz az új termékenyítés miatt
             cattle.PregnancyStatus = PregnancyStatus.NemVizsgált;
-
-            // Állat adatainak frissítése
             cattle.LastInseminationDate = log.EventDate;
             cattle.InseminationBullKlsz = semen.Klsz;
 
-            // History mentése
+            // 4. History mentése az új termékenyítésről
             _context.AnimalHistories.Add(new AnimalHistory
             {
                 CattleId = cattle.Id,
@@ -114,7 +129,7 @@ namespace Izabella.Controllers
             _context.InseminationLogs.Add(log);
             await _context.SaveChangesAsync();
 
-            TempData["Success"] = "Termékenyítés sikeresen rögzítve!";
+            TempData["Success"] = "Termékenyítés sikeresen rögzítve! Az állat állapota: Nem vizsgált.";
             return RedirectToAction(nameof(Index));
         }
         [HttpPost]
@@ -167,6 +182,98 @@ namespace Izabella.Controllers
             ViewBag.SelectedDay = day;
 
             return View(reportData);
+        }
+        public async Task<IActionResult> History(string earTag)
+        {
+            if (string.IsNullOrEmpty(earTag)) return NotFound();
+
+            // Termékenyítések lekérése
+            var insemLogs = await _context.InseminationLogs
+                .Include(l => l.BullSemen)
+                .Where(l => l.CattleEarTag == earTag)
+                .OrderByDescending(l => l.EventDate)
+                .ToListAsync();
+
+            // Vizsgálati eredmények lekérése az AnimalHistory-ból
+            var pregnancyTests = await _context.AnimalHistories
+                .Where(h => h.Type == "Vemhességi vizsgálat" && _context.Cattles.Any(c => c.Id == h.CattleId && c.EarTag == earTag))
+                .OrderByDescending(h => h.EventDate)
+                .ToListAsync();
+
+            ViewBag.EarTag = earTag;
+            ViewBag.PregnancyTests = pregnancyTests;
+
+            return View(insemLogs);
+        }
+        public async Task<IActionResult> Statistics(int? year, int? month)
+        {
+            year ??= DateTime.Now.Year;
+            month ??= DateTime.Now.Month;
+            var startDate = new DateTime(year.Value, month.Value, 1);
+            var endDate = startDate.AddMonths(1);
+
+            var logs = await _context.InseminationLogs
+                .Where(l => l.EventDate >= startDate && l.EventDate < endDate && !l.IsReInsemination)
+                .ToListAsync();
+
+            var earTags = logs.Select(l => l.CattleEarTag).Distinct().ToList();
+            var cattles = await _context.Cattles.Where(c => earTags.Contains(c.EarTag)).ToListAsync();
+            var histories = await _context.AnimalHistories
+                .Where(h => h.Type == "Vemhességi vizsgálat" && h.EventDate >= startDate)
+                .ToListAsync();
+
+            var stats = new InseminationStatsViewModel { Year = year.Value, Month = month.Value };
+            var heiferGroups = new[] { "Növendék 9-12", "Növendék 12 hó-tól", "Vemhes üsző" };
+
+            var markerGroups = logs.GroupBy(l => l.MarkerName ?? "Ismeretlen");
+
+            foreach (var group in markerGroups)
+            {
+                var item = new MarkerStatItem { MarkerName = group.Key };
+                foreach (var log in group)
+                {
+                    var animal = cattles.FirstOrDefault(c => c.EarTag == log.CattleEarTag);
+                    if (animal == null) continue;
+
+                    bool isHeifer = heiferGroups.Contains(animal.AgeGroup);
+
+                    // Megnézzük, lett-e ebből a termékenyítésből vemhesség
+                    // Akkor sikeres, ha van olyan history rekord, ami a termékenyítés utáni, 
+                    // de a következő termékenyítés előtti, és az eredménye "Vemhes"
+                    var result = histories
+                        .Where(h => h.CattleId == animal.Id && h.EventDate > log.EventDate)
+                        .OrderBy(h => h.EventDate)
+                        .FirstOrDefault();
+
+                    bool isSuccess = result != null && result.Comment.Contains("Vemhes");
+                    // ÚJ: Ha nincs vizsgálati eredmény, akkor várólistás
+                    bool isPending = result == null;
+
+                    if (isHeifer)
+                    {
+                        item.HeiferInsem++;
+                        if (isSuccess) item.HeiferPreg++;
+                        if (isPending) item.HeiferPending++; // Add hozzá a ViewModel-hez!
+                    }
+                    else
+                    {
+                        item.CowInsem++;
+                        if (isSuccess) item.CowPreg++;
+                        if (isPending) item.CowPending++;
+                    }
+                }
+                stats.MarkerStats.Add(item);
+            }
+
+            // Összesített statisztikák feltöltése a kártyákhoz
+            stats.TotalInsem = stats.MarkerStats.Sum(m => m.TotalInsem);
+            stats.TotalPreg = stats.MarkerStats.Sum(m => m.TotalPreg);
+            stats.CowInsem = stats.MarkerStats.Sum(m => m.CowInsem);
+            stats.CowPreg = stats.MarkerStats.Sum(m => m.CowPreg);
+            stats.HeiferInsem = stats.MarkerStats.Sum(m => m.HeiferInsem);
+            stats.HeiferPreg = stats.MarkerStats.Sum(m => m.HeiferPreg);
+
+            return View(stats);
         }
     }
 }

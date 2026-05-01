@@ -40,13 +40,14 @@ namespace Izabella.Controllers
             {
                 // Megkeressük az utolsó termékenyítését
                 var lastInsem = await _context.InseminationLogs
-                    .Where(l => l.CattleEarTag == cattle.EarTag)
-                    .OrderByDescending(l => l.EventDate)
-                    .FirstOrDefaultAsync();
+    .Include(l => l.BullSemen) // Ez elengedhetetlen a BullSemen adatok eléréséhez!
+    .Where(l => l.CattleEarTag == cattle.EarTag)
+    .OrderByDescending(l => l.EventDate)
+    .FirstOrDefaultAsync();
 
-                if (lastInsem != null)
+                if (lastInsem != null && lastInsem.BullSemen != null) // Extra biztonsági ellenőrzés
                 {
-                    // Töröljük a régi javaslatokat (opcionális, de tiszább)
+                    // Töröljük a régi javaslatokat
                     var oldSuggestions = _context.MatingSuggestions.Where(s => s.CattleEarTag == cattle.EarTag);
                     _context.MatingSuggestions.RemoveRange(oldSuggestions);
 

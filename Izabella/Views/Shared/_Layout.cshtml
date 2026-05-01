@@ -14,149 +14,162 @@
         .dropdown-menu { background-color: #2c3e50; border: 1px solid #34495e; }
         .dropdown-item { color: white; }
         .dropdown-item:hover { background-color: #3498db; color: white; }
+        /* Tömörebb menü közepes és nagy felbontás között (992px - 1400px) */
+        @@media (min-width: 992px) and (max-width: 1400px) {
+            .nav-link {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+                margin-right: 5px !important;
+                font-size: 0.82rem; /* Kicsit kisebb betű, hogy beférjen */
+            }
+    
+            .navbar-brand {
+                margin-right: 2rem !important; /* Fix távolság a logó után */
+                padding-left: 0;
+            }
+
+            /* Az ikonok melletti távolság csökkentése */
+            .nav-link i {
+                margin-right: 3px !important;
+            }
+        }
+        /* Ha extra széles a képernyő, ne engedjük túl messzire szaladni a menüt, 
+        de maradjon meg a balra zárt jelleg */
+        @@media (min-width: 1600px) {
+            .container-fluid {
+                max-width: 95%; 
+            }
+        }
+        /* Biztonsági tartalék: ha még így is szűkös lenne (pl. 13-as laptopon) */
+        @@media (max-width: 1350px) {
+            .nav-link {
+                margin-right: 3px !important;
+                font-size: 0.85rem !important;
+            }
+        }
+
+        /* Fix: A dropdown-ok láthatóságának biztosítása */
+        .navbar-collapse {
+            overflow: visible !important; 
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-        <div class="container">
-            <a class="navbar-brand font-weight-bold" asp-controller="Home" asp-action="Index">IZABELLA DB</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainMenu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="mainMenu">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Home" asp-action="Index">Főoldal</a>
-                    </li>
+    <nav class="navbar navbar-expand-xl navbar-dark fixed-top">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
+            <i class="bi bi-database-fill-check me-2"></i>IZABELLA DB
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainMenu">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Home" asp-action="Index">Főoldal</a>
+                </li>
 
+                <!-- Állomány kezelés - Hozzáadva: ikon, eltávolítva: felesleges class -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="cattleDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-clipboard2-data"></i> Állomány kezelés
+                    </a>
+                    <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="cattleDropdown">
+                        <li><a class="dropdown-item" asp-controller="Cattle" asp-action="Calving">Új ellés rögzítése</a></li>
+                        <li><a class="dropdown-item" asp-controller="Cattle" asp-action="GenderChangeList">Borjú nemének megváltoztatása</a></li>
+                        <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Index">Aktív Állomány listája</a></li>
+                        <li><a class="dropdown-item" asp-controller="Cattle" asp-action="PassportUpdate">Marhalevél szám feltöltés</a></li>
+                        <li><a class="dropdown-item" asp-controller="Sales" asp-action="Index">Kikerülési napló</a></li>
+                        <li><a class="dropdown-item" asp-controller="Cattles" asp-action="LivestockUnitSummary">Számos állat lekérdezés</a></li>
+                        <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Movement">Állománymozgatás és Súlymérés</a></li>
+                        <li><a class="dropdown-item" asp-controller="Sales" asp-action="MonthlyReport">ENAR ügyintézés</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" asp-controller="Cattle" asp-action="DeathLogList">Elhullások naplója</a></li>
+                    </ul>
+                </li>
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="examDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-geo-alt"></i> Helyszíni műveletek
+                    </a>
+                    <ul class="dropdown-menu shadow dropdown-menu-dark">
+                        <li><a class="dropdown-item" asp-controller="BloodTest" asp-action="BloodTestSelector">Vérvizsgálat (Mintavétel)</a></li>
+                        <li><a class="dropdown-item" asp-controller="Weight" asp-action="QuickWeightEntry">Súlymérés</a></li>
+                        <li><a class="dropdown-item" asp-controller="Inventory" asp-action="Index">Leltár</a></li>
+                    </ul>
+                </li>
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="insemDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-calendar-check"></i> Szaporodásbiológia
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark shadow">
+                        <li><h6 class="dropdown-header text-info fw-bold">TERMÉKENYÍTÉS</h6></li>
+                        <li><a class="dropdown-item" asp-controller="Insemination" asp-action="Index"><i class="bi bi-plus-circle me-2 text-success"></i>Új rögzítése</a></li>
+                        <li><a class="dropdown-item" asp-controller="Insemination" asp-action="UsageSummary"><i class="bi bi-file-earmark-bar-graph me-2"></i>Felhasználási jelentés</a></li>
+                        <li><a class="dropdown-item" asp-controller="SemenInventory" asp-action="Index"><i class="bi bi-box-seam me-2"></i>Sperma készlet</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header text-danger fw-bold">VEMHESSÉGI VIZSGÁLAT</h6></li>
+                        <li><a class="dropdown-item" asp-controller="Pregnancy" asp-action="Index"><i class="bi bi-search me-2 text-danger"></i>Várólista (VEX)</a></li>
+                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="ExpectedCalvings"><i class="bi bi-cow me-2"></i>Szaporodásbiológiai Riportok</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li> <a class="dropdown-item" asp-controller="Insemination" asp-action="Statistics"> <i class="bi bi-graph-up-arrow me-2 text-info"></i>Statisztika </a> </li>
+                    </ul>
+                </li>
+
+                @if (User.Identity.IsAuthenticated)
+                {
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="cattleDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Állomány kezelés
+                        <a class="nav-link dropdown-toggle" href="#" id="manureDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-moisture"></i> Trágyakezelés
                         </a>
-                        <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="cattleDropdown">
-                            <li><a class="dropdown-item" asp-controller="Cattle" asp-action="Calving">Új ellés rögzítése</a></li>
-                            <li><a class="dropdown-item" asp-controller="Cattle" asp-action="GenderChangeList">Borjú nemének megváltoztatása</a></li>
-                            <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Index">Aktív Állomány listája</a></li>
-                            <li><a class="dropdown-item" asp-controller="Cattle" asp-action="PassportUpdate">Marhalevél szám feltöltés</a></li>
-                            <li><a class="dropdown-item" asp-controller="Sales" asp-action="Index">Kikerülési napló</a></li>
-                            <li><a class="dropdown-item" asp-controller="Cattles" asp-action="LivestockUnitSummary">Számos állat lekérdezés</a></li>
-                            <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Movement">Állománymozgatás és Súlymérés</a></li>
-                            <li><a class="dropdown-item" asp-controller="Sales" asp-action="MonthlyReport">ENAR ügyintézés</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                          
-                            <li><a class="dropdown-item text-danger" asp-controller="Cattle" asp-action="DeathLogList">Elhullások naplója</a></li>
-                        </ul>
-                    </li>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-dark" href="#" id="examDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-geo-alt"></i> Helyszíni műveletek
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" asp-controller="BloodTest" asp-action="BloodTestSelector">Vérvizsgálat (Mintavétel)</a></li>
-                            <li><a class="dropdown-item" asp-controller="Weight" asp-action="QuickWeightEntry">Súlymérés</a></li>
-                            <li><a class="dropdown-item" asp-controller="Inventory" asp-action="Index">Leltár</a></li>
-                        </ul>
-                    </li>
-
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-dark" href="#" id="insemDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-calendar-check"></i> Szaporodásbiológia
-                        </a>
-                        <ul class="dropdown-menu border-primary shadow-sm">
-                            <li><h6 class="dropdown-header text-primary fw-bold">TERMÉKENYÍTÉS</h6></li>
-                            <li>
-                                <a class="dropdown-item" asp-controller="Insemination" asp-action="Index">
-                                    <i class="bi bi-plus-circle me-2 text-success"></i>Új rögzítése
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" asp-controller="Insemination" asp-action="UsageSummary">
-                                    <i class="bi bi-file-earmark-bar-graph me-2"></i>Felhasználási jelentés
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" asp-controller="SemenInventory" asp-action="Index">
-                                    <i class="bi bi-box-seam me-2"></i>Sperma készlet
-                                </a>
-                            </li>
-
-                            <li><hr class="dropdown-divider"></li>
-
-                            <li><h6 class="dropdown-header text-danger fw-bold">VEMHESSÉGI VIZSGÁLAT</h6></li>
-                            <li>
-                                <a class="dropdown-item" asp-controller="Pregnancy" asp-action="Index">
-                                    <i class="bi bi-search me-2 text-danger"></i>Várólista (VEX)
-                                </a>
-                                <a class="nav-link" asp-area="" asp-controller="CattleReports" asp-action="ExpectedCalvings">
-                                    <i class="bi bi-cow"></i> Szaporodásbiológiai Riportok
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-
-                    @if (User.Identity.IsAuthenticated)
-                    {
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="manureDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                Trágyakezelés
-                            </a>
-                            <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="manureDropdown">
-                                @if (User.IsInRole("Admin"))
-                                {
-                                    <li><a class="dropdown-item" asp-controller="Manure" asp-action="Index">Trágya rögzítés</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                }
-                                <li><a class="dropdown-item" asp-controller="Report" asp-action="Index">Havi riport (Táblázatok)</a></li>
-                                <li><a class="dropdown-item" asp-controller="Report" asp-action="Charts">Grafikonok & Statisztika</a></li>
-                            </ul>
-                        </li>
-                    }
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-info" href="#" id="supportDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-file-earmark-pdf-fill"></i> Támogatások kérése
-                        </a>
-                        <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="supportDropdown">
-                            <li>
-                                <a class="dropdown-item" asp-controller="CattleReports" asp-action="SlaughterSupportIndex">
-                                    <i class="bi bi-truck me-2"></i>Vágóhídi támogatás (2334)
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" asp-controller="CattleReports" asp-action="EditSupportConfig">
-                                    <i class="bi bi-sliders me-2"></i>Nyomtatvány beállítások
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    @if (User.IsInRole("Admin"))
-                    {
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-warning" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-gear-fill"></i> Adminisztráció
-                            </a>
-                            <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="adminDropdown">
-                                <li><a class="dropdown-item" asp-controller="Companies" asp-action="Index">Cégek kezelése</a></li>
-                                <li><a class="dropdown-item" asp-controller="Herds" asp-action="Index">Tenyészetek kezelése</a></li>
+                        <ul class="dropdown-menu shadow dropdown-menu-dark">
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li><a class="dropdown-item" asp-controller="Manure" asp-action="Index">Trágya rögzítés</a></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" asp-controller="DeathReasons" asp-action="Index">Elhullás okok kezelése</a></li>
-                                <li><a class="dropdown-item" asp-controller="SemenInventory" asp-action="Index">Sperma készletkezelés</a></li>
-                                <li><a class="dropdown-item" asp-controller="Staff" asp-action="Index">Inszeminátorok és Jelölők</a></li>
-                                <li><a class="dropdown-item" asp-controller="Mating" asp-action="Index">Bika párosítási javaslat</a></li>
-                                <li><a class="dropdown-item" asp-controller="Customers" asp-action="Index">Vásárlók kezelése</a></li>
-                                <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Felhasználók kezelése</a></li>
-                            </ul>
-                        </li>
-                    }
-                </ul>
+                            }
+                            <li><a class="dropdown-item" asp-controller="Report" asp-action="Index">Havi riport (Táblázatok)</a></li>
+                            <li><a class="dropdown-item" asp-controller="Report" asp-action="Charts">Grafikonok & Statisztika</a></li>
+                        </ul>
+                    </li>
+                }
 
-                @* Itt jelenik meg a Bejelentkezés/Kijelentkezés *@
-                <div class="navbar-nav">
-                    <partial name="_LoginPartial" />
-                </div>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="supportDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-file-earmark-pdf-fill"></i> Támogatások
+                    </a>
+                    <ul class="dropdown-menu shadow dropdown-menu-dark">
+                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="SlaughterSupportIndex"><i class="bi bi-truck me-2"></i>Vágóhídi (2334)</a></li>
+                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="PregnantSupportIndex"><i class="bi bi-gender-female me-2"></i>Vemhes üsző (2335)</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="EditSupportConfig"><i class="bi bi-sliders me-2"></i>Beállítások</a></li>
+                    </ul>
+                </li>
+
+                @if (User.IsInRole("Admin"))
+                {
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear-fill"></i> Admin
+                        </a>
+                        <ul class="dropdown-menu shadow dropdown-menu-dark">
+                            <li><a class="dropdown-item" asp-controller="Companies" asp-action="Index">Cégek</a></li>
+                            <li><a class="dropdown-item" asp-controller="Herds" asp-action="Index">Tenyészetek</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" asp-controller="DeathReasons" asp-action="Index">Elhullás okok</a></li>
+                            <li><a class="dropdown-item" asp-controller="Staff" asp-action="Index">Személyzet</a></li>
+                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users">Felhasználók</a></li>
+                        </ul>
+                    </li>
+                }
+            </ul>
+            <div class="navbar-nav">
+                <partial name="_LoginPartial" />
             </div>
         </div>
-    </nav>
+    </div>
+</nav>
 
     <div class="container mt-4">
         @RenderBody()

@@ -1,56 +1,55 @@
-﻿@model IEnumerable<Herd>
+﻿@model IEnumerable<Izabella.Models.Herd>
 
-@{
-    ViewData["Title"] = "Index";
-}
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0"><i class="bi bi-house-door-fill text-secondary me-2"></i>Tenyészetek</h4>
+            <small class="text-muted">A vállalatokhoz tartozó telephelyek és tenyészetek kezelése</small>
+        </div>
+        <a asp-action="Create" class="btn btn-success shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Új tenyészet felvitele
+        </a>
+    </div>
 
-<h1>Tenyészetek</h1>
-
-<p>
-    <a asp-action="Create" class="btn btn-primary">Új tenyészet felvitele</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Name)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.HerdCode)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Company)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DefaultPrefix)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.EnarPrefix)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.HerdCode)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.DefaultPrefix)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.EnarPrefix)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Szerkesztés</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Részletek</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Törlés</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Tenyészet megnevezése</th>
+                            <th>Tenyészetkód</th>
+                            <th>Prefixek (Belső / ENAR)</th>
+                            <th class="text-end pe-4">Műveletek</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">@item.Name</div>
+                                    <small class="text-muted"><i class="bi bi-building me-1"></i>@(item.Company?.Name ?? "Nincs céghez rendelve")</small>
+                                </td>
+                                <td>
+                                    <code class="text-primary fw-bold fs-6">@item.HerdCode</code>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">@item.DefaultPrefix</span>
+                                    <span class="badge bg-light text-primary border">@item.EnarPrefix</span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group btn-group-sm shadow-sm">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Szerkesztés"><i class="bi bi-pencil"></i></a>
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-info" title="Részletek"><i class="bi bi-eye"></i></a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger" title="Törlés"><i class="bi bi-trash"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

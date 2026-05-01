@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Izabella")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6c2cadb7cc4fcd680d6c22a3d82d67568909d906")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2d69f75ea251db9c2b5055a207fe73c9e39dcca2")]
 [assembly: System.Reflection.AssemblyProductAttribute("Izabella")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Izabella")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

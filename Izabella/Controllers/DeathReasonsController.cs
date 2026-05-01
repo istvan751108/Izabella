@@ -21,7 +21,10 @@ namespace Izabella.Controllers
         // GET: DeathReasons
         public async Task<IActionResult> Index()
         {
-            return View(await _context.DeathReasons.ToListAsync());
+            var reasons = await _context.DeathReasons
+                .OrderBy(r => r.Name) // ABC sorrend
+                .ToListAsync();
+            return View(reasons);
         }
 
         // GET: DeathReasons/Details/5

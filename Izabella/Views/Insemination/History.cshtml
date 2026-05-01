@@ -1,0 +1,50 @@
+﻿@model IEnumerable<Izabella.Models.InseminationLog>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Szaporodási Előzmények";
+    var tests = ViewBag.PregnancyTests as List<Izabella.Models.AnimalHistory>;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4><i class="bi bi-clock-history text-primary"></i> @ViewBag.EarTag - Szaporodási előzmények</h4>
+        <button onclick="window.close()" class="btn btn-outline-secondary btn-sm d-print-none">Ablak bezárása</button>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Dátum</th>
+                        <th>Esemény</th>
+                        <th>Bika / Eredmény</th>
+                        <th>Végrehajtó (Insz./Jel.)</th>
+                        <th>Megjegyzés</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        // Összefésüljük a két listát dátum szerint
+                        var allEvents = Model.Select(i => new { Date = i.EventDate, Type = "Termékenyítés", Data = $"{i.BullSemen.BullName} ({i.BullSemen.Klsz})", PerformedBy = $"{i.InseminatorName} / {i.MarkerName}", Note = i.Note, Color = "" })
+                            .Concat(tests.Select(t => new { Date = t.EventDate, Type = "Vizsgálat", Data = t.Comment, PerformedBy = "-", Note = "", Color = t.Comment.Contains("Vemhes") ? "table-success" : "table-warning" }))
+                            .OrderByDescending(x => x.Date);
+                    }
+
+                    @foreach (var ev in allEvents)
+                    {
+                        <tr class="@ev.Color">
+                            <td>@ev.Date.ToString("yyyy.MM.dd.")</td>
+                            <td>
+                                <span class="badge @(ev.Type == "Termékenyítés" ? "bg-primary" : "bg-info")">@ev.Type</span>
+                            </td>
+                            <td><strong>@ev.Data</strong></td>
+                            <td>@ev.PerformedBy</td>
+                            <td class="small">@ev.Note</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

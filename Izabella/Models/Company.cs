@@ -15,5 +15,9 @@ namespace Izabella.Models
         [Display(Name = "Ügyfél-azonosító (MÁK)")]
         [StringLength(10, MinimumLength = 10, ErrorMessage = "Az azonosítónak 10 számjegyből kell állnia.")]
         public string ClientId { get; set; } // pl. 1001798252
+        
+        [Required(ErrorMessage = "A cím kitöltése kötelező.")]
+        [Display(Name = "Cím / Székhely")]
+        public string Address { get; set; }
     }
 }

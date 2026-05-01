@@ -3,112 +3,164 @@
 }
 
 <style>
-    /* Egyedi stílus a főoldali Hero részhez */
     .hero-section {
-        background-color: white; /* Gradiens helyett fehér háttér */
+        background-color: white;
         padding: 40px;
         border-radius: 15px;
         margin-bottom: 40px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* Lágyabb árnyék */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 30px; /* Távolság a kép és a szöveg között */
+        gap: 30px;
     }
 
     .hero-logo-img {
-        max-height: 180px; /* Kontrollált magasság */
+        max-height: 150px;
         object-fit: contain;
     }
 
     .hero-text-block {
-        text-align: left; /* Szöveg balra igazítva */
-        color: #1a4a7a; /* A régi kék szín használata */
+        text-align: left;
+        color: #2c3e50;
     }
 
     .nav-card {
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: all 0.3s ease;
         border: none;
-        border-bottom: 5px solid transparent;
+        border-top: 4px solid transparent;
+        height: 100%;
     }
 
-        .nav-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.12) !important;
-            border-bottom-color: #0d6efd;
-        }
+    .nav-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    }
+
+    /* Színkódok a menü alapján */
+    .card-cattle { border-top-color: #2c3e50; }
+    .card-ops { border-top-color: #6c757d; }
+    .card-repro { border-top-color: #dc3545; }
+    .card-manure { border-top-color: #198754; }
+    .card-support { border-top-color: #0dcaf0; }
+    .card-admin { border-top-color: #ffc107; }
 
     .nav-icon {
-        font-size: 3rem;
+        font-size: 2.5rem;
         margin-bottom: 15px;
         display: block;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .text-small {
+        font-size: 0.85rem;
+        line-height: 1.4;
     }
 </style>
 
 <div class="container mt-4">
-    <div class="hero-section text-center shadow">
-        <img src="~/images/logo/izabella_logo_clean.png" alt="Izabella Tehenészet Logó" class="hero-logo-img" />
-
+    <!-- Hero szekció -->
+    <div class="hero-section shadow-sm">
+        <img src="~/images/logo/izabella_logo_clean.png" alt="Izabella Logo" class="hero-logo-img" />
         <div class="hero-text-block">
-            <h1 class="display-3 fw-bold mb-0">Izabella</h1>
-            <p class="lead fs-4">Komplex Telepirányítási és Nyilvántartási Rendszer</p>
+            <h1 class="display-4 fw-bold mb-0">Izabella DB</h1>
+            <p class="lead fs-5">Telepirányítási és Állategészségügyi Rendszer</p>
             <div class="mt-2">
-                <span class="badge bg-light text-primary border p-2 px-3">v2.1 Build 2026</span>
+                <span class="badge bg-dark p-2 px-3">v2.1 Build 2026.05</span>
+                <span class="badge bg-outline-secondary text-dark border p-2 px-3 ms-2">@DateTime.Now.ToString("yyyy. MMMM dd.")</span>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 text-center">
-        <div class="col-md-3">
+    <!-- Navigációs kártyák -->
+    <div class="row g-4">
+        <!-- Állomány kezelés -->
+        <div class="col-md-4 col-lg-2">
+            <a asp-controller="Cattles" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card shadow-sm nav-card card-cattle text-center">
+                    <div class="card-body">
+                        <i class="bi bi-list-check nav-icon text-dark"></i>
+                        <h5 class="card-title">Állomány</h5>
+                        <p class="text-small text-muted">Aktív lista, ellés, ENAR és mozgás.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Helyszíni műveletek -->
+        <div class="col-md-4 col-lg-2">
             <a asp-controller="Weight" asp-action="QuickWeightEntry" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm nav-card">
-                    <div class="card-body py-4">
-                        <i class="bi bi-tablet-landscape nav-icon text-primary"></i>
-                        <h5 class="fw-bold">Helyszíni műveletek</h5>
-                        <p class="small text-muted">Súlymérés, Leltár, Vérvizsgálat</p>
+                <div class="card shadow-sm nav-card card-ops text-center">
+                    <div class="card-body">
+                        <i class="bi bi-geo-alt nav-icon text-secondary"></i>
+                        <h5 class="card-title">Helyszíni</h5>
+                        <p class="text-small text-muted">Súlymérés, leltár és vérvétel.</p>
                     </div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-3">
-            <a asp-controller="Cattles" asp-action="Movement" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm nav-card">
-                    <div class="card-body py-4">
-                        <i class="bi bi-arrows-move nav-icon text-success"></i>
-                        <h5 class="fw-bold">Állományműveletek</h5>
-                        <p class="small text-muted">Mozgatás, Korosbítás, Eladások</p>
+        <!-- Szaporodásbiológia -->
+        <div class="col-md-4 col-lg-2">
+            <a asp-controller="Insemination" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card shadow-sm nav-card card-repro text-center">
+                    <div class="card-body">
+                        <i class="bi bi-calendar-check nav-icon text-danger"></i>
+                        <h5 class="card-title">Szaporodás</h5>
+                        <p class="text-small text-muted">Inszeminálás, VEX és sperma készlet.</p>
                     </div>
                 </div>
             </a>
         </div>
 
-        <div class="col-md-3">
-            <a asp-controller="Manure" asp-action="Index" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm nav-card">
-                    <div class="card-body py-4">
-                        <i class="bi bi-truck nav-icon text-warning"></i>
-                        <h5 class="fw-bold">Trágyakezelés</h5>
-                        <p class="small text-muted">Napi szállítások és bizonylatok</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-md-3">
+        <!-- Trágyakezelés -->
+        <div class="col-md-4 col-lg-2">
             <a asp-controller="Report" asp-action="Index" class="text-decoration-none text-dark">
-                <div class="card h-100 shadow-sm nav-card">
-                    <div class="card-body py-4">
-                        <i class="bi bi-graph-up-arrow nav-icon text-danger"></i>
-                        <h5 class="fw-bold">Admin & Riportok</h5>
-                        <p class="small text-muted">Statisztikák, Törzsadatok, Beállítások</p>
+                <div class="card shadow-sm nav-card card-manure text-center">
+                    <div class="card-body">
+                        <i class="bi bi-moisture nav-icon text-success"></i>
+                        <h5 class="card-title">Trágya</h5>
+                        <p class="text-small text-muted">Rögzítés, havi riportok és grafikonok.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Támogatások -->
+        <div class="col-md-4 col-lg-2">
+            <a asp-controller="CattleReports" asp-action="SlaughterSupportIndex" class="text-decoration-none text-dark">
+                <div class="card shadow-sm nav-card card-support text-center">
+                    <div class="card-body">
+                        <i class="bi bi-file-earmark-pdf nav-icon text-info"></i>
+                        <h5 class="card-title">Támogatás</h5>
+                        <p class="text-small text-muted">2334, 2335 PDF generálás és beállítások.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Adminisztráció -->
+        <div class="col-md-4 col-lg-2">
+            <a asp-controller="Companies" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card shadow-sm nav-card card-admin text-center">
+                    <div class="card-body">
+                        <i class="bi bi-gear-fill nav-icon text-warning"></i>
+                        <h5 class="card-title">Admin</h5>
+                        <p class="text-small text-muted">Cégek, tenyészetek és felhasználók.</p>
                     </div>
                 </div>
             </a>
         </div>
     </div>
 
-    <div class="text-center mt-5 text-muted">
-        <small>© 2026 Izabella Farm Management Software | Minden jog fenntartva</small>
+    <!-- Lábjegyzet -->
+    <div class="text-center mt-5 mb-4 text-muted small">
+        <hr class="w-25 mx-auto" />
+        <p>© 2026 Izabella Farm Management Software | All Rights Reserved</p>
     </div>
 </div>

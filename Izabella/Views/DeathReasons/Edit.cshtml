@@ -1,30 +1,34 @@
 ﻿@model Izabella.Models.DeathReason
 
-@{
-    ViewData["Title"] = "Edit";
-}
+<div class="container-fluid px-4 py-3">
+    <div class="row justify-content-center pt-4">
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="card-title mb-0"><i class="bi bi-pencil-square me-2"></i>Ok szerkesztése</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Edit">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger p-2 small"></div>
+                        <input type="hidden" asp-for="Id" />
 
-<h1>Szerkesztés</h1>
+                        <div class="mb-4">
+                            <label asp-for="Name" class="form-label fw-bold">Megnevezés</label>
+                            <input asp-for="Name" class="form-control form-control-lg border-primary-subtle" placeholder="Pl. Fertőző betegség" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
 
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a asp-action="Index" class="btn btn-link text-muted text-decoration-none">
+                                <i class="bi bi-arrow-left"></i> Mégse
+                            </a>
+                            <button type="submit" class="btn btn-success px-4 shadow-sm">
+                                <i class="bi bi-check-lg me-1"></i> Mentés
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Mentés" class="btn btn-primary" />|
-                <a asp-action="Index" class="btn btn-secondary">Vissza a Halálozási okok listájához</a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}

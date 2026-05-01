@@ -1,57 +1,31 @@
-﻿@model Herd
+﻿@model Izabella.Models.Herd
 
-@{
-    ViewData["Title"] = "Delete";
-}
+<div class="container-fluid px-4 py-3">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger shadow-sm">
+                <div class="card-header bg-danger text-white py-3 text-center">
+                    <h5 class="card-title mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Tenyészet törlése</h5>
+                </div>
+                <div class="card-body p-4 text-center">
+                    <p class="mb-1 text-muted small text-uppercase fw-bold">Törlendő objektum:</p>
+                    <h3 class="text-dark">@Model.Name</h3>
+                    <div class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 mt-2">
+                        Tenyészetkód: @Model.HerdCode
+                    </div>
+                    
+                    <p class="mt-4 text-secondary">
+                        Figyelem: A tenyészet törlése befolyásolhatja a hozzárendelt állatokat!
+                        Biztosan folytatja?
+                    </p>
 
-<h1>Tenyészet törlése</h1>
-
-<h3>Biztos, hogy törölni akarja ezt a tenyészetet?</h3>
-
-<div>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.HerdCode)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.HerdCode)
-        </dd>
-
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.Company)
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Company.Name)
-        </dd>
-
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.DefaultPrefix)
-        </dt>
-        <dd class="col-sm-10">
-            @(string.IsNullOrEmpty(Model.DefaultPrefix) ? "Nincs beállítva" : Model.DefaultPrefix)
-        </dd>
-
-        <dt class="col-sm-2">
-            @Html.DisplayNameFor(model => model.EnarPrefix)
-        </dt>
-        <dd class="col-sm-10">
-            @(string.IsNullOrEmpty(Model.EnarPrefix) ? "Nincs beállítva" : Model.EnarPrefix)
-        </dd>
-    </dl>
-</div>
-
-<div>
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="Id" />
-        <input type="submit" value="Törlés" class="btn btn-danger" /> |
-        <a asp-action="Index" class="btn btn-secondary">Vissza a Tenyészetek listához</a>
-    </form>
+                    <form asp-action="Delete" class="mt-4 d-flex justify-content-center gap-2">
+                        <input type="hidden" asp-for="Id" />
+                        <a asp-action="Index" class="btn btn-secondary px-4">Mégse</a>
+                        <button type="submit" class="btn btn-danger px-4">Törlés végrehajtása</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

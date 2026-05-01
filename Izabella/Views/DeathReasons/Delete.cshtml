@@ -1,26 +1,31 @@
 ﻿@model Izabella.Models.DeathReason
 
-@{
-    ViewData["Title"] = "Delete";
-}
+<div class="container-fluid px-4 py-3">
+    <div class="row justify-content-center pt-5">
+        <div class="col-md-5">
+            <div class="card border-danger shadow-sm">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-exclamation-octagon text-danger fs-1"></i>
+                    </div>
+                    <h5 class="card-title">Halálozási ok törlése</h5>
+                    <p class="text-muted">Biztosan törölni akarja az alábbi elemet?</p>
+                    
+                    <div class="bg-light p-3 rounded mb-4 border">
+                        <span class="h4 text-dark">@Model.Name</span>
+                    </div>
 
-<h1>Törlés</h1>
-
-<h3>Biztos, hogy törölni akarod ezt a halálozási okot?</h3>
-<div>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="Id" />
-        <input type="submit" value="Törlés" class="btn btn-danger" /> |
-        <a asp-action="Index" class="btn btn-secondary">Vissza a Halálozási okok listájához</a>
-    </form>
+                    <form asp-action="Delete">
+                        <input type="hidden" asp-for="Id" />
+                        <div class="d-flex justify-content-center gap-2">
+                            <a asp-action="Index" class="btn btn-outline-secondary px-4">Mégse</a>
+                            <button type="submit" class="btn btn-danger px-4 shadow">
+                                <i class="bi bi-trash me-1"></i> Végleges törlés
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

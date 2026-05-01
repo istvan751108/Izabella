@@ -22,5 +22,14 @@ namespace Izabella.Models
         public string Medication3Agent { get; set; } = "ROTA, KORONA, COLI";
 
         public string FilingPlace { get; set; } = "Nyírbátor";
+        // ÚJ MEZŐK A 2335-ÖS (VEMHES) SABLONHOZ
+        public string? HeiferMed1Name { get; set; } = "DALMARELIN";
+        public string? HeiferMed1Agent { get; set; } = "LECIRELIN";
+
+        public string? HeiferMed2Name { get; set; } = "VETEGLAN";
+        public string? HeiferMed2Agent { get; set; } = "KLOPROSZTENOL";
+
+        public string? HeiferMed3Name { get; set; } = "BIOBOS RCC";
+        public string? HeiferMed3Agent { get; set; } = "ROTA, KORONA, COLI";
     }
 }
