@@ -253,145 +253,66 @@
 
 @section Scripts {
     <script>
- $(function() {
-    $("#exportExcel").click(function () {
-    let year = "@Model.Year";
-    let month = "@Model.Month";
-    let fileName = "Tragya_Riport_" + year + "_" + month + ".xlsx";
-
-    let masterTable = document.createElement("table");
-
-    // Segédfüggvény: Excel-specifikus szélesség attribútumokkal
-    const createCell = (row, text, width, isHeader = false) => {
-        let cell = row.insertCell();
-        cell.innerText = text;
+        $(function () {
+            $("#exportExcel").click(function () {
+                let year = "@Model.Year";
+                let month = "@Model.Month";
         
-        // Ez az attribútum a legfontosabb a tableToExcel könyvtárnak!
-        if (width) {
-            cell.setAttribute("data-t2e-width", width); 
-        }
-
-        // Stílusok az Excel számára
-        cell.style.border = "thin solid #000000";
-        cell.style.verticalAlign = "center";
-        
-        if (isHeader) {
-            cell.style.fontWeight = "bold";
-            cell.style.backgroundColor = "#D3D3D3";
-            cell.style.textAlign = "center";
-        } else {
-            // Sortörés engedélyezése a cellán belül
-            cell.style.whiteSpace = "normal"; 
-        }
-    };
-
-    const addSectionTitle = (text, colSpan) => {
-        let row = masterTable.insertRow();
-        let cell = row.insertCell();
-        cell.colSpan = colSpan;
-        cell.innerText = text;
-        cell.style.fontWeight = "bold";
-        cell.style.backgroundColor = "#4F81BD";
-        cell.style.color = "white";
-        cell.style.textAlign = "center";
-        cell.style.height = "30pt";
-    };
-
-    // --- 1. HÍGTRÁGYA SZEKCIÓ ---
-    addSectionTitle("HÍGTRÁGYA RÉSZLETEZŐ", 9);
-    let liquidRows = document.getElementById("liquidTable").rows;
-    for (let i = 0; i < liquidRows.length; i++) {
-        let newRow = masterTable.insertRow();
-        let cells = liquidRows[i].cells;
-        
-        for (let j = 0; j < cells.length - 1; j++) {
-            // Szélességek definiálása (karakteregységben vagy pixelben, könyvtártól függően)
-            let width = 80; 
-            if (j === 0) width = 100;  // Dátum
-            if (j === 8) width = 450;  // Bizonylatok (Extra széles!)
-
-            // Sortörések kezelése: a bizonylatokat új sorba tesszük az Excel cellán belül is
-            let content = cells[j].innerText.trim();
-            
-            createCell(newRow, content, width, i === 0);
-        }
-    }
-
-    masterTable.insertRow(); // Üres sor
-
-    // --- 2. ISTÁLLÓTRÁGYA SZÁLLÍTMÁNYOK ---
-    addSectionTitle("ISTÁLLÓTRÁGYA - SZÁLLÍTMÁNYOK", 6);
-    let loadRows = document.getElementById("loadsTable").rows;
-    for (let i = 0; i < loadRows.length; i++) {
-        let newRow = masterTable.insertRow();
-        let cells = loadRows[i].cells;
-        for (let j = 0; j < cells.length; j++) {
-            let width = 100;
-            if (j === 2) width = 250; // Célállomás
-            createCell(newRow, cells[j].innerText.trim(), width, i === 0);
-        }
-    }
-
-    masterTable.insertRow();
-
-    // --- 3. ISTÁLLÓTRÁGYA NAPI ÖSSZESÍTŐ ---
-    addSectionTitle("ISTÁLLÓTRÁGYA - NAPI ÖSSZESÍTÉS", 10);
-    let dailyRows = document.getElementById("dailySolidTable").rows;
-    for (let i = 0; i < dailyRows.length; i++) {
-        let newRow = masterTable.insertRow();
-        let cells = dailyRows[i].cells;
-        for (let j = 0; j < cells.length - 1; j++) {
-            let width = 80;
-            if (j === 0) width = 100;
-            if (j >= 8) width = 300; // Bizonylat oszlopok
-            createCell(newRow, cells[j].innerText.trim(), width, i === 0);
-        }
-    }
-
-    // Exportálás indítása
-    TableToExcel.convert(masterTable, {
-        name: fileName,
-        sheet: { name: "Havi Riport" }
-    });
-});
-});
-    function deleteItem(id, type) {
-        if (!confirm("Biztosan törölni szeretnéd ezt a tételt?")) return;
-
-        let url = type === 'Liquid' ? '/Manure/DeleteLiquid' : '/Manure/DeleteSolidDaily';
-
-        $.ajax({
-            url: url,
-            type: 'POST',
-            data: { id: id },
-            success: function(res) {
-    if (res.success) {
-        showToast("Tétel törölve.");
-        setTimeout(() => { location.reload(); }, 1500);
-    } else {
-        showToast("Hiba a törlés során!", true);
-    }
-}
+                // Egyszerű GET kéréssel hívjuk meg a letöltést
+                window.location.href = `/Manure/ExportToExcel?year=${year}&month=${month}`;
+            });
         });
-    }
-    function stornoItem(id, type) {
-    if (!confirm("Biztosan stornózni szeretnéd? Ez egy ellentétes előjelű tételt fog létrehozni.")) return;
 
-    let url = type === 'Liquid' ? '/Manure/StornoLiquid' : '/Manure/StornoSolidDaily';
-
-    $.ajax({
-        url: url,
-        type: 'POST',
-        data: { id: id },
-        success: function(res) {
-            if (res.success) {
-                showToast("Sikeres stornózás (negatív tétel létrehozva).");
-                setTimeout(() => { location.reload(); }, 1500);
-            } else {
-                showToast("Hiba: " + res.message, true);
+        function deleteItem(id, type) {
+            if (!confirm("Biztosan törölni szeretnéd ezt a tételt?")) {
+                return;
             }
+
+            let url = type === "Liquid"
+                ? "/Manure/DeleteLiquid"
+                : "/Manure/DeleteSolidDaily";
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: { id: id },
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Tétel törölve.");
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast("Hiba a törlés során!", true);
+                    }
+                }
+            });
         }
-    });
-}
+
+        function stornoItem(id, type) {
+            if (!confirm("Biztosan stornózni szeretnéd? Ez egy ellentétes előjelű tételt fog létrehozni.")) {
+                return;
+            }
+
+            let url = type === "Liquid"
+                ? "/Manure/StornoLiquid"
+                : "/Manure/StornoSolidDaily";
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: { id: id },
+                success: function (res) {
+                    if (res.success) {
+                        showToast("Sikeres stornózás (negatív tétel létrehozva).");
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast("Hiba: " + res.message, true);
+                    }
+                }
+            });
+        }
     </script>
 }

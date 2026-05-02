@@ -1,0 +1,122 @@
+﻿@model Izabella.Models.ViewModels.ExitReportVm
+
+@{
+    ViewData["Title"] = "Havi Kikerülések";
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center bg-dark text-white">
+            <h5 class="m-0 font-weight-bold">
+                <i class="fas fa-file-export me-2"></i>Havi Kikerülések Riport
+            </h5>
+            <div>
+                <a asp-action="ExportExitsToExcel" 
+                   asp-route-year="@Model.Year" 
+                   asp-route-month="@Model.Month" 
+                   asp-route-companyId="@Model.SelectedCompanyId"
+                   class="btn btn-success btn-sm">
+                    <i class="fas fa-file-excel me-1"></i> Excel Exportálása
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Szűrő Form -->
+            <form asp-action="ExitReport" method="get" class="row g-3 mb-4 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Év</label>
+                    <input type="number" name="year" value="@Model.Year" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Hónap</label>
+                    <select name="month" class="form-select">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(i == Model.Month)">@i.ToString("D2")</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Cég / Tulajdonos</label>
+                    <select name="companyId" class="form-select">
+                        <option value="">-- Összes cég --</option>
+                        @foreach (var comp in Model.Companies)
+                        {
+                            <option value="@comp.Id" selected="@(comp.Id == Model.SelectedCompanyId)">@comp.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i> Lekérés
+                    </button>
+                </div>
+            </form>
+
+            <hr />
+
+            @if (!Model.CompanyGroups.Any())
+            {
+                <div class="alert alert-info shadow-sm">
+                    <i class="fas fa-info-circle me-2"></i>A megadott időszakban nem történt kikerülés.
+                </div>
+            }
+            else
+            {
+                @foreach (var group in Model.CompanyGroups)
+                {
+                    <div class="mb-5 border rounded overflow-hidden shadow-sm">
+                        <div class="bg-primary text-white p-2 text-center fw-bold">
+                            @Model.Year.@Model.Month.ToString("D2") havi Kikerülés - @group.CompanyName
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover mb-0 bg-white">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fülszám</th>
+                                        <th>ENAR-szám</th>
+                                        <th>Kikerülés dátuma</th>
+                                        <th>Mozgás típusa</th>
+                                        <th>Bizonylat száma</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var cattle in group.ExitedCattle)
+                                    {
+                                        <tr>
+                                            <td class="fw-bold">@cattle.EarTag</td>
+                                            <td>@cattle.EnarNumber</td>
+                                            <td>@cattle.ExitDate?.ToString("yyyy.MM.dd")</td>
+                                            <td>
+                                                <span class="badge @(cattle.ExitType == ExitType.Elhullás ? "bg-danger" : "bg-info text-dark")">
+                                                    @(cattle.ExitType == ExitType.Vágás ? "Értékesítés" : cattle.ExitType.ToString())
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @* Itt feltételezzük, hogy az adatlekéréskor már feltöltöttük valahogy 
+                                                   (vagy a Cattle-be tettél egy ideiglenes mezőt, vagy a DTO-ban adod át) *@
+                                                <small class="text-muted">#</small> @cattle.PassportNumber
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-secondary">
+                                        <td colspan="5" class="text-center fw-bold py-2">
+                                            Összes kikerülés: @group.ExitedCattle.Count db
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .table td, .table th { vertical-align: middle; }
+    .card-header { border-bottom: 2px solid #000; }
+</style>

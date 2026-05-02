@@ -1,0 +1,37 @@
+## [ Visual Studio ]
+.vs/
+[Bb]in/
+[Obj]/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## [ .NET / ASP.NET Core ]
+# Elhagyható fordítási állományok
+debug/
+release/
+x64/
+x86/
+bld/
+[Log]s/
+[Pp]ublish/
+
+# Lokális beállítások (SOHA ne töltsd fel a jelszavakat!)
+appsettings.Development.json
+appsettings.Local.json
+
+# Felhasználói titkok (User Secrets)
+secrets.json
+
+## [ Frontend / Web ]
+# Külső könyvtárak (LibMan letölti őket)
+wwwroot/lib/
+
+# Node modulok (ha használnál npm-et később)
+node_modules/
+
+## [ Git és Egyéb ]
+.DS_Store
+thumbs.db
+desktop.ini

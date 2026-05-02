@@ -1,47 +1,42 @@
 ﻿@model Izabella.Models.Customer
-
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Adatlap";
 }
 
-<h1>Részletek</h1>
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-person-vcard me-2"></i>Vásárló Adatlapja</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <label class="small text-muted text-uppercase fw-bold d-block">Név</label>
+                        <span class="h4 fw-bold">@Model.Name</span>
+                    </div>
 
-<div>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Address)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Address)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TaxNumber)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TaxNumber)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Phone)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Phone)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Szerkesztés</a> |
-    <a asp-action="Index">Vissza a Vásárlók listájához</a>
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <i class="bi bi-geo-alt text-primary me-2"></i><strong>Cím:</strong> @Model.Address
+                        </div>
+                        <div class="col-md-6">
+                            <i class="bi bi-hash text-primary me-2"></i><strong>Adószám:</strong> @Model.TaxNumber
+                        </div>
+                        <div class="col-md-6">
+                            <i class="bi bi-telephone text-primary me-2"></i><strong>Telefon:</strong> @Model.Phone
+                        </div>
+                        <div class="col-12 border-top pt-3">
+                            <i class="bi bi-envelope text-primary me-2"></i><strong>Email:</strong> @Model.Email
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-3 d-flex justify-content-between border-top">
+                        <a asp-action="Index" class="btn btn-light border">Vissza</a>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">Szerkesztés</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

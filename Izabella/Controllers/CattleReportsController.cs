@@ -1,9 +1,10 @@
-﻿using Izabella.Models;
+﻿using ClosedXML.Excel;
+using iText.Forms;
+using iText.Kernel.Pdf;
+using Izabella.Models;
 using Izabella.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using iText.Forms;
-using iText.Kernel.Pdf;
 using System.IO.Compression;
 
 namespace Izabella.Controllers
@@ -472,6 +473,175 @@ namespace Izabella.Controllers
         {
             ViewBag.Companies = await _context.Companies.ToListAsync();
             return View();
+        }
+        [HttpGet]
+        public async Task<IActionResult> ExitReport(int? year, int? month, int? companyId)
+        {
+            int rYear = year ?? DateTime.Now.Year;
+            int rMonth = month ?? DateTime.Now.Month;
+
+            // Alap lekérdezés: csak a Tehenek, akik az adott hónapban kerültek ki
+            var query = _context.Cattles
+                .Include(c => c.Company)
+                .Where(c => !c.IsActive &&
+                            c.AgeGroup == "Tehén" && // Csak a tehenek!
+                            c.ExitDate.HasValue &&
+                            c.ExitDate.Value.Year == rYear &&
+                            c.ExitDate.Value.Month == rMonth);
+
+            // Ha van kiválasztott cég, szűrünk rá
+            if (companyId.HasValue)
+            {
+                query = query.Where(c => c.CompanyId == companyId);
+            }
+
+            var reportData = await query
+                .Join(_context.SaleTransactions,
+                      c => c.Id,
+                      s => s.CattleId,
+                      (c, s) => new { Cattle = c, Receipt = s.ReceiptNumber })
+                .ToListAsync();
+
+            var vm = new ExitReportVm
+            {
+                Year = rYear,
+                Month = rMonth,
+                SelectedCompanyId = companyId,
+                Companies = await _context.Companies.OrderBy(c => c.Name).ToListAsync(),
+                CompanyGroups = reportData
+                    .GroupBy(x => x.Cattle.Company?.Name ?? "Ismeretlen")
+                    .Select(g => new CompanyExitGroup
+                    {
+                        CompanyName = g.Key,
+                        ExitedCattle = g.Select(x => {
+                            x.Cattle.PassportNumber = x.Receipt;
+                            return x.Cattle;
+                        }).OrderBy(c => c.ExitDate).ToList()
+                    }).ToList()
+            };
+
+            return View(vm);
+        }
+        [HttpGet]
+        public async Task<IActionResult> ExportExitsToExcel(int year, int month, int? companyId)
+        {
+            // 1. Alap lekérdezés összeállítása (Csak tehenek és az adott időszak)
+            var query = _context.Cattles
+                .Include(c => c.Company)
+                .Where(c => !c.IsActive &&
+                            c.AgeGroup == "Tehén" &&
+                            c.ExitDate.HasValue &&
+                            c.ExitDate.Value.Year == year &&
+                            c.ExitDate.Value.Month == month);
+
+            // 2. Szűrés konkrét cégre, ha érkezett ID
+            if (companyId.HasValue)
+            {
+                query = query.Where(c => c.CompanyId == companyId);
+            }
+
+            // 3. Adatok lekérése a bizonylatszámmal (SaleTransaction) együtt
+            var reportData = await query
+                .Join(_context.SaleTransactions,
+                      c => c.Id,
+                      s => s.CattleId,
+                      (c, s) => new { Cattle = c, Receipt = s.ReceiptNumber })
+                .ToListAsync();
+
+            // 4. Fájlnév meghatározása
+            string companyNamePart = "Osszes_Ceg";
+            if (companyId.HasValue && reportData.Any())
+            {
+                // Kiemeljük az első találat cégnevét a fájlnévhez
+                companyNamePart = reportData.First().Cattle.Company?.Name ?? "Ismeretlen_Ceg";
+                // Ékezetek és szóközök takarítása a biztonságos fájlnévért
+                companyNamePart = string.Concat(companyNamePart.Split(Path.GetInvalidFileNameChars())).Replace(" ", "_");
+            }
+            string fileName = $"Kikerules_{companyNamePart}_{year}_{month:D2}.xlsx";
+
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Kikerülések");
+                int currentRow = 1;
+
+                // Csoportosítás (még ha egy cég van is, a struktúra miatt így a legszebb)
+                var groups = reportData.GroupBy(x => x.Cattle.Company?.Name ?? "Ismeretlen");
+
+                foreach (var group in groups)
+                {
+                    // --- SZEKCIÓ CÍM ---
+                    var titleRange = worksheet.Range(currentRow, 1, currentRow, 5);
+                    titleRange.Merge().Value = $"{year}.{month:D2}. havi Kikerülés - {group.Key} (Tehenek)";
+                    titleRange.Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    titleRange.Style.Fill.SetBackgroundColor(XLColor.FromHtml("#4F81BD"));
+                    titleRange.Style.Font.SetFontColor(XLColor.White);
+                    titleRange.Style.Border.SetOutsideBorder(XLBorderStyleValues.Medium);
+
+                    currentRow++;
+
+                    // --- FEJLÉC ---
+                    string[] headers = { "Fülszám", "Enar-szám", "Kikerülés dátuma", "Mozgás típusa", "Bizonylat száma" };
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        var cell = worksheet.Cell(currentRow, i + 1);
+                        cell.Value = headers[i];
+                        cell.Style.Font.Bold = true;
+                        cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+                        cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    }
+
+                    // --- ADATOK ---
+                    foreach (var item in group)
+                    {
+                        currentRow++;
+                        worksheet.Cell(currentRow, 1).Value = item.Cattle.EarTag;
+                        worksheet.Cell(currentRow, 2).Value = item.Cattle.EnarNumber;
+                        worksheet.Cell(currentRow, 3).Value = item.Cattle.ExitDate?.ToString("yyyy.MM.dd");
+                        worksheet.Cell(currentRow, 4).Value = TranslateExitType(item.Cattle.ExitType);
+                        worksheet.Cell(currentRow, 5).Value = item.Receipt;
+
+                        worksheet.Range(currentRow, 1, currentRow, 5).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    }
+
+                    // --- ÖSSZESÍTŐ ---
+                    currentRow++;
+                    var footerRange = worksheet.Range(currentRow, 1, currentRow, 5);
+                    footerRange.Merge().Value = $"Összes kikerült tehén ({group.Key}): {group.Count()} db";
+                    footerRange.Style.Font.Bold = true;
+                    footerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    footerRange.Style.Fill.SetBackgroundColor(XLColor.FromHtml("#F2F2F2"));
+                    footerRange.Style.Border.SetOutsideBorder(XLBorderStyleValues.Medium);
+
+                    currentRow += 2; // Térköz a következő esetleges cégcsoport előtt
+                }
+
+                worksheet.Columns().AdjustToContents();
+                // Az ENAR és a Bizonylat oszlop legyen kicsit szélesebb fixen
+                worksheet.Column(2).Width = 18;
+                worksheet.Column(5).Width = 22;
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+                }
+            }
+        }
+
+        // JAVÍTOTT SEGÉDFÜGGVÉNY
+        private string TranslateExitType(ExitType? type)
+        {
+            if (type == null) return "Nincs megadva";
+
+            return type switch
+            {
+                ExitType.Vágás => "Értékesítés",           // Ez hiányzott vagy más volt az Excelben
+                ExitType.Elhullás => "Elhullás",           // Így fog megjelenni a táblázatban
+                ExitType.Tulajdonosváltás => "Tulajdonosváltás",
+                ExitType.Export => "Export",
+                ExitType.Továbbtartás => "Továbbtartás",
+                _ => type.ToString()                       // Alapértelmezett, ha új típust adnál hozzá
+            };
         }
     }
 }

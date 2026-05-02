@@ -3,85 +3,151 @@
     var yesterday = DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd");
 }
 
-<h2>Trágya rögzítés</h2>
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0 text-primary fw-bold"><i class="bi bi-plus-circle-fill me-2"></i>Trágya rögzítés</h4>
+            <small class="text-muted">Napi ürítések és szállítmányok adminisztrációja</small>
+        </div>
+        <!-- Típusválasztó gombok -->
+        <div class="btn-group shadow-sm" role="group">
+            <input type="radio" class="btn-check" name="typeSelect" id="btnLiquid" value="liquid" checked>
+            <label class="btn btn-outline-primary px-4" for="btnLiquid"><i class="bi bi-droplet me-1"></i> Híg</label>
 
-<select id="type">
-    <option value="liquid">Hígtrágya</option>
-    <option value="solid">Istállótrágya</option>
-</select>
-
-<hr />
-
-<!-- HÍGTRÁGYA -->
-<div id="liquidBox">
-    <h3>Hígtrágya rögzítése</h3>
-
-    <div class="mb-3">
-        <label class="form-label">Dátum:</label><br />
-        <input type="date" id="liquidDate" class="form-control" style="width:200px;" value="@DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd")" />
+            <input type="radio" class="btn-check" name="typeSelect" id="btnSolid" value="solid">
+            <label class="btn btn-outline-primary px-4" for="btnSolid"><span class="me-1">🚜</span> Szilárd</label>
+        </div>
     </div>
 
-    <div class="mb-3">
-        <label class="form-label">Összmennyiség (m³):</label><br />
-        <input type="number" id="liquidAmount" class="form-control" style="width:200px; font-size:20px;" placeholder="0" />
+    <!-- HÍGTRÁGYA PANEL -->
+    <div id="liquidBox" class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 border-top border-4 border-info">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-4 fw-bold text-info"><i class="bi bi-droplet-half me-2"></i>Hígtrágya rögzítése</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Dátum</label>
+                        <input type="date" id="liquidDate" class="form-control form-control-lg border-2" value="@yesterday" />
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Összmennyiség (m³)</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-2"><i class="bi bi-speedometer2"></i></span>
+                            <input type="number" id="liquidAmount" class="form-control border-2 fw-bold text-primary" placeholder="0" />
+                        </div>
+                    </div>
+
+                    <div class="bg-light p-3 rounded-3 mb-4">
+                        <h6 class="fw-bold small text-muted text-uppercase mb-3"><i class="bi bi-scissors me-1"></i>Kiadási bontás (opcionális)</h6>
+                        <div id="splitList" class="d-flex flex-wrap gap-2 mb-3"></div>
+                        
+                        <div class="input-group">
+                            <input type="number" id="splitAmount" class="form-control" placeholder="Kiadott m³" />
+                            <button id="addSplit" class="btn btn-info text-white" type="button"><i class="bi bi-plus-lg"></i></button>
+                        </div>
+                        <div id="splitCounter" class="small mt-2 fw-bold">
+                            Felosztva: <span id="currentSplitSum">0</span> / <span id="maxLiquidAmount">0</span> m³
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button id="saveLiquid" class="btn btn-success btn-lg shadow-sm" type="button">
+                            <i class="bi bi-cloud-arrow-up me-2"></i>Hígtrágya Mentése
+                        </button>
+                        <button onclick="location.reload()" class="btn btn-link btn-sm text-decoration-none text-muted">Mégsem</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <hr />
+    <!-- ISTÁLLÓTRÁGYA PANEL -->
+    <div id="solidBox" class="row" style="display:none;">
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 border-top border-4 border-success mb-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-4 fw-bold text-success"><span class="me-2">🚜</span>Új szállítmány</h5>
+                    
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Dátum</label>
+                            <input type="date" id="solidDate" class="form-control border-2" value="@yesterday" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Rendszám</label>
+                            <input id="plate" class="form-control border-2 text-center fw-bold fs-5" style="text-transform: uppercase;" maxlength="10" placeholder="ABC-123" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Célállomás</label>
+                            <select id="dest" class="form-select border-2">
+                                <option>Csonkás</option>
+                                <option>Új istálló</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Bruttó (kg)</label>
+                            <input id="gross" type="number" class="form-control border-2" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Tára (kg)</label>
+                            <input id="tare" type="number" value="17500" class="form-control border-2" />
+                        </div>
+                    </div>
 
-    <h4>Kiadási bontás (opcionális m³)</h4>
-    <div id="splitList" class="mb-2"></div>
-    
-    <div class="input-group mb-3" style="width:300px;">
-        <input type="number" id="splitAmount" class="form-control" placeholder="m³" />
-        <button id="addSplit" class="btn btn-outline-secondary" type="button">+ hozzáadás</button>
-    </div>
-    <div id="splitCounter" class="fw-bold mt-2">
-        Eddig felosztva: <span id="currentSplitSum">0</span> / <span id="maxLiquidAmount">0</span> m³
-    </div>
-    <hr />
+                    <div id="netDisplay" class="alert alert-info text-center mt-4 mb-4 py-2 border-0">
+                        <span class="text-uppercase small d-block">Számított Nettó</span>
+                        <strong class="h4 mb-0">0 kg</strong>
+                    </div>
 
-    <div class="mt-4">
-        <button id="saveLiquid" class="btn btn-success btn-lg" type="button">Hígtrágya Mentése</button>
-        <button onclick="location.reload()" class="btn btn-secondary btn-lg">Mégsem</button>
+                    <div class="d-grid gap-2">
+                        <button id="addLoad" class="btn btn-success btn-lg shadow-sm" type="button">
+                            <i class="bi bi-plus-circle me-2"></i>Szállítmány hozzáadása
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 border-0">
+                    <h6 class="mb-0 fw-bold text-muted text-uppercase"><i class="bi bi-list-check me-2"></i>Napi ideiglenes lista</h6>
+                </div>
+                <div class="card-body">
+                    <div id="tempList" class="mb-4">
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            Még nincs hozzáadva szállítmány.
+                        </div>
+                    </div>
+                    
+                    <div id="finalActionBox" style="display:none;">
+                        <div class="d-grid shadow-sm">
+                            <button id="saveAll" class="btn btn-primary btn-lg" type="button">
+                                <i class="bi bi-check-all me-2"></i>Napi összesítés véglegesítése
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- ISTÁLLÓ -->
-<div id="solidBox" style="display:none;">
-
-    <h3>Istállótrágya</h3>
-
-    <label>Dátum:</label>
-    <input type="date" id="solidDate" value="@DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd")" />
-
-    <br /><br />
-
-    <input placeholder="Rendszám" id="plate" style="text-transform: uppercase;" maxlength="10" />
-    <input placeholder="Bruttó" id="gross" type="number" class="form-control mb-2" />
-    <input placeholder="Tára" id="tare" type="number" value="17500" class="form-control mb-2" />
-    <div id="netDisplay" class="fw-bold text-primary mb-2">Nettó: 0 kg</div>
-
-    <select id="dest">
-        <option>Csonkás</option>
-        <option>Új istálló</option>
-    </select>
-
-    <br /><br />
-
-    <div class="mt-4">
-        <button id="addLoad" class="btn btn-success btn-lg" type="button">Szállítmány tárolása</button>
-    
-        <button id="saveAll" class="btn btn-primary btn-lg" type="button">Napi összesítés generálása</button>
-    
-        <button onclick="location.reload()" class="btn btn-secondary btn-lg">Mégsem / Frissítés</button>
-    </div>
-    <br /><br />
-
-    <div id="tempList"></div>
-
-</div>
-
-<div id="msg"></div>
+<style>
+    /* Egyedi stílusok a jobb használhatóságért */
+    .form-control:focus, .form-select:focus {
+        border-color: #3b71ca;
+        box-shadow: 0 0 0 0.25rem rgba(59, 113, 202, 0.1);
+    }
+    .badge { font-size: 0.9rem; padding: 0.5em 0.8em; }
+    #plate { letter-spacing: 2px; }
+    .card { border-radius: 12px; }
+    .input-group-text { border: 2px solid #dee2e6; border-right: none; }
+    #netDisplay { border-radius: 10px; background: linear-gradient(135deg, #e3f2fd, #bbdefb); color: #0d47a1; }
+</style>
 
 @section Scripts {
     <script>
@@ -89,21 +155,34 @@
             let splits = [];
             let loads = [];
 
-            function toggle() {
-                $("#msg").html("");
-                if ($("#type").val() === "liquid") {
-                    $("#liquidBox").show();
+            // 1. TÍPUSVÁLTÓ (Híg / Szilárd)
+            $('input[name="typeSelect"]').change(function() {
+                if ($(this).val() === "liquid") {
+                    $("#liquidBox").fadeIn();
                     $("#solidBox").hide();
                 } else {
                     $("#liquidBox").hide();
-                    $("#solidBox").show();
+                    $("#solidBox").fadeIn();
+                }
+            });
+
+            // 2. HÍGTRÁGYA LOGIKA
+            function updateSplitCounter() {
+                let total = parseFloat($("#liquidAmount").val()) || 0;
+                let currentSum = splits.reduce((a, b) => a + b.amount, 0);
+
+                $("#maxLiquidAmount").text(total);
+                $("#currentSplitSum").text(currentSum);
+
+                if (currentSum > total) {
+                    $("#splitCounter").addClass("text-danger").removeClass("text-success");
+                } else {
+                    $("#splitCounter").addClass("text-success").removeClass("text-danger");
                 }
             }
 
-            $("#type").change(toggle);
-            toggle();
+            $("#liquidAmount, #splitAmount").on("input", updateSplitCounter);
 
-            // HÍGTRÁGYA BONTÁS HOZZÁADÁSA
             $("#addSplit").click(function(e) {
                 e.preventDefault();
                 let val = parseFloat($("#splitAmount").val());
@@ -112,14 +191,12 @@
                     return;
                 }
                 splits.push({ amount: val });
-                $("#splitList").append("<div class='badge bg-info text-dark me-1'>" + val + " m3</div>");
+                $("#splitList").append(`<span class="badge bg-info text-dark">${val} m³</span>`);
                 $("#splitAmount").val("");
                 updateSplitCounter();
             });
 
-            // HÍGTRÁGYA MENTÉSE
-            $("#saveLiquid").click(function(e) {
-                e.preventDefault();
+            $("#saveLiquid").click(function() {
                 let total = parseFloat($("#liquidAmount").val());
                 if (isNaN(total)) {
                     alert("Add meg az összhígtrágya mennyiséget!");
@@ -139,8 +216,7 @@
                     data: JSON.stringify(data),
                     success: function (res) {
                         if (res.success) {
-                            showToast("Hígtrágya sikeresen rögzítve!");
-                            // Itt volt a hiba, a magyar szöveg ki lett törölve
+                            showToast("Hígtrágya rögzítve!");
                             setTimeout(() => { location.reload(); }, 2000);
                         } else {
                             showToast("Hiba: " + res.message, true);
@@ -149,7 +225,9 @@
                 });
             });
 
-            // Rendszám automatikus formázása
+            // 3. ISTÁLLÓTRÁGYA LOGIKA
+    
+            // Rendszám formázó (Régi: ABC-123, Új: AA BB-123)
             $("#plate").on("input", function() {
                 let val = $(this).val().toUpperCase().replace(/[^A-Z0-9]/g, "");
                 if (val.length <= 6) {
@@ -159,85 +237,82 @@
                         $(this).val(val);
                     }
                 } else {
-                    // ÚJ rendszám formátum javítva
                     let formatted = val.slice(0, 2) + " " + val.slice(2, 4) + "-" + val.slice(4, 7);
                     $(this).val(formatted);
                 }
             });
-                    function updateSplitCounter() {
-            let total = parseFloat($("#liquidAmount").val()) || 0;
-            let currentSum = splits.reduce((a, b) => a + b.amount, 0);
-    
-            $("#maxLiquidAmount").text(total);
-            $("#currentSplitSum").text(currentSum);
-    
-            if (currentSum > total) {
-                $("#splitCounter").addClass("text-danger").removeClass("text-success");
-            } else {
-                $("#splitCounter").addClass("text-success").removeClass("text-danger");
-            }
-        }
-                // Amikor változik az összmennyiség vagy hozzáadunk egy splitet, hívjuk meg:
-        $("#liquidAmount, #splitAmount").on("input", updateSplitCounter);
-                // ISTÁLLÓTRÁGYA SOR HOZZÁADÁSA
-                $("#addLoad").click(function() {
-            let gross = parseFloat($("#gross").val());
-            let tare = parseFloat($("#tare").val());
-            let plate = $("#plate").val();
-    
-            if (isNaN(gross) || isNaN(tare) || !plate) {
-                alert("Hibás súly adatok vagy hiányzó rendszám!");
-                return;
-            }
 
-            let item = {
-                id: Date.now(),
-                licensePlate: plate,
-                gross: gross,
-                tare: tare,
-                destination: $("#dest").val()
-            };
-
-            loads.push(item);
-            renderTempList();
-    
-            // CSAK A BRUTTÓT ÜRÍTJÜK!
-            // A rendszám és a tára marad az inputban a következő kanyarhoz.
-            $("#gross").val("");
-            $("#gross").focus(); // Kurzor rögtön a következő bruttóra ugrik
-    
-            showToast("Szállítmány hozzáadva.");
-        });
-                $("#gross, #tare").on("input", function() {
-            let g = parseFloat($("#gross").val()) || 0;
-            let t = parseFloat($("#tare").val()) || 0;
-            $("#netDisplay").text("Nettó: " + (g - t) + " kg");
-        });
-        // Lista kirajzolása törlés gombbal
-        function renderTempList() {
-            $("#tempList").empty();
-            loads.forEach(item => {
-                $("#tempList").append(`
-                    <div class="alert alert-secondary py-1 d-flex justify-content-between align-items-center">
-                        <span>${item.licensePlate} - ${item.gross - item.tare} kg (${item.destination})</span>
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeFromTempList(${item.id})">✖</button>
-                    </div>
-                `);
+            // Nettó súly élő számítása
+            $("#gross, #tare").on("input", function() {
+                let g = parseFloat($("#gross").val()) || 0;
+                let t = parseFloat($("#tare").val()) || 0;
+                $("#netDisplay strong").text((g - t) + " kg");
             });
-        }
 
-        // Törlés a memóriából mentés előtt
-        window.removeFromTempList = function(tempId) {
-            loads = loads.filter(x => x.id !== tempId);
-            renderTempList();
-        };
+            // Szállítmány hozzáadása a listához
+            $("#addLoad").click(function() {
+                let gross = parseFloat($("#gross").val());
+                let tare = parseFloat($("#tare").val());
+                let plate = $("#plate").val();
 
-            // ISTÁLLÓTRÁGYA ÖSSZESÍTETT MENTÉSE
-            $("#saveAll").click(function() {
-                if (loads.length === 0) {
-                    alert("Nincs hozzáadva szállítmány!");
+                if (isNaN(gross) || isNaN(tare) || !plate) {
+                    alert("Hibás súly adatok vagy hiányzó rendszám!");
                     return;
                 }
+
+                let item = {
+                    id: Date.now(),
+                    licensePlate: plate,
+                    gross: gross,
+                    tare: tare,
+                    destination: $("#dest").val()
+                };
+
+                loads.push(item);
+                renderTempList();
+
+                $("#gross").val("");
+                $("#gross").focus();
+                showToast("Szállítmány hozzáadva.");
+            });
+
+            function renderTempList() {
+                const list = $("#tempList");
+                list.empty();
+        
+                if (loads.length === 0) {
+                    list.append('<div class="text-center py-5 text-muted"><i class="bi bi-inbox fs-1 d-block mb-2"></i>Nincs hozzáadva szállítmány.</div>');
+                    $("#finalActionBox").hide();
+                    return;
+                }
+
+                $("#finalActionBox").show();
+                loads.forEach(item => {
+                    list.append(`
+                        <div class="card mb-2 border-0 bg-light shadow-sm">
+                            <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge bg-secondary me-2">${item.licensePlate}</span>
+                                    <span class="fw-bold">${item.gross - item.tare} kg</span>
+                                    <small class="text-muted ms-2">(${item.destination})</small>
+                                </div>
+                                <button class="btn btn-sm text-danger border-0" onclick="removeFromTempList(${item.id})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `);
+                });
+            }
+
+            window.removeFromTempList = function(tempId) {
+                loads = loads.filter(x => x.id !== tempId);
+                renderTempList();
+            };
+
+            // Napi összesítés mentése (Bulk)
+            $("#saveAll").click(function() {
+                if (loads.length === 0) return;
 
                 $.ajax({
                     url: "/Manure/SubmitSolidMulti?date=" + $("#solidDate").val(),
@@ -246,7 +321,7 @@
                     data: JSON.stringify(loads),
                     success: function (res) {
                         if (res.success) {
-                            showToast("Istállótrágya napi adatok mentve!");
+                            showToast("Napi adatok mentve!");
                             setTimeout(() => { location.reload(); }, 2000);
                         } else {
                             showToast("Hiba: " + res.message, true);
