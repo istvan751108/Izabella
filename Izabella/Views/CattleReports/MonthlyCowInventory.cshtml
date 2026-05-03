@@ -1,0 +1,47 @@
+﻿@model Izabella.Models.ViewModels.MonthlyInventoryVm
+
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Aktuális Tehén Létszám</h5>
+            <a asp-action="ExportInventoryToExcel" asp-route-companyId="@Model.SelectedCompanyId" class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i> Excel Export
+            </a>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <select name="companyId" class="form-select" asp-items="@(new SelectList(Model.Companies, "Id", "Name", Model.SelectedCompanyId))">
+                        <option value="">-- Összes cég --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Szűrés</button>
+                </div>
+            </form>
+
+            @foreach (var group in Model.CompanyGroups)
+            {
+                <div class="card mb-4 border-primary">
+                    <div class="card-header bg-primary text-white text-center fw-bold">
+                        @Model.Year.@Model.Month.ToString("D2") havi tehén - @group.CompanyName
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="d-flex flex-wrap border-bottom">
+                            @foreach (var tag in group.EarTags)
+                            {
+                                <div class="p-2 border-end border-bottom text-center" style="width: 12.5%; min-width: 100px;">
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">Fülszám</small>
+                                    <strong>@tag</strong>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer text-center fw-bold bg-light">
+                        Összesen: @group.EarTags.Count db
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

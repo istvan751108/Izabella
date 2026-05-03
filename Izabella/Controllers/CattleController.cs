@@ -1,14 +1,15 @@
-﻿using Izabella.Models;
+﻿using ClosedXML.Excel;
+using Izabella.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
-using System.Xml;
-using System.Xml.Linq;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using QuestPDF.Previewer; // Opcionális
+using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace Izabella.Controllers
 {
@@ -209,6 +210,22 @@ namespace Izabella.Controllers
                 {
                     try
                     {
+                        // --- ÚJ RÉSZ: APA ÉS ANYA-KOR ADATAINAK ELŐKÉSZÍTÉSE ---
+                        string lastBullKlsz = null;
+                        // Megkeressük az utolsó sikeres termékenyítést az apa azonosításához
+                        var lastInsemination = await _context.InseminationLogs
+                            .Where(l => l.CattleEarTag == dam.EarTag)
+                            .OrderByDescending(l => l.EventDate)
+                            .FirstOrDefaultAsync();
+
+                        if (lastInsemination != null)
+                        {
+                            lastBullKlsz = lastInsemination.BullSemen?.Klsz;
+                        }
+                        // Elmentjük, mi volt az anya korcsoportja AZ ELLÉS PILLANATÁBAN
+                        // Ez kell a riportnak!
+                        string damAgeAtMomentOfCalving = dam.AgeGroup;
+
                         // 1. ELSŐ BORJÚ
                         if (!alive1)
                         {
@@ -216,8 +233,9 @@ namespace Izabella.Controllers
                             calf.EnarNumber = "HALVA-SZÜLETETT";
                         }
 
-                        // Biztosítsuk, hogy a BirthWeight nem null, mielőtt az aktuális súlyba kerül
                         calf.CurrentWeight = calf.BirthWeight;
+                        calf.FatherKlsz = lastBullKlsz; // <--- APA RÖGZÍTÉSE
+                        calf.DamAgeAtCalving = damAgeAtMomentOfCalving;
                         ProcessNewborn(calf, dam, alive1);
                         // Explicit módon mondjuk meg az EF-nek, hogy ezek változtak
                         _context.Cattles.Add(calf);
@@ -247,7 +265,9 @@ namespace Izabella.Controllers
                                 BirthWeight = BirthWeight2 ?? 35.0,
                                 BreedCode = calf.BreedCode,
                                 IsTwin = true,
-                                IsAlive = alive2
+                                IsAlive = alive2,
+                                FatherKlsz = lastBullKlsz, // <--- IKER APA RÖGZÍTÉSE
+                                DamAgeAtCalving = damAgeAtMomentOfCalving // <--- IKER ANYA KORA
                             };
 
                             secondCalf.CurrentWeight = secondCalf.BirthWeight;
@@ -273,8 +293,12 @@ namespace Izabella.Controllers
                         // 3. ANYA FRISSÍTÉSE (Csak ha tényleg volt anya a DB-ben)
                         if (dam != null)
                         {
-                            dam.DamAgeAtCalving = "Tehén";
-                            if (dam.AgeGroup != "Tehén") dam.AgeGroup = "Tehén";
+                            if (dam.AgeGroup == "Vemhes üsző")
+                            {
+                                dam.AgeGroup = "Tehén";
+                            }
+                            dam.PregnancyStatus = PregnancyStatus.Üres; // Ellés után üres
+                            dam.LastInseminationDate = null;
                             _context.Update(dam);
 
                             // Itt a javított sor:

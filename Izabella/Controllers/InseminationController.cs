@@ -38,9 +38,23 @@ namespace Izabella.Controllers
 
         public async Task<IActionResult> Create(string earTag)
         {
-            var cattle = await _context.Cattles.FirstOrDefaultAsync(c => c.EarTag == earTag);
-            if (cattle == null) return RedirectToAction(nameof(Index));
+            if (string.IsNullOrWhiteSpace(earTag))
+            {
+                TempData["Error"] = "Hiányzó fülszám.";
+                return RedirectToAction(nameof(Index));
+            }
 
+            earTag = earTag.Trim();
+
+            var cattle = await _context.Cattles
+                .FirstOrDefaultAsync(c => c.EarTag.Trim() == earTag);
+
+            if (cattle == null)
+            {
+                TempData["Error"] = $"Az állat nem található. Fülszám: '{earTag}'";
+                return RedirectToAction(nameof(Index));
+            }
+            TempData["Success"] = $"Állat megtalálva: {cattle.EarTag}";
             // Kor ellenőrzés
             if (cattle.BirthDate > DateTime.Now.AddMonths(-10))
             {

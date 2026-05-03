@@ -65,7 +65,7 @@
         <div class="mt-4 p-3 border rounded bg-light">
             <h5>Kiválasztott állat: @ViewBag.Cattle.EarTag</h5>
             <div class="btn-group">
-                <a asp-action="Create" asp-route(earTag="@ViewBag.Cattle.EarTag" ) class="btn btn-success">
+                <a asp-action="Create" asp-route-earTag="@ViewBag.Cattle.EarTag" class="btn btn-success">
                     <i class="bi bi-plus-circle"></i> Másik állat termékenyítése
                 </a>
             

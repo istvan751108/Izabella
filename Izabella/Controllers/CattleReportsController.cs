@@ -643,5 +643,215 @@ namespace Izabella.Controllers
                 _ => type.ToString()                       // Alapértelmezett, ha új típust adnál hozzá
             };
         }
+        [HttpGet]
+        public async Task<IActionResult> ReclassificationReport(int? year, int? month, int? companyId)
+        {
+            int reportYear = year ?? DateTime.Now.Year;
+            int reportMonth = month ?? DateTime.Now.Month;
+
+            var query = _context.Cattles
+                .Include(c => c.Company)
+                .Where(c => c.DamAgeAtCalving == "Vemhes üsző" || c.DamAgeAtCalving == "Üsző") // A Calving metódusod ezt tölti ki
+                .Where(c => c.BirthDate.Year == reportYear && c.BirthDate.Month == reportMonth);
+
+            if (companyId.HasValue)
+            {
+                query = query.Where(c => c.CompanyId == companyId);
+            }
+
+            var calves = await query.ToListAsync();
+
+            // Csoportosítás anyák szerint (hogy ikerellésnél ne szerepeljen kétszer az anya az átminősítési listában)
+            var reportData = calves
+                .GroupBy(c => c.MotherEnar)
+                .Select(g => new
+                {
+                    MotherEnar = g.Key,
+                    CalvingDate = g.Min(c => c.BirthDate), // Az ellés napja
+                    Company = g.First().Company
+                })
+                .ToList();
+
+            // ViewModel összeállítása
+            var viewModel = new ReclassificationReportVm
+            {
+                Year = reportYear,
+                Month = reportMonth,
+                SelectedCompanyId = companyId,
+                Companies = await _context.Companies.OrderBy(c => c.Name).ToListAsync(),
+                CompanyGroups = reportData
+                    .GroupBy(x => x.Company?.Name ?? "Ismeretlen")
+                    .Select(cg => new CompanyReclassGroup
+                    {
+                        CompanyName = cg.Key,
+                        Items = cg.Select(i => new ReclassificationItem
+                        {
+                            // Itt egy kis kiegészítés: meg kell keresnünk az anya fülszámát az ENAR alapján
+                            EnarNumber = i.MotherEnar,
+                            EarTag = _context.Cattles.FirstOrDefault(m => m.EnarNumber == i.MotherEnar)?.EarTag ?? "N/A",
+                            CalvingDate = i.CalvingDate
+                        }).ToList()
+                    }).ToList()
+            };
+
+            return View(viewModel);
+        }
+        public async Task<IActionResult> ExportReclassificationToExcel(int year, int month, int? companyId)
+        {
+            // Ugyanaz a lekérdezés, mint fent...
+            var calves = await _context.Cattles
+                .Include(c => c.Company)
+                .Where(c => c.DamAgeAtCalving == "Vemhes üsző" || c.DamAgeAtCalving == "Üsző")
+                .Where(c => c.BirthDate.Year == year && c.BirthDate.Month == month)
+                .Where(c => companyId == null || c.CompanyId == companyId)
+                .ToListAsync();
+
+            var reportData = calves.GroupBy(c => c.MotherEnar)
+                .Select(g => new {
+                    MotherEnar = g.Key,
+                    CalvingDate = g.Min(c => c.BirthDate),
+                    Company = g.First().Company,
+                    EarTag = _context.Cattles.FirstOrDefault(m => m.EnarNumber == g.Key)?.EarTag ?? "N/A"
+                }).ToList();
+
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Átminősítés");
+
+                // Cím sor (a mintád alapján)
+                var companyName = companyId.HasValue ? reportData.FirstOrDefault()?.Company?.Name : "Összes cég";
+                worksheet.Cell(1, 1).Value = $"{year}.{month:D2}. havi átminősítés {companyName}";
+                worksheet.Range(1, 1, 1, 4).Merge().Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+                // Fejléc
+                worksheet.Cell(2, 1).Value = "Fülszám";
+                worksheet.Cell(2, 2).Value = "Enar szám";
+                worksheet.Cell(2, 3).Value = "Kikerülés dátuma";
+                worksheet.Cell(2, 4).Value = "Kikerülés kódja";
+                worksheet.Range(2, 1, 2, 4).Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightGray);
+
+                int row = 3;
+                foreach (var item in reportData.OrderBy(x => x.CalvingDate))
+                {
+                    worksheet.Cell(row, 1).Value = item.EarTag;
+                    worksheet.Cell(row, 2).Value = item.MotherEnar;
+                    worksheet.Cell(row, 3).Value = item.CalvingDate.ToString("yyyy.MM.dd");
+                    worksheet.Cell(row, 4).Value = "Átminősítés";
+                    row++;
+                }
+
+                worksheet.Columns().AdjustToContents();
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    var content = stream.ToArray();
+                    return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Atminosites_{year}_{month:D2}.xlsx");
+                }
+            }
+        }
+        [HttpGet]
+        public async Task<IActionResult> MonthlyCowInventory(int? companyId)
+        {
+            // Ez a riport mindig az AKTUÁLIS állapotot mutatja
+            var query = _context.Cattles
+                .Include(c => c.Company)
+                .Where(c => c.IsActive && c.AgeGroup == "Tehén");
+
+            if (companyId.HasValue)
+            {
+                query = query.Where(c => c.CompanyId == companyId);
+            }
+
+            var cows = await query.ToListAsync();
+
+            var vm = new MonthlyInventoryVm
+            {
+                Year = DateTime.Now.Year,
+                Month = DateTime.Now.Month,
+                SelectedCompanyId = companyId,
+                Companies = await _context.Companies.OrderBy(c => c.Name).ToListAsync(),
+                CompanyGroups = cows
+                    .GroupBy(c => c.Company?.Name ?? "Ismeretlen")
+                    .Select(g => new CompanyInventoryGroup
+                    {
+                        CompanyName = g.Key,
+                        EarTags = g.Select(c => c.EarTag).OrderBy(t => t).ToList()
+                    }).ToList()
+            };
+
+            return View(vm);
+        }
+        [HttpGet]
+        public async Task<IActionResult> ExportInventoryToExcel(int? companyId)
+        {
+            var query = _context.Cattles
+                .Include(c => c.Company)
+                .Where(c => c.IsActive && c.AgeGroup == "Tehén");
+
+            if (companyId.HasValue) query = query.Where(c => c.CompanyId == companyId);
+
+            var data = await query.ToListAsync();
+            var groups = data.GroupBy(c => c.Company?.Name ?? "Ismeretlen");
+
+            using (var workbook = new XLWorkbook())
+            {
+                foreach (var group in groups)
+                {
+                    var ws = workbook.Worksheets.Add(group.Key.Substring(0, Math.Min(group.Key.Length, 30)));
+                    int maxCols = 15; // Hány oszlop legyen egymás mellett
+
+                    // Cím
+                    var title = ws.Range(1, 1, 1, maxCols);
+                    title.Merge().Value = $"{DateTime.Now.Year}.{DateTime.Now.Month:D2} havi tehén {group.Key}";
+                    title.Style.Font.SetBold().Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    title.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+                    // Fejlécek (Fülszám minden oszlopba)
+                    for (int i = 1; i <= maxCols; i++)
+                    {
+                        ws.Cell(2, i).Value = "Fülszám";
+                        ws.Cell(2, i).Style.Font.Bold = true;
+                        ws.Cell(2, i).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                        ws.Cell(2, i).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    }
+
+                    // Fülszámok rácsos feltöltése
+                    var tags = group.Select(c => c.EarTag).OrderBy(t => t).ToList();
+                    int row = 3;
+                    int col = 1;
+
+                    foreach (var tag in tags)
+                    {
+                        var cell = ws.Cell(row, col);
+                        cell.Value = tag;
+                        cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                        cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                        col++;
+                        if (col > maxCols)
+                        {
+                            col = 1;
+                            row++;
+                        }
+                    }
+
+                    // Összesítő sor
+                    int lastRow = col == 1 ? row : row + 1;
+                    var footer = ws.Range(lastRow, 1, lastRow, maxCols);
+                    footer.Merge().Value = $"Összesen: {tags.Count} db";
+                    footer.Style.Font.Bold = true;
+                    footer.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    ws.Columns().AdjustToContents();
+                }
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Tehen_Leltar_{DateTime.Now:yyyy_MM}.xlsx");
+                }
+            }
+        }
     }
 }

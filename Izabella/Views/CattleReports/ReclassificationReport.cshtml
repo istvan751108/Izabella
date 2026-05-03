@@ -1,0 +1,77 @@
+﻿@model Izabella.Models.ViewModels.ReclassificationReportVm
+
+<div class="container-fluid mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center bg-dark text-white">
+            <h5 class="m-0"><i class="fa-solid fa-cow me-2"></i>Havi Átminősítések (Üsző -> Tehén)</h5>
+            <a asp-action="ExportReclassificationToExcel"
+                   asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-companyId="@Model.SelectedCompanyId"
+                   class="btn btn-success btn-sm">
+                <i class="fas fa-file-excel me-1"></i> Excel Export
+            </a>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3 mb-4">
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Év</label>
+                    <input type="number" name="year" value="@Model.Year" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Hónap</label>
+                    <select name="month" class="form-select">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(i == Model.Month)">@i.ToString("D2")</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Cég</label>
+                    <select name="companyId" class="form-select" asp-items="@(new SelectList(Model.Companies, "Id", "Name", Model.SelectedCompanyId))">
+                        <option value="">-- Összes cég --</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Szűrés</button>
+                </div>
+            </form>
+
+            @foreach (var group in Model.CompanyGroups)
+            {
+                <div class="mb-4 border rounded shadow-sm">
+                    <div class="bg-light p-2 text-center fw-bold border-bottom">
+                        @Model.Year.@Model.Month.ToString("D2"). havi átminősítés - @group.CompanyName
+                    </div>
+                    <table class="table table-sm table-hover mb-0" id="reportTable-@group.CompanyName.Replace(" ", "")">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>Fülszám</th>
+                                <th>Enar szám</th>
+                                <th>Kikerülés dátuma</th>
+                                <th>Kikerülés kódja</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in group.Items.OrderBy(i => i.CalvingDate))
+                            {
+                                <tr>
+                                    <td>@item.EarTag</td>
+                                    <td>@item.EnarNumber</td>
+                                    <td>@item.CalvingDate.ToString("yyyy.MM.dd")</td>
+                                    <td><span class="badge bg-warning text-dark">@item.Code</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="4" class="text-center fw-bold">
+                                    Összesen: @group.Items.Count db üsző lett átminősítve.
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

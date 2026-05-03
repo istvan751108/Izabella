@@ -104,6 +104,16 @@ namespace Izabella.Controllers
             ModelState.Remove("CurrentHerd");
             ModelState.Remove("Company");
 
+            if (!string.IsNullOrWhiteSpace(cattle.EarTag))
+            {
+                cattle.EarTag = cattle.EarTag.Trim();
+            }
+
+            if (cattle.PregnancyStatus == 0)
+            {
+                cattle.PregnancyStatus = PregnancyStatus.Üres;
+            }
+
             if (ModelState.IsValid)
             {
                 // Létrehozunk egy új állatot
