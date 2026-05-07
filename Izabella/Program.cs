@@ -29,6 +29,7 @@ builder.Services.AddMvc().AddDataAnnotationsLocalization();
 builder.Services.AddScoped<VoucherService>();
 builder.Services.AddScoped<ManureCalculationService>();
 builder.Services.AddScoped<SolidManureService>();
+builder.Services.AddScoped<IStatService, StatService>();
 var app = builder.Build();
 
 app.UseHttpsRedirection();

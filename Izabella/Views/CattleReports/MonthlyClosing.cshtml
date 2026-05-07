@@ -1,0 +1,241 @@
+﻿@model Izabella.Models.ViewModels.MonthlyClosingVm
+
+<div class="container-fluid shadow p-4 mt-3 bg-white">
+    <div class="card mb-4 border-success">
+        <div class="card-body bg-light">
+            <h3 class="text-success mb-3"><i class="fas fa-calendar-check me-2"></i>Havi Záró: @Model.Year. @Model.Month.</h3>
+            
+            @* PONTOSÍTOTT FORM ÚTVONAL *@
+            <form asp-controller="CattleReports" asp-action="MonthlyInventorySummary" method="get" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Év</label>
+                    <input type="number" name="year" value="@Model.Year" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Hónap</label>
+                    <select name="month" class="form-select">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(i == Model.Month)">@i.ToString("00")</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Tenyészet / Cég</label>
+                    @* Itt a Model.Companies az összes céget tartalmazza a Controller MonthlyInventorySummary metódusa miatt *@
+                    <select name="companyId" class="form-select" asp-items="@(new SelectList(Model.Companies, "Id", "Name", Model.SelectedCompanyId))">
+                        <option value="">-- Összes állomány --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Szűrés</button>
+                </div>
+                <div class="col-md-2">
+                    <a asp-controller="CattleReports"
+                           asp-action="ExportMonthlyClosingToExcel"
+                           asp-route-year="@Model.Year"
+                           asp-route-month="@Model.Month"
+                           asp-route-companyId="@Model.SelectedCompanyId"
+                           class="btn btn-success w-100">
+                        <i class="fas fa-file-excel me-1"></i> Excel mentés
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="alert alert-warning border-warning shadow-sm py-2 mb-4">
+        <h6 class="fw-bold mb-2"><i class="fas fa-exchange-alt me-2"></i>Cégek közötti átadás (Tulajdonosváltás)</h6>
+        @if (Model.TransferData != null && Model.TransferData.Any())
+        {
+            @foreach (var from in Model.TransferData)
+            {
+                var fromName = Model.Companies.FirstOrDefault(c => c.Id == from.Key)?.Name ?? "Ismeretlen";
+                foreach (var to in from.Value)
+                {
+                    var toName = Model.Companies.FirstOrDefault(c => c.Id == to.Key)?.Name ?? "Ismeretlen";
+                    <div class="d-inline-block bg-white border rounded px-2 py-1 me-2 mb-1">
+                        <strong>@fromName</strong> <i class="fas fa-arrow-right text-danger mx-1"></i> <strong>@toName</strong>: @to.Value db
+                    </div>
+                }
+            }
+        }
+        else
+        {
+            <span class="text-muted small">Ebben a hónapban nem történt tulajdonosváltás.</span>
+        }
+    </div>
+
+    <!-- 1. ÉRTÉKESÍTÉS TÁBLÁZAT -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-success text-white fw-bold">ÉRTÉKESÍTÉS (db)</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm text-center mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th rowspan="2" class="align-middle">Korcsoport</th>
+                        @foreach (var comp in Model.Companies)
+                        {
+                            <th colspan="4" class="border-start">@comp.Name</th>
+                        }
+                    </tr>
+                    <tr class="small">
+                        @foreach (var comp in Model.Companies)
+                        {
+                            <th class="border-start">Vágás</th>
+                            <th>Tovább.</th>
+                            <th>Export</th>
+                            <th class="table-warning text-dark">Össz</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in Model.AgeGroups)
+                    {
+                        <tr>
+                            <td class="text-start fw-bold bg-light">@group</td>
+                            @foreach (var comp in Model.Companies)
+                            {
+                                var d = Model.SalesData.GetValueOrDefault(group)?.GetValueOrDefault(comp.Id);
+                                int v = d?.GetValueOrDefault("Vágás") ?? 0;
+                                int t = d?.GetValueOrDefault("Továbbtartás") ?? 0;
+                                int e = d?.GetValueOrDefault("Export") ?? 0;
+                                <td class="border-start">@(v > 0 ? v.ToString() : "-")</td>
+                                <td>@(t > 0 ? t.ToString() : "-")</td>
+                                <td>@(e > 0 ? e.ToString() : "-")</td>
+                                <td class="fw-bold bg-warning bg-opacity-10">@(v + t + e > 0 ? (v + t + e).ToString() : "-")</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 2. ELHULLÁS TÁBLÁZAT -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-danger text-white fw-bold">ELHULLÁS (db)</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm text-center mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-start">Korcsoport</th>
+                        @foreach (var comp in Model.Companies)
+                        {
+                            <th>@comp.Name</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in Model.AgeGroups)
+                    {
+                        <tr>
+                            <td class="text-start fw-bold">@group</td>
+                            @foreach (var comp in Model.Companies)
+                            {
+                                var val = Model.DeathData.GetValueOrDefault(group)?.GetValueOrDefault(comp.Id) ?? 0;
+                                <td class="@(val > 0 ? "text-danger fw-bold" : "")">@(val > 0 ? val.ToString() : "-")</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- 3. ELLÉSEK -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-primary">
+                <div class="card-header bg-primary text-white fw-bold">ELLÉSEK (Események száma)</div>
+                <div class="card-body">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light text-center">
+                            <tr><th>Típus</th><th>Tehén</th><th>Üsző</th><th class="table-info">Össz.</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var type in new[] { "Sima", "Iker", "Hullaellés" })
+                            {
+                                var tCount = Model.CalvingData.GetValueOrDefault("Tehén")?.GetValueOrDefault(type) ?? 0;
+                                var uCount = Model.CalvingData.GetValueOrDefault("Üsző")?.GetValueOrDefault(type) ?? 0;
+                                <tr>
+                                    <td class="fw-bold">@type</td>
+                                    <td class="text-center">@tCount</td>
+                                    <td class="text-center">@uCount</td>
+                                    <td class="text-center fw-bold bg-info bg-opacity-10">@(tCount + uCount)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. SZAPORULAT ÉS TERMÉKENYÍTÉS -->
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-secondary">
+                <div class="card-header bg-secondary text-white fw-bold">SZAPORULAT ÉS TERMÉKENYÍTÉS (db)</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <h6 class="fw-bold border-bottom pb-1 small">Szaporulat</h6>
+                            <table class="table table-sm table-bordered">
+                                <tr><td class="bg-light small">Üsző</td><td class="text-center fw-bold">@Model.OffspringData.GetValueOrDefault("Üsző")</td></tr>
+                                <tr><td class="bg-light small">Bika</td><td class="text-center fw-bold">@Model.OffspringData.GetValueOrDefault("Bika")</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-6">
+                            <h6 class="fw-bold border-bottom pb-1 small">Termékenyítés</h6>
+                            <table class="table table-sm table-bordered">
+                                <tr><td class="bg-light small">Tehén</td><td class="text-center fw-bold">@Model.InseminationData.GetValueOrDefault("Tehén")</td></tr>
+                                <tr><td class="bg-light small">Üsző</td><td class="text-center fw-bold">@Model.InseminationData.GetValueOrDefault("Üsző")</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. ÁLLOMÁNY ZÁRÓ -->
+    <div class="card shadow border-info">
+        <div class="card-header bg-info text-dark fw-bold">ZÁRÓ ÁLLATÁLLOMÁNY (Létszám)</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm text-center mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-start">Megnevezés</th>
+                        @foreach (var comp in Model.Companies)
+                        {
+                            <th>@comp.Name</th>
+                        }
+                        <th class="table-dark">Összesen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var cat in new[] { "Tehén", "Növendék" })
+                    {
+                        <tr>
+                            <td class="text-start fw-bold">@cat</td>
+                            @foreach (var comp in Model.Companies)
+                            {
+                                <td>@(Model.InventoryData.GetValueOrDefault(comp.Id)?.GetValueOrDefault(cat) ?? 0)</td>
+                            }
+                            <td class="fw-bold bg-light">@Model.InventoryData.Values.Sum(v => v.GetValueOrDefault(cat))</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-secondary fw-bold">
+                    <tr>
+                        <td class="text-start">MINDÖSSZESEN</td>
+                        @foreach (var comp in Model.Companies)
+                        {
+                            <td>@(Model.InventoryData.GetValueOrDefault(comp.Id)?.Values.Sum() ?? 0)</td>
+                        }
+                        <td>@Model.InventoryData.Values.Sum(v => v.Values.Sum())</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>

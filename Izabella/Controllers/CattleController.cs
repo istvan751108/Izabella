@@ -1,5 +1,6 @@
 ﻿using ClosedXML.Excel;
 using Izabella.Models;
+using Izabella.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -16,10 +17,12 @@ namespace Izabella.Controllers
     public class CattleController : Controller
     {
         private readonly IzabellaDbContext _context;
+        private readonly IStatService _statService;
 
-        public CattleController(IzabellaDbContext context)
+        public CattleController(IzabellaDbContext context, IStatService statService) // <--- INJEKTÁLÁS
         {
             _context = context;
+            _statService = statService; // <--- ELMENTÉS
         }
 
         // --- 1. AZ ELLÉS ŰRLAP MEGJELENÍTÉSE ---
@@ -239,6 +242,10 @@ namespace Izabella.Controllers
                         ProcessNewborn(calf, dam, alive1);
                         // Explicit módon mondjuk meg az EF-nek, hogy ezek változtak
                         _context.Cattles.Add(calf);
+                        if (alive1)
+                        {
+                            await _statService.UpdateDailyStatAsync(calf.BirthDate, calf.CompanyId, "Itatásos borjú", 1, calf.BirthWeight);
+                        }
                         await _context.SaveChangesAsync();
 
                         // ÚJ: Születési napló bejegyzés
@@ -287,6 +294,11 @@ namespace Izabella.Controllers
                             _context.Cattles.Add(secondCalf);
                             await _context.SaveChangesAsync();
 
+                            // STATISZTIKA: Ikerborjú érkezett
+                            if (alive2)
+                            {
+                                await _statService.UpdateDailyStatAsync(secondCalf.BirthDate, secondCalf.CompanyId, "Itatásos borjú", 1, secondCalf.BirthWeight);
+                            }
                             if (!alive2) AddDeathLog(secondCalf, "Halva született");
                         }
 
@@ -295,13 +307,16 @@ namespace Izabella.Controllers
                         {
                             if (dam.AgeGroup == "Vemhes üsző")
                             {
+                                // STATISZTIKA: Kivonjuk az üszőkből, hozzáadjuk a tehenekhez
+                                // Az üsző súlyával mozgatjuk a kg-okat is
+                                await _statService.UpdateDailyStatAsync(calf.BirthDate, dam.CompanyId, "Vemhes üsző", -1, -dam.CurrentWeight);
+                                await _statService.UpdateDailyStatAsync(calf.BirthDate, dam.CompanyId, "Tehén", 1, dam.CurrentWeight);
                                 dam.AgeGroup = "Tehén";
                             }
                             dam.PregnancyStatus = PregnancyStatus.Üres; // Ellés után üres
                             dam.LastInseminationDate = null;
                             _context.Update(dam);
 
-                            // Itt a javított sor:
                             var breeding = await _context.BreedingDatas
                                 .FirstOrDefaultAsync(b => b.CattleId == dam.Id && b.IsPregnant == true);
 
@@ -744,6 +759,10 @@ namespace Izabella.Controllers
             var cattle = await _context.Cattles.FindAsync(id);
             if (cattle == null) return NotFound();
 
+            // Mentjük a korcsoportot és a céget a statisztikához, mielőtt módosítjuk az állatot
+            string currentAgeGroup = cattle.AgeGroup;
+            int companyId = cattle.CompanyId;
+
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
@@ -753,7 +772,9 @@ namespace Izabella.Controllers
                     cattle.IsAlive = false;
                     cattle.ExitDate = deathDate;
                     cattle.ExitType = ExitType.Elhullás;
-                    cattle.BirthWeight = (double)weight;
+                    // Itt a méréskori súlyt rögzítjük (opcionális, ha a CurrentWeight-et is frissíted)
+                    double oldWeight = cattle.CurrentWeight;
+                    cattle.CurrentWeight = weight;
 
                     // 2. Tranzakció rögzítése a kézi bizonylatszámmal
                     var saleTrans = new SaleTransaction
@@ -788,6 +809,9 @@ namespace Izabella.Controllers
 
                     _context.Update(cattle);
                     await _context.SaveChangesAsync();
+                    // --- STATISZTIKA FRISSÍTÉSE ---
+                    // Az elhullás napjától kezdve levonjuk az állatot a létszámból és az összsúlyból
+                    await _statService.UpdateDailyStatAsync(deathDate, companyId, currentAgeGroup, -1, -oldWeight);
                     await transaction.CommitAsync();
 
                     TempData["SuccessMessage"] = $"Az elhullás rögzítve ({receiptNumber} sz. bizonylattal): {cattle.EarTag}";

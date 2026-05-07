@@ -4,6 +4,7 @@ using iText.Kernel.Pdf;
 using Izabella.Models;
 using Izabella.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.IO.Compression;
 
@@ -513,7 +514,8 @@ namespace Izabella.Controllers
                     .Select(g => new CompanyExitGroup
                     {
                         CompanyName = g.Key,
-                        ExitedCattle = g.Select(x => {
+                        ExitedCattle = g.Select(x =>
+                        {
                             x.Cattle.PassportNumber = x.Receipt;
                             return x.Cattle;
                         }).OrderBy(c => c.ExitDate).ToList()
@@ -707,7 +709,8 @@ namespace Izabella.Controllers
                 .ToListAsync();
 
             var reportData = calves.GroupBy(c => c.MotherEnar)
-                .Select(g => new {
+                .Select(g => new
+                {
                     MotherEnar = g.Key,
                     CalvingDate = g.Min(c => c.BirthDate),
                     Company = g.First().Company,
@@ -850,6 +853,742 @@ namespace Izabella.Controllers
                 {
                     workbook.SaveAs(stream);
                     return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Tehen_Leltar_{DateTime.Now:yyyy_MM}.xlsx");
+                }
+            }
+        }
+        [HttpGet]
+        public async Task<IActionResult> DailyFeedReport(int? year, int? month, int? companyId)
+        {
+            int rYear = year ?? DateTime.Now.Year;
+            int rMonth = month ?? DateTime.Now.Month;
+            int days = DateTime.DaysInMonth(rYear, rMonth);
+
+            var stats = await _context.DailyStats
+                .Where(s => s.StatDate.Year == rYear && s.StatDate.Month == rMonth &&
+                            (!companyId.HasValue || s.CompanyId == companyId))
+                .ToListAsync();
+
+            var vm = new FeedReportVm { Year = rYear, Month = rMonth, DaysInMonth = days };
+
+            foreach (var group in vm.AgeGroups)
+            {
+                vm.RowData[group] = new List<DayStat>();
+                for (int d = 1; d <= days; d++)
+                {
+                    var date = new DateTime(rYear, rMonth, d);
+                    // Ha több cég van és nincs szűrés, összegezzük a cégeket az adott napra
+                    var dayData = stats.Where(s => s.StatDate == date && s.AgeGroup == group).ToList();
+
+                    vm.RowData[group].Add(new DayStat
+                    {
+                        Count = dayData.Sum(x => x.Count),
+                        TotalWeight = dayData.Sum(x => x.TotalWeight)
+                    });
+                }
+            }
+            return View(vm);
+        }
+        [HttpGet]
+        public async Task<IActionResult> ExportDailyFeedReportToExcel(int? year, int? month, int? companyId)
+        {
+            int rYear = year ?? DateTime.Now.Year;
+            int rMonth = month ?? DateTime.Now.Month;
+            int days = DateTime.DaysInMonth(rYear, rMonth);
+
+            var stats = await _context.DailyStats
+                .Where(s => s.StatDate.Year == rYear && s.StatDate.Month == rMonth &&
+                            (!companyId.HasValue || s.CompanyId == companyId))
+                .ToListAsync();
+
+            var ageGroups = new List<string> {
+                "Itatásos borjú", "Borjú", "Növendék 6-9", "Növendék 9-12",
+                "Növendék 12 hó-tól", "Vemhes üsző", "Tehén"
+            };
+
+            using (var workbook = new XLWorkbook())
+            {
+                var ws = workbook.Worksheets.Add("Napi Riport");
+
+                // Az utolsó adat-oszlop a (napok * 2) + 1. Az összesítő ezután jön:
+                int totalDaysColIndex = (days * 2) + 2;
+
+                // 1. Sor: Főcím
+                var titleRange = ws.Range(1, 1, 1, totalDaysColIndex);
+                titleRange.Merge().Value = $"Napi Korcsoportos Takarmányozási Riport - {rYear}.{rMonth:D2}";
+                titleRange.Style.Font.Bold = true;
+                titleRange.Style.Font.FontSize = 14;
+                titleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                // 2-3. Sor: Korcsoport fejléc rögzítése
+                ws.Cell(2, 1).Value = "Korcsoport";
+                var groupHeader = ws.Range(2, 1, 3, 1);
+                groupHeader.Merge().Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                groupHeader.Style.Font.Bold = true;
+                groupHeader.Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                for (int d = 1; d <= days; d++)
+                {
+                    int startCol = (d * 2);
+                    int endCol = (d * 2) + 1;
+
+                    var dayCell = ws.Range(2, startCol, 2, endCol);
+                    dayCell.Merge().Value = $"{d}.";
+                    dayCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    dayCell.Style.Font.Bold = true;
+                    dayCell.Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                    ws.Cell(3, startCol).Value = "db";
+                    ws.Cell(3, endCol).Value = "kg";
+                    ws.Cell(3, startCol).Style.Font.FontSize = 9;
+                    ws.Cell(3, endCol).Style.Font.FontSize = 9;
+                }
+
+                // Összesítő oszlop FEJLÉC - Kifejezetten a legvégére
+                var totalHeaderCell = ws.Range(2, totalDaysColIndex, 3, totalDaysColIndex);
+                totalHeaderCell.Merge().Value = "Etetési napok";
+                totalHeaderCell.Style.Font.Bold = true;
+                totalHeaderCell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                totalHeaderCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                totalHeaderCell.Style.Alignment.WrapText = true; // Engedjük a tördelést, ha nem férne el
+                totalHeaderCell.Style.Fill.BackgroundColor = XLColor.Amber; // Legyen látványosabb különbség
+
+                // Adatok feltöltése
+                int currentRow = 4;
+                foreach (var group in ageGroups)
+                {
+                    ws.Cell(currentRow, 1).Value = group;
+
+                    for (int d = 1; d <= days; d++)
+                    {
+                        var date = new DateTime(rYear, rMonth, d);
+                        var dayData = stats.Where(s => s.StatDate == date && s.AgeGroup == group).ToList();
+
+                        int count = dayData.Sum(x => x.Count);
+                        double weight = dayData.Sum(x => x.TotalWeight);
+
+                        if (count > 0) ws.Cell(currentRow, (d * 2)).SetValue(count);
+                        else ws.Cell(currentRow, (d * 2)).SetValue("-");
+
+                        if (weight > 0)
+                        {
+                            ws.Cell(currentRow, (d * 2) + 1).SetValue(weight);
+                            ws.Cell(currentRow, (d * 2) + 1).Style.NumberFormat.Format = "#,##0";
+                        }
+                        else ws.Cell(currentRow, (d * 2) + 1).SetValue("-");
+                    }
+
+                    // Etetési napok kiszámítása (Adott korcsoport összesített darabszáma a hónapban)
+                    int totalFeedingDays = stats.Where(s => s.AgeGroup == group).Sum(x => x.Count);
+                    var resCell = ws.Cell(currentRow, totalDaysColIndex);
+                    resCell.SetValue(totalFeedingDays);
+                    resCell.Style.Font.Bold = true;
+                    resCell.Style.NumberFormat.Format = "#,##0";
+                    resCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    resCell.Style.Fill.BackgroundColor = XLColor.LightYellow;
+
+                    currentRow++;
+                }
+
+                // Keretek
+                var tableRange = ws.Range(2, 1, currentRow - 1, totalDaysColIndex);
+                tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+                // Formázás
+                ws.Columns(1, totalDaysColIndex).AdjustToContents();
+
+                // Ha az utolsó oszlop még mindig túl kicsi, kényszerítsünk rá egy minimum szélességet
+                ws.Column(totalDaysColIndex).Width = 15;
+
+                ws.SheetView.FreezeColumns(1);
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Napi_Riport_{rYear}_{rMonth:D2}.xlsx");
+                }
+            }
+        }
+        [HttpGet]
+        public async Task<IActionResult> MonthlyClosing(int? year, int? month, int? companyId)
+        {
+            int rYear = year ?? DateTime.Now.Year;
+            int rMonth = month ?? DateTime.Now.Month;
+            DateTime startDate = new DateTime(rYear, rMonth, 1);
+            DateTime endDate = startDate.AddMonths(1).AddDays(-1);
+
+            var vm = new MonthlyClosingVm
+            {
+                Year = rYear,
+                Month = rMonth,
+                Companies = await _context.Companies.ToListAsync()
+            };
+
+            // 1. ÉRTÉKESÍTÉS ÉS ELHULLÁS (SaleTransactions + Cattle Exit adatok)
+            // Megjegyzés: Az elhullás is szerepelhet a SaleTransaction-ben 0-ás árral, 
+            // vagy a Cattle táblában ExitType.Elhullás-sal.
+            var sales = await _context.SaleTransactions
+                .Include(s => s.Cattle)
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
+                .ToListAsync();
+
+            foreach (var sale in sales)
+            {
+                string group = sale.Cattle.AgeGroup;
+                int compId = sale.Cattle.CompanyId;
+                string type = sale.Type.ToString(); // Vágás, Továbbtartás, Export
+
+                if (!vm.SalesData.ContainsKey(group)) vm.SalesData[group] = new();
+                if (!vm.SalesData[group].ContainsKey(compId)) vm.SalesData[group][compId] = new();
+                if (!vm.SalesData[group][compId].ContainsKey(type)) vm.SalesData[group][compId][type] = 0;
+
+                vm.SalesData[group][compId][type]++;
+            }
+
+            // ELHULLÁS (Kifejezetten az elhullás típusú kikerülések)
+            var deaths = await _context.Cattles
+                .Where(c => c.ExitDate >= startDate && c.ExitDate <= endDate && c.ExitType == ExitType.Elhullás)
+                .ToListAsync();
+
+            foreach (var death in deaths)
+            {
+                if (!vm.DeathData.ContainsKey(death.AgeGroup)) vm.DeathData[death.AgeGroup] = new();
+                if (!vm.DeathData[death.AgeGroup].ContainsKey(death.CompanyId)) vm.DeathData[death.AgeGroup][death.CompanyId] = 0;
+                vm.DeathData[death.AgeGroup][death.CompanyId]++;
+            }
+
+            // 2. ELLÉSEK ÉS SZAPORULAT
+            var newborns = await _context.Cattles
+                .Where(c => c.BirthDate >= startDate && c.BirthDate <= endDate)
+                .ToListAsync();
+
+            // Szaporulat számlálása (Borjak száma nem szerint)
+            foreach (var calf in newborns.Where(c => c.IsAlive))
+            {
+                string genderKey = calf.Gender.ToString(); // "Bika" vagy "Üsző"
+                if (!vm.OffspringData.ContainsKey(genderKey)) vm.OffspringData[genderKey] = 0;
+                vm.OffspringData[genderKey]++;
+            }
+
+            // Ellési események meghatározása (Anyánként és naponként csoportosítva)
+            var calvingEvents = newborns
+                .GroupBy(c => new { c.MotherEnar, c.BirthDate.Date })
+                .Select(g => new
+                {
+                    MotherEnar = g.Key.MotherEnar,
+                    Date = g.Key.Date,
+                    Calves = g.ToList(),
+                    IsTwin = g.Count() > 1 || g.Any(c => c.IsTwin),
+                    AnyAlive = g.Any(c => c.IsAlive),
+                    DamAgeGroup = g.First().DamAgeAtCalving ?? "Tehén"
+                });
+
+            foreach (var ev in calvingEvents)
+            {
+                string damGroup = ev.DamAgeGroup;
+                string calvingType = "";
+
+                if (ev.IsTwin)
+                {
+                    // Ikerellés: Ha legalább egy borjú él, vagy ha ikernek jelölték
+                    // (Akkor is ide kerül, ha mindkettő él, vagy csak az egyik)
+                    if (ev.AnyAlive)
+                    {
+                        calvingType = "Iker";
+                    }
+                    else
+                    {
+                        // Iker halva születés = 1 db Hullaellés
+                        calvingType = "Hullaellés";
+                    }
+                }
+                else
+                {
+                    // Normál (szimpla) ellés
+                    if (ev.AnyAlive)
+                    {
+                        calvingType = "Sima";
+                    }
+                    else
+                    {
+                        // 1 db halva születés = 1 db Hullaellés
+                        calvingType = "Hullaellés";
+                    }
+                }
+
+                if (!vm.CalvingData.ContainsKey(damGroup)) vm.CalvingData[damGroup] = new();
+                if (!vm.CalvingData[damGroup].ContainsKey(calvingType)) vm.CalvingData[damGroup][calvingType] = 0;
+
+                vm.CalvingData[damGroup][calvingType]++;
+            }
+
+            // 3. ÁLLOMÁNY (Hó végi záró az adott napon aktív állatokból)
+            var inventory = await _context.Cattles
+                .Where(c => c.IsActive || (c.ExitDate > endDate))
+                .ToListAsync();
+
+            foreach (var animal in inventory)
+            {
+                string invGroup = (animal.AgeGroup == "Tehén") ? "Tehén" : "Növendék";
+                if (!vm.InventoryData.ContainsKey(animal.CompanyId)) vm.InventoryData[animal.CompanyId] = new();
+                if (!vm.InventoryData[animal.CompanyId].ContainsKey(invGroup)) vm.InventoryData[animal.CompanyId][invGroup] = 0;
+
+                vm.InventoryData[animal.CompanyId][invGroup]++;
+            }
+
+            // 4. TERMÉKENYÍTÉS
+            var inseminations = await _context.SemenTransactions
+                .Where(t => t.Date >= startDate && t.Date <= endDate && t.Type == TransactionType.Insemination)
+                .ToListAsync();
+
+            foreach (var ins in inseminations)
+            {
+                // Megkeressük az állatot, hogy tudjuk a korcsoportját
+                var animal = await _context.Cattles.FirstOrDefaultAsync(c => c.EarTag == ins.CattleEarTag);
+                if (animal != null)
+                {
+                    string group = (animal.AgeGroup == "Tehén") ? "Tehén" : "Üsző";
+                    if (!vm.InseminationData.ContainsKey(group)) vm.InseminationData[group] = 0;
+                    vm.InseminationData[group]++;
+                }
+            }
+
+            return View(vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportMonthlyClosingToExcel(int year, int month, int? companyId)
+        {
+            var vm = await GetMonthlyClosingData(year, month, companyId);
+            var allCompanies = await _context.Companies.ToListAsync();
+            // Fontos, hogy az Excelhez is tudjuk az összes céget a fejlécek miatt
+            //if (vm.Companies == null || !vm.Companies.Any()) vm.Companies = allCompanies;
+
+            using (var workbook = new XLWorkbook())
+            {
+                var ws = workbook.Worksheets.Add("Havi Záró");
+                ws.Style.Font.FontName = "Arial";
+                ws.Style.Font.FontSize = 10;
+
+                // FŐCÍM, látszódik, ha szűrve van, vagy ha összesített
+                string companyHeader = companyId.HasValue && vm.Companies.Any()
+                    ? $" - {vm.Companies.First().Name}"
+                    : " - Összesített jelentés";
+
+                ws.Cell(1, 1).Value = $"{vm.Year}. {vm.Month:D2} havi záró jelentés" + companyHeader;
+                ws.Range(1, 1, 1, 5).Merge().Style.Font.SetBold().Font.FontSize = 14;
+
+                int currentRow = 3;
+
+                // --- 1. ÉRTÉKESÍTÉS ---
+                ws.Cell(currentRow, 1).Value = "ÉRTÉKESÍTÉS";
+                int salesColumns = 5;
+                ws.Range(currentRow, 1, currentRow, salesColumns).Merge().Style.Fill.SetBackgroundColor(XLColor.FromHtml("#00B050")).Font.SetBold().Font.FontColor = XLColor.White;
+                currentRow++;
+                int salesStart = currentRow;
+                ws.Cell(currentRow, 1).Value = "Korcsoport";
+                ws.Cell(currentRow, 2).Value = "Vágás";
+                ws.Cell(currentRow, 3).Value = "Továbbt.";
+                ws.Cell(currentRow, 4).Value = "Export";
+                ws.Cell(currentRow, 5).Value = "Összesen";
+                currentRow++;
+                foreach (var group in vm.AgeGroups)
+                {
+                    ws.Cell(currentRow, 1).Value = group;
+                    int v = 0, t = 0, e = 0;
+                    foreach (var comp in vm.Companies)
+                    {
+                        var d = vm.SalesData.GetValueOrDefault(group)?.GetValueOrDefault(comp.Id);
+                        v += d?.GetValueOrDefault("Vágás") ?? 0;
+                        t += d?.GetValueOrDefault("Továbbtartás") ?? 0;
+                        e += d?.GetValueOrDefault("Export") ?? 0;
+                    }
+                    ws.Cell(currentRow, 2).Value = v;
+                    ws.Cell(currentRow, 3).Value = t;
+                    ws.Cell(currentRow, 4).Value = e;
+                    ws.Cell(currentRow, 5).Value = (v + t + e);
+                    ws.Cell(currentRow, 5).Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.FromHtml("#FFC000"));
+                    currentRow++;
+                }
+                ApplyTableStyles(ws, salesStart, currentRow - 1, 5);
+
+                currentRow += 2;
+
+                // --- 2. ELHULLÁS ---
+                ws.Cell(currentRow, 1).Value = "ELHULLÁS";
+                ws.Range(currentRow, 1, currentRow, 2).Merge().Style.Fill.SetBackgroundColor(XLColor.FromHtml("#C00000")).Font.SetBold().Font.FontColor = XLColor.White;
+                currentRow++;
+                int deathStart = currentRow;
+                ws.Cell(currentRow, 1).Value = "Korcsoport";
+                ws.Cell(currentRow, 2).Value = "db";
+                currentRow++;
+                foreach (var group in vm.AgeGroups)
+                {
+                    ws.Cell(currentRow, 1).Value = group;
+                    int dSum = 0;
+                    foreach (var comp in vm.Companies) dSum += vm.DeathData.GetValueOrDefault(group)?.GetValueOrDefault(comp.Id) ?? 0;
+                    ws.Cell(currentRow, 2).Value = dSum;
+                    currentRow++;
+                }
+                ApplyTableStyles(ws, deathStart, currentRow - 1, 2);
+
+                currentRow += 2;
+
+                // --- 3. TULAJDONOSVÁLTÁS (Mindig megjelenik) ---
+                ws.Cell(currentRow, 1).Value = "TULAJDONOSVÁLTÁS";
+                ws.Range(currentRow, 1, currentRow, 3).Merge().Style.Fill.SetBackgroundColor(XLColor.Amber).Font.SetBold();
+                currentRow++;
+                int transferStart = currentRow;
+                ws.Cell(currentRow, 1).Value = "Irány"; ws.Cell(currentRow, 2).Value = "Mennyiség"; ws.Cell(currentRow, 3).Value = "M.egys.";
+                currentRow++;
+
+                if (vm.TransferData != null && vm.TransferData.Any())
+                {
+                    foreach (var from in vm.TransferData)
+                    {
+                        var fromName = allCompanies.FirstOrDefault(c => c.Id == from.Key)?.Name ?? "Ismeretlen";
+                        foreach (var to in from.Value)
+                        {
+                            var toName = allCompanies.FirstOrDefault(c => c.Id == to.Key)?.Name ?? "Ismeretlen";
+                            ws.Cell(currentRow, 1).Value = $"{fromName} -> {toName}";
+                            ws.Cell(currentRow, 2).Value = to.Value;
+                            ws.Cell(currentRow, 3).Value = "db";
+                            currentRow++;
+                        }
+                    }
+                }
+                else
+                {
+                    ws.Cell(currentRow, 1).Value = "Nincs adat";
+                    ws.Cell(currentRow, 2).Value = 0;
+                    ws.Cell(currentRow, 3).Value = "db";
+                    currentRow++;
+                }
+                ApplyTableStyles(ws, transferStart, currentRow - 1, 3);
+
+                currentRow += 2;
+
+                // --- 4. ELLÉSEK / SZAPORULAT ---
+                ws.Cell(currentRow, 1).Value = "ELLÉSEK ÉS SZAPORULAT";
+                ws.Range(currentRow, 1, currentRow, 5).Merge().Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightGray);
+                currentRow++;
+                int calvingStart = currentRow;
+                ws.Cell(currentRow, 1).Value = "Típus"; ws.Cell(currentRow, 2).Value = "Tehén"; ws.Cell(currentRow, 3).Value = "Üsző"; currentRow++;
+                foreach (var type in new[] { "Sima", "Iker", "Hullaellés" })
+                {
+                    ws.Cell(currentRow, 1).Value = type;
+                    ws.Cell(currentRow, 2).Value = vm.CalvingData.GetValueOrDefault("Tehén")?.GetValueOrDefault(type) ?? 0;
+                    ws.Cell(currentRow, 3).Value = vm.CalvingData.GetValueOrDefault("Üsző")?.GetValueOrDefault(type) ?? 0;
+                    currentRow++;
+                }
+                ApplyTableStyles(ws, calvingStart, currentRow - 1, 3);
+
+                currentRow += 1;
+                int offspringStart = currentRow;
+                ws.Cell(currentRow, 1).Value = "Szaporulat"; ws.Cell(currentRow, 2).Value = "db";
+                ws.Cell(currentRow, 4).Value = "Termékenyítés"; ws.Cell(currentRow, 5).Value = "db"; currentRow++;
+                ws.Cell(currentRow, 1).Value = "Üsző"; ws.Cell(currentRow, 2).Value = vm.OffspringData.GetValueOrDefault("Üsző");
+                ws.Cell(currentRow, 4).Value = "Tehén"; ws.Cell(currentRow, 5).Value = vm.InseminationData.GetValueOrDefault("Tehén"); currentRow++;
+                ws.Cell(currentRow, 1).Value = "Bika"; ws.Cell(currentRow, 2).Value = vm.OffspringData.GetValueOrDefault("Bika");
+                ws.Cell(currentRow, 4).Value = "Üsző"; ws.Cell(currentRow, 5).Value = vm.InseminationData.GetValueOrDefault("Üsző"); currentRow++;
+                ApplyTableStyles(ws, offspringStart, currentRow - 1, 5);
+
+                currentRow += 2;
+
+                // --- 5. ÁLLOMÁNY ZÁRÓ ---
+                ws.Cell(currentRow, 1).Value = "ÁLLATÁLLOMÁNY ZÁRÓ";
+                ws.Range(currentRow, 1, currentRow, 2 + vm.Companies.Count).Merge().Style.Fill.SetBackgroundColor(XLColor.FromHtml("#4F81BD")).Font.SetBold().Font.FontColor = XLColor.White;
+                currentRow++;
+                int invStart = currentRow;
+                ws.Cell(currentRow, 1).Value = "Korcsoport";
+                for (int i = 0; i < vm.Companies.Count; i++) ws.Cell(currentRow, 2 + i).Value = vm.Companies[i].Name;
+                ws.Cell(currentRow, 2 + vm.Companies.Count).Value = "Összesen";
+                currentRow++;
+                foreach (var ig in new[] { "Tehén", "Növendék" })
+                {
+                    ws.Cell(currentRow, 1).Value = ig;
+                    int rowSum = 0;
+                    for (int i = 0; i < vm.Companies.Count; i++)
+                    {
+                        int val = vm.InventoryData.GetValueOrDefault(vm.Companies[i].Id)?.GetValueOrDefault(ig) ?? 0;
+                        ws.Cell(currentRow, 2 + i).Value = val;
+                        rowSum += val;
+                    }
+                    ws.Cell(currentRow, 2 + vm.Companies.Count).Value = rowSum;
+                    currentRow++;
+                }
+                ApplyTableStyles(ws, invStart, currentRow - 1, 2 + vm.Companies.Count);
+
+                ws.Columns().AdjustToContents();
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Havi_Zaro_{year}_{month}.xlsx");
+                }
+            }
+        }
+        // Segédfüggvény a keretezéshez
+        private void ApplyTableStyles(IXLWorksheet ws, int startRow, int endRow, int lastCol)
+        {
+            var range = ws.Range(startRow, 1, endRow, lastCol);
+            range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(startRow, 1, startRow, lastCol).Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.FromHtml("#F2F2F2"));
+        }
+
+        private async Task<MonthlyClosingVm> GetMonthlyClosingData(int year, int month, int? companyId)
+        {
+            DateTime startDate = new DateTime(year, month, 1);
+            DateTime endDate = startDate.AddMonths(1).AddDays(-1);
+
+            var vm = new MonthlyClosingVm { Year = year, Month = month };
+
+            // Csak a kiválasztott céget vagy az összeset töltjük be
+            vm.Companies = await _context.Companies
+                .Where(c => !companyId.HasValue || c.Id == companyId)
+                .ToListAsync();
+
+            var companyIds = vm.Companies.Select(c => c.Id).ToList();
+
+            // 1. ÉRTÉKESÍTÉS ÉS TULAJDONOSVÁLTÁS
+            // A SaleTransactions-ben a Tulajdonosváltás is benne van SaleType-ként
+            var sales = await _context.SaleTransactions
+                .Include(s => s.Cattle)
+                .Include(s => s.Customer) // Fontos a vevő neve miatt
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
+                .Where(s => companyIds.Contains(s.Cattle.CompanyId))
+                .ToListAsync();
+
+            foreach (var sale in sales)
+            {
+                // Itt az ExitType-ot nézzük a Cattle-nél a SaleType helyett
+                if (sale.Cattle.ExitType == ExitType.Tulajdonosváltás)
+                {
+                    var targetCompany = await _context.Companies
+                        .FirstOrDefaultAsync(c => c.Name == sale.Customer.Name);
+
+                    if (targetCompany != null)
+                    {
+                        int fromId = sale.Cattle.CompanyId;
+                        int toId = targetCompany.Id;
+
+                        if (!vm.TransferData.ContainsKey(fromId)) vm.TransferData[fromId] = new();
+                        if (!vm.TransferData[fromId].ContainsKey(toId)) vm.TransferData[fromId][toId] = 0;
+                        vm.TransferData[fromId][toId]++;
+                    }
+                }
+                else
+                {
+                    // Normál eladás
+                    string group = sale.Cattle.AgeGroup;
+                    int cId = sale.Cattle.CompanyId;
+                    string type = sale.Type.ToString(); // SaleType: Vágás, Export stb.
+
+                    if (!vm.SalesData.ContainsKey(group)) vm.SalesData[group] = new();
+                    if (!vm.SalesData[group].ContainsKey(cId)) vm.SalesData[group][cId] = new();
+                    if (!vm.SalesData[group][cId].ContainsKey(type)) vm.SalesData[group][cId][type] = 0;
+                    vm.SalesData[group][cId][type]++;
+                }
+            }
+
+            // 2. ELHULLÁS
+            var deaths = await _context.Cattles
+                .Where(c => c.ExitDate >= startDate && c.ExitDate <= endDate && c.ExitType == ExitType.Elhullás)
+                .Where(c => companyIds.Contains(c.CompanyId)) // Ezt add hozzá!
+                .ToListAsync();
+
+            foreach (var death in deaths)
+            {
+                if (!vm.DeathData.ContainsKey(death.AgeGroup)) vm.DeathData[death.AgeGroup] = new();
+                if (!vm.DeathData[death.AgeGroup].ContainsKey(death.CompanyId)) vm.DeathData[death.AgeGroup][death.CompanyId] = 0;
+                vm.DeathData[death.AgeGroup][death.CompanyId]++;
+            }
+
+            // 3. ELLÉSEK ÉS SZAPORULAT (A korábban megbeszélt anya-alapú logikával)
+            var newborns = await _context.Cattles
+                .Where(c => c.BirthDate >= startDate && c.BirthDate <= endDate)
+                .ToListAsync();
+
+            foreach (var calf in newborns.Where(c => c.IsAlive))
+            {
+                string genderKey = calf.Gender.ToString();
+                if (!vm.OffspringData.ContainsKey(genderKey)) vm.OffspringData[genderKey] = 0;
+                vm.OffspringData[genderKey]++;
+            }
+
+            var calvingEvents = newborns
+                .GroupBy(c => new { c.MotherEnar, c.BirthDate.Date })
+                .Select(g => new
+                {
+                    IsTwin = g.Count() > 1 || g.Any(c => c.IsTwin),
+                    AnyAlive = g.Any(c => c.IsAlive),
+                    DamAgeGroup = g.First().DamAgeAtCalving ?? "Tehén"
+                });
+
+            foreach (var ev in calvingEvents)
+            {
+                string damGroup = ev.DamAgeGroup;
+                string calvingType = ev.IsTwin ? (ev.AnyAlive ? "Iker" : "Hullaellés") : (ev.AnyAlive ? "Sima" : "Hullaellés");
+
+                if (!vm.CalvingData.ContainsKey(damGroup)) vm.CalvingData[damGroup] = new();
+                if (!vm.CalvingData[damGroup].ContainsKey(calvingType)) vm.CalvingData[damGroup][calvingType] = 0;
+                vm.CalvingData[damGroup][calvingType]++;
+            }
+
+            // 4. ÁLLOMÁNY ZÁRÓ (Szűréssel kiegészítve)
+            var inventory = await _context.Cattles
+                .Where(c => c.IsActive || (c.ExitDate > endDate))
+                .Where(c => companyIds.Contains(c.CompanyId)) // Csak a szűrt cégek állománya
+                .ToListAsync();
+
+            foreach (var animal in inventory)
+            {
+                string invGroup = (animal.AgeGroup == "Tehén") ? "Tehén" : "Növendék";
+                if (!vm.InventoryData.ContainsKey(animal.CompanyId)) vm.InventoryData[animal.CompanyId] = new();
+                if (!vm.InventoryData[animal.CompanyId].ContainsKey(invGroup)) vm.InventoryData[animal.CompanyId][invGroup] = 0;
+                vm.InventoryData[animal.CompanyId][invGroup]++;
+            }
+
+            // 5. TERMÉKENYÍTÉS
+            var inseminations = await _context.SemenTransactions
+                .Where(t => t.Date >= startDate && t.Date <= endDate && t.Type == TransactionType.Insemination)
+                .Join(_context.Cattles,
+                      ins => ins.CattleEarTag,
+                      c => c.EarTag,
+                      (ins, c) => new { ins, c.AgeGroup })
+                .ToListAsync();
+
+            foreach (var item in inseminations)
+            {
+                string group = (item.AgeGroup == "Tehén") ? "Tehén" : "Üsző";
+                if (!vm.InseminationData.ContainsKey(group)) vm.InseminationData[group] = 0;
+                vm.InseminationData[group]++;
+            }
+
+            return vm;
+        }
+        [HttpGet]
+        public async Task<IActionResult> MonthlyInventorySummary(int? year, int? month, int? companyId)
+        {
+            int rYear = year ?? DateTime.Now.Year;
+            int rMonth = month ?? DateTime.Now.Month;
+
+            // 1. Lekérjük az adatokat. 
+            // FONTOS: A GetMonthlyClosingData-ban a vm.Companies-be csak a szűrt cég(ek) kerülnek!
+            var vm = await GetMonthlyClosingData(rYear, rMonth, companyId);
+
+            // 2. A szűrőhöz (legördülőhöz) külön lekérjük az ÖSSZES céget
+            // Így a szűrőben mindig választható lesz bármelyik cég
+            ViewBag.AllCompaniesForFilter = await _context.Companies.OrderBy(c => c.Name).ToListAsync();
+
+            vm.SelectedCompanyId = companyId;
+
+            return View("MonthlyClosing", vm);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> OffspringLog(int? year, int? month, int? companyId)
+        {
+            int rYear = year ?? DateTime.Now.Year;
+            int rMonth = month ?? DateTime.Now.Month;
+
+            var vm = await GetOffspringLogData(rYear, rMonth, companyId);
+            ViewBag.AllCompaniesForFilter = await _context.Companies.OrderBy(c => c.Name).ToListAsync();
+
+            return View(vm);
+        }
+
+        private async Task<OffspringLogVm> GetOffspringLogData(int year, int month, int? companyId)
+        {
+            DateTime startDate = new DateTime(year, month, 1);
+            DateTime endDate = startDate.AddMonths(1).AddDays(-1);
+
+            var vm = new OffspringLogVm { Year = year, Month = month, SelectedCompanyId = companyId };
+
+            // Borjak lekérése az adott időszakban
+            var calvesQuery = _context.Cattles
+                .Where(c => c.BirthDate >= startDate && c.BirthDate <= endDate)
+                .AsQueryable();
+
+            if (companyId.HasValue)
+            {
+                calvesQuery = calvesQuery.Where(c => c.CompanyId == companyId);
+            }
+
+            var calves = await calvesQuery.ToListAsync();
+
+            // Anyák adatainak kikeresése (Fülszám az ENAR alapján)
+            var motherEnars = calves.Where(c => !string.IsNullOrEmpty(c.MotherEnar))
+                                    .Select(c => c.MotherEnar).Distinct().ToList();
+
+            var mothers = await _context.Cattles
+                .Where(c => motherEnars.Contains(c.EnarNumber))
+                .ToDictionaryAsync(c => c.EnarNumber, c => c.EarTag);
+
+            foreach (var calf in calves)
+            {
+                vm.Entries.Add(new OffspringEntry
+                {
+                    BirthDate = calf.BirthDate,
+                    CalfEarTag = calf.EarTag,
+                    CalfEnar = calf.EnarNumber,
+                    CalfGender = calf.Gender,
+                    BirthWeight = calf.BirthWeight,
+                    MotherEnar = calf.MotherEnar ?? "Nincs adat",
+                    MotherEarTag = (!string.IsNullOrEmpty(calf.MotherEnar) && mothers.ContainsKey(calf.MotherEnar))
+                                   ? mothers[calf.MotherEnar]
+                                   : "Ismeretlen"
+                });
+            }
+
+            return vm;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportOffspringLogToExcel(int year, int month, int? companyId)
+        {
+            var vm = await GetOffspringLogData(year, month, companyId);
+
+            using (var workbook = new XLWorkbook())
+            {
+                var ws = workbook.Worksheets.Add("Szaporulati Napló");
+
+                // Cím
+                ws.Cell(1, 1).Value = $"SZAPORULATI NAPLÓ - {year}. {month:D2}";
+                ws.Range(1, 1, 1, 7).Merge().Style.Font.SetBold().Font.FontSize = 14;
+
+                // Fejléc
+                string[] headers = { "Születés dátuma", "Anya fülszám", "Anya ENAR", "Borjú fülszám", "Borjú ENAR", "Ivar", "Súly (kg)" };
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    var cell = ws.Cell(3, i + 1);
+                    cell.Value = headers[i];
+                    cell.Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightGray);
+                    cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                }
+
+                // Adatok
+                int row = 4;
+                foreach (var entry in vm.Entries.OrderBy(e => e.BirthDate))
+                {
+                    ws.Cell(row, 1).Value = entry.BirthDate;
+                    ws.Cell(row, 2).Value = entry.MotherEarTag;
+                    ws.Cell(row, 3).Value = entry.MotherEnar;
+                    ws.Cell(row, 4).Value = entry.CalfEarTag;
+                    ws.Cell(row, 5).Value = entry.CalfEnar;
+                    ws.Cell(row, 6).Value = entry.CalfGender.ToString();
+                    ws.Cell(row, 7).Value = entry.BirthWeight;
+
+                    ws.Range(row, 1, row, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    row++;
+                }
+
+                ws.Columns().AdjustToContents();
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Szaporulati_Naplo_{year}_{month}.xlsx");
                 }
             }
         }

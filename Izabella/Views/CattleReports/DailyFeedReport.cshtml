@@ -1,0 +1,118 @@
+﻿@model Izabella.Models.ViewModels.FeedReportVm
+
+<div class="card shadow mt-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between">
+        <h5><i class="fas fa-calculator me-2"></i>Napi Korcsoportos Takarmányozási Riport</h5>
+        <a asp-action="ExportDailyFeedReportToExcel" 
+           asp-route-year="@Model.Year" 
+           asp-route-month="@Model.Month" 
+           asp-route-companyId="@Model.SelectedCompanyId" 
+           class="btn btn-success btn-sm">
+            <i class="fas fa-file-excel me-1"></i> Excel Mentés
+        </a>
+    </div>
+    <div class="card-body">
+        <form asp-action="DailyFeedReport" method="get" class="row g-3 mb-4 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Év</label>
+                <input type="number" name="year" value="@Model.Year" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-bold">Hónap</label>
+                <select name="month" class="form-select">
+                    @for (int i = 1; i <= 12; i++) {
+                        <option value="@i" selected="@(i == Model.Month)">@i.ToString("00")</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-bold">Tenyészet / Cég</label>
+                <select name="companyId" class="form-select" asp-items="@(new SelectList(Model.Companies, "Id", "Name", Model.SelectedCompanyId))">
+                    <option value="">-- Összes állomány --</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Lekérés</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm text-center" style="font-size: 0.85rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th rowspan="2" class="align-middle" style="min-width: 150px;">Korcsoport</th>
+                        @for (int d = 1; d <= Model.DaysInMonth; d++)
+                        {
+                            <th colspan="2">@d.</th>
+                        }
+                        <th rowspan="2" class="align-middle bg-warning text-dark">Etetési napok</th>
+                    </tr>
+                    <tr>
+                        @for (int d = 1; d <= Model.DaysInMonth; d++)
+                        {
+                            <th class="small">db</th>
+                            <th class="small">kg</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in Model.AgeGroups)
+                    {
+                         <tr>
+                            <td class="text-start fw-bold">@group</td>
+                            @if (Model.RowData.ContainsKey(group))
+                            {
+                                @foreach (var stat in Model.RowData[group])
+                                {
+                                    <td>@(stat.Count > 0 ? stat.Count.ToString() : "-")</td>
+                                    <td class="text-muted">@(stat.TotalWeight > 0 ? stat.TotalWeight.ToString("N0") : "-")</td>
+                                }
+                                <td class="fw-bold bg-light">
+                                    @Model.RowData[group].Sum(x => x.Count).ToString("N0")
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-responsive { max-height: 700px; overflow-x: auto; }
+    table th { position: sticky; top: 0; background: #f8f9fa; z-index: 10; }
+    table td:first-child, table th:first-child { position: sticky; left: 0; background: #fff; z-index: 11; }
+
+    /* A táblázat konténere */
+.report-container {
+    max-height: 80vh;
+    overflow: auto;
+    border: 1px solid #dee2e6;
+}
+
+/* Az első oszlop (Korcsoport neve) rögzítése */
+.report-table td:first-child, 
+.report-table th:first-child {
+    position: sticky;
+    left: 0;
+    background-color: #f8f9fa;
+    z-index: 5;
+    border-right: 2px solid #dee2e6;
+    font-weight: bold;
+}
+
+/* A fejléc rögzítése görgetésnél */
+.report-table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #343a40;
+    color: white;
+    z-index: 6;
+}
+
+/* Külön zindex a bal felső saroknak, ahol a fejléc és az első oszlop találkozik */
+.report-table thead th:first-child {
+    z-index: 10;
+}
+</style>

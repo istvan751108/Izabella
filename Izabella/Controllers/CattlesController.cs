@@ -1,5 +1,6 @@
 ﻿using Izabella.Models;
 using Izabella.Models.ViewModels;
+using Izabella.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
@@ -20,10 +22,11 @@ namespace Izabella.Controllers
     public class CattlesController : Controller
     {
         private readonly IzabellaDbContext _context;
-
-        public CattlesController(IzabellaDbContext context)
+        private readonly IStatService _statService; // <--- ÚJ MEZŐ
+        public CattlesController(IzabellaDbContext context, IStatService statService)
         {
             _context = context;
+            _statService = statService;
         }
 
         // GET: Cattles
@@ -118,6 +121,9 @@ namespace Izabella.Controllers
             {
                 // Létrehozunk egy új állatot
                 _context.Add(cattle);
+
+                // STATISZTIKA FRISSÍTÉSE
+                await _statService.UpdateDailyStatAsync(cattle.BirthDate, cattle.CompanyId, cattle.AgeGroup, 1, cattle.BirthWeight);
 
                 // Az ID helyett a Cattle objektumot rendeljük hozzá
                 var history = new AnimalHistory
@@ -270,6 +276,10 @@ namespace Izabella.Controllers
             var cattle = await _context.Cattles.FindAsync(id);
             if (cattle == null) return NotFound();
 
+            // STATISZTIKA FRISSÍTÉSE: Kivonjuk az állatot az eddigi csoportjából
+            // Negatív értékeket küldünk, mert csökken az állomány
+            await _statService.UpdateDailyStatAsync(exitDate, cattle.CompanyId, cattle.AgeGroup, -1, -cattle.CurrentWeight);
+
             cattle.IsActive = false;
             cattle.IsAlive = false;
             cattle.ExitDate = exitDate;
@@ -319,9 +329,9 @@ namespace Izabella.Controllers
             string weightMode,
             double? commonWeightValue,
             Dictionary<int, double> individualWeights,
-            string changeWeight,     // bool helyett string
-            string changeAgeGroup,   // bool helyett string
-            string changeLocation,   // bool helyett string
+            string changeWeight,    
+            string changeAgeGroup,   
+            string changeLocation,   
             string newAgeGroup,
             int? newHerdId,
             string stallName)
@@ -348,6 +358,8 @@ namespace Izabella.Controllers
             {
                 // Elmentjük az eredeti állapotot a naplózáshoz
                 string oldAgeGroup = cattle.AgeGroup;
+                string oldGroup = cattle.AgeGroup;
+                double oldWeight = cattle.CurrentWeight;
                 int? oldHerdId = cattle.CurrentHerdId;
                 string oldStall = cattle.Stall;
 
@@ -387,8 +399,6 @@ namespace Izabella.Controllers
                     // Ha még sosem volt mérve, de van születési súlya, induljunk onnan
                     if (cattle.CurrentWeight <= 0 && cattle.BirthWeight > 0)
                         cattle.CurrentWeight = cattle.BirthWeight;
-
-                    double oldWeight = cattle.CurrentWeight;
 
                     if (weightMode == "fixed" && commonWeightValue.HasValue)
                         cattle.CurrentWeight = commonWeightValue.Value;
@@ -444,8 +454,22 @@ namespace Izabella.Controllers
                 successCount++;
                 _context.Update(cattle); // Biztosítjuk a frissítést
                 _context.AnimalHistories.Add(history);
-            }
+                if (isAgeChange)
+                {
+                    // 1. Kivonjuk a RÉGI csoportból a RÉGI súllyal
+                    await _statService.UpdateDailyStatAsync(moveDate, cattle.CompanyId, oldGroup, -1, -oldWeight);
 
+                    // 2. Hozzáadjuk az ÚJ csoporthoz az ÚJ súllyal
+                    await _statService.UpdateDailyStatAsync(moveDate, cattle.CompanyId, cattle.AgeGroup, 1, cattle.CurrentWeight);
+                }
+                else if (isWeightChange)
+                {
+                    // Ha CSAK a súly változott (pl. mérés), akkor a darabszám nem változik (0), 
+                    // csak a súlykülönbözetet adjuk hozzá az aktuális csoporthoz.
+                    double weightDiff = cattle.CurrentWeight - oldWeight;
+                    await _statService.UpdateDailyStatAsync(moveDate, cattle.CompanyId, cattle.AgeGroup, 0, weightDiff);
+                }
+            }
             if (successCount > 0)
             {
                 await _context.SaveChangesAsync();

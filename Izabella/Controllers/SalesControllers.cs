@@ -1,5 +1,6 @@
 ﻿using Izabella.Models;
 using Izabella.Models.ViewModels;
+using Izabella.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -16,10 +17,12 @@ namespace Izabella.Controllers
     public partial class SalesController : Controller
     {
         private readonly IzabellaDbContext _context;
+        private readonly IStatService _statService;
 
-        public SalesController(IzabellaDbContext context)
+        public SalesController(IzabellaDbContext context, IStatService statService)
         {
             _context = context;
+            _statService = statService;
         }
 
         // GET: Sales/Index - Az értékesítési napló
@@ -130,6 +133,16 @@ namespace Izabella.Controllers
                 cattle.ExitDate = saleDate;
                 cattle.ExitType = (ExitType)saleType;
                 if (saleType == SaleType.Slaughter) cattle.IsAlive = false;
+
+                // --- STATISZTIKA FRISSÍTÉSE ---
+                // Az állat kikerül a saját korcsoportjából az eladás napjától
+                await _statService.UpdateDailyStatAsync(
+                    saleDate,
+                    cattle.CompanyId,
+                    cattle.AgeGroup,
+                    -1,
+                    -(double)cattle.CurrentWeight
+                );
 
                 _context.SaleTransactions.Add(transaction);
             }
@@ -414,32 +427,69 @@ namespace Izabella.Controllers
         [HttpPost]
         public async Task<IActionResult> UndoReport(int id)
         {
+            // Lekérjük a tranzakciót az állat és a vevő adataival együtt
             var transaction = await _context.SaleTransactions
+                .Include(t => t.Cattle)
+                .Include(t => t.Customer)
                 .FirstOrDefaultAsync(t => t.Id == id);
 
             if (transaction == null) return NotFound();
+            if (transaction.Cattle == null) return BadRequest("A tranzakcióhoz tartozó állat nem található!");
 
-            // 1. Csak a jelentési státuszt állítjuk vissza
-            transaction.IsReported = false;
-
-            // 2. Opcionális: Ha a sorszámot is vissza akarod görgetni a marhánál, 
-            // mert az XML generáláskor növelted:
-            var cattle = await _context.Cattles.FirstOrDefaultAsync(c => c.Id == transaction.CattleId);
-            if (cattle != null && cattle.PassportNumber == "Kérve")
+            using (var dbTransaction = await _context.Database.BeginTransactionAsync())
             {
-                // Csak akkor nyúlunk hozzá, ha még mindig ebben a "köztes" állapotban van
-                if (cattle.PassportSequence > 1) cattle.PassportSequence -= 1;
+                try
+                {
+                    var cattle = transaction.Cattle;
+                    DateTime saleDate = transaction.SaleDate;
 
-                // Itt döntened kell: ha visszavonod a jelentést, az állat 
-                // technikailag még a régi helyén van az adatbázis szerint? 
-                // Ha igen, akkor:
-                // cattle.PassportNumber = "Visszavont"; 
+                    // 1. ÁLLAT ÁLLAPOTÁNAK VISSZAÁLLÍTÁSA
+                    cattle.IsActive = true;
+                    cattle.ExitDate = null;
+                    cattle.ExitType = null;
+                    cattle.IsAlive = true; // Ha esetleg vágás (Slaughter) volt, újra élve jelöljük
+
+                    _context.Update(cattle);
+
+                    // 2. STATISZTIKA HELYREÁLLÍTÁSA (Visszaadjuk az állatot a napi állományba)
+                    // Az eladáskor levontunk 1 db-ot és a súlyát, most ezt visszaadjuk (+1 db és +súly)
+                    await _statService.UpdateDailyStatAsync(
+                        saleDate,
+                        cattle.CompanyId,
+                        cattle.AgeGroup,
+                        1,
+                        (double)cattle.CurrentWeight
+                    );
+
+                    // 3. ANIMALHISTORY BEJEGYZÉS TÖRÖLÉSE
+                    // Megkeressük a tranzakcióhoz kapcsolódó eladási vagy vágási bejegyzést
+                    string historyType = (transaction.Type == SaleType.Slaughter) ? "Vágás" : "Értékesítés";
+                    var historyToRemove = await _context.AnimalHistories
+                        .FirstOrDefaultAsync(h => h.CattleId == cattle.Id &&
+                                                  h.EventDate.Date == saleDate.Date &&
+                                                  h.Type == historyType);
+
+                    if (historyToRemove != null)
+                    {
+                        _context.AnimalHistories.Remove(historyToRemove);
+                    }
+
+                    // 4. ÉRTÉKESÍTÉSI TRANZAKCIÓ TÖRÖLÉSE (vagy IsActive = false, ha puha törlést használtok, de itt a fizikai törlés a legtisztább)
+                    _context.SaleTransactions.Remove(transaction);
+
+                    // Mentés és tranzakció véglegesítése
+                    await _context.SaveChangesAsync();
+                    await dbTransaction.CommitAsync();
+
+                    TempData["Success"] = $"A(z) {cattle.EarTag} füljelű állat értékesítése sikeresen vissza lett vonva. Az állat újra aktív, a statisztika frissült.";
+                }
+                catch (Exception ex)
+                {
+                    await dbTransaction.RollbackAsync();
+                    TempData["Error"] = "Hiba történt a visszavonás során: " + ex.Message;
+                }
             }
 
-            _context.Update(transaction);
-            await _context.SaveChangesAsync();
-
-            // Visszatérünk a listához - most már újra ott lesz a checkbox!
             return RedirectToAction(nameof(MonthlyReport));
         }
         [HttpPost]
@@ -547,6 +597,11 @@ namespace Izabella.Controllers
 
                             foreach (var cattle in selectedCattle)
                             {
+                                // Mentjük az eredeti adatokat a statisztikához, mielőtt felülírjuk az objektumban
+                                var oldCompanyId = cattle.CompanyId;
+                                var oldAgeGroup = cattle.AgeGroup;
+                                var currentWeight = (double)cattle.CurrentWeight;
+
                                 cattle.PassportNumber = "Kérve";
                                 cattle.PassportSequence += 1;
                                 cattle.CurrentHerdId = targetHerd.Id;
@@ -558,6 +613,14 @@ namespace Izabella.Controllers
                                 // Navigációs tulajdonságok ürítése a mentéshez
                                 cattle.CurrentHerd = null;
                                 cattle.Company = null;
+
+                                // --- STATISZTIKA FRISSÍTÉSE ---
+
+                                // 1. Levonás a régi tulajdonostól
+                                await _statService.UpdateDailyStatAsync(moveDate, oldCompanyId, oldAgeGroup, -1, -currentWeight);
+
+                                // 2. Hozzáadás az új tulajdonoshoz
+                                await _statService.UpdateDailyStatAsync(moveDate, targetCompanyId, oldAgeGroup, 1, currentWeight);
 
                                 _context.Attach(cattle);
                                 _context.Entry(cattle).State = EntityState.Modified;

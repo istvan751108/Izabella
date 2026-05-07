@@ -1,0 +1,104 @@
+﻿@model Izabella.Models.ViewModels.OffspringLogVm
+
+<div class="container-fluid shadow p-4 mt-3 bg-white">
+    <div class="card mb-4 border-primary">
+        <div class="card-body bg-light">
+            <h3 class="text-primary mb-3">
+                <i class="fas fa-clipboard-list me-2"></i>Szaporulati Napló: @Model.Year. @Model.Month.
+            </h3>
+            
+            @* SZŰRŐ FORM *@
+            <form asp-controller="CattleReports" asp-action="OffspringLog" method="get" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Év</label>
+                    <input type="number" name="year" value="@Model.Year" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Hónap</label>
+                    <select name="month" class="form-select">
+                        @for (int i = 1; i <= 12; i++)
+                        {
+                            <option value="@i" selected="@(i == Model.Month)">@i.ToString("00")</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Tenyészet / Cég</label>
+                    <select name="companyId" class="form-select"
+                            asp-items="@(new SelectList(ViewBag.AllCompaniesForFilter, "Id", "Name", Model.SelectedCompanyId))">
+                        <option value="">-- Összes állomány --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i> Szűrés
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a asp-controller="CattleReports"
+                           asp-action="ExportOffspringLogToExcel"
+                           asp-route-year="@Model.Year"
+                           asp-route-month="@Model.Month"
+                           asp-route-companyId="@Model.SelectedCompanyId"
+                           class="btn btn-success w-100">
+                        <i class="fas fa-file-excel me-1"></i> Excel mentés
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @* ADATTÁBLÁZAT *@
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white fw-bold">
+            Részletes adatok (@Model.Entries.Count db bejegyzés)
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-bordered table-sm mb-0">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>Születés ideje</th>
+                        <th class="bg-secondary bg-opacity-25 text-dark">Anya fülszám</th>
+                        <th class="bg-secondary bg-opacity-25 text-dark">Anya ENAR</th>
+                        <th>Borjú fülszám</th>
+                        <th>Borjú ENAR</th>
+                        <th>Ivar</th>
+                        <th>Súly (kg)</th>
+                    </tr>
+                </thead>
+                <tbody class="text-center">
+                    @if (Model.Entries.Any())
+                    {
+                        foreach (var entry in Model.Entries.OrderBy(e => e.BirthDate))
+                        {
+                            <tr>
+                                <td>@entry.BirthDate.ToString("yyyy. MM. dd.")</td>
+                                <td class="fw-bold">@entry.MotherEarTag</td>
+                                <td class="small">@entry.MotherEnar</td>
+                                <td class="fw-bold text-primary">@entry.CalfEarTag</td>
+                                <td class="small">@entry.CalfEnar</td>
+                                <td>
+                                    @if (entry.CalfGender == Izabella.Models.Gender.Bika)
+                                    {
+                                        <span class="badge bg-info text-dark">Bika</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Üsző</span>
+                                    }
+                                </td>
+                                <td>@entry.BirthWeight.ToString("N1")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-muted py-4">Nincs adat a megadott időszakra.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

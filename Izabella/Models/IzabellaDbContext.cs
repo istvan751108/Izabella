@@ -34,6 +34,7 @@ public class IzabellaDbContext : IdentityDbContext
     public DbSet<InseminationLog> InseminationLogs { get; set; }
     public DbSet<SemenTransaction> SemenTransactions { get; set; }
     public DbSet<SupportFormConfig> SupportFormConfigs { get; set; }
+    public DbSet<DailyStat> DailyStats { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
