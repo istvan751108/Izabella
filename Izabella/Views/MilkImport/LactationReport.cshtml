@@ -1,0 +1,108 @@
+﻿@model LactationReportViewModel
+
+<div class="card shadow mb-4 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Év</label>
+                <input type="number" name="year" class="form-control" value="@Model.SelectedMonth.Year" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Hónap</label>
+                <select name="month" class="form-select">
+                    <option value="">-- Egész év --</option>
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        <option value="@i" selected="@(!Model.IsYearlyView && Model.SelectedMonth.Month == i)">
+                            @System.Globalization.DateTimeFormatInfo.CurrentInfo.GetMonthName(i)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Lekérés</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-6 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    @(Model.IsYearlyView ? $"{Model.SelectedMonth.Year}. évi" : Model.SelectedMonth.ToString("yyyy. MMMM"))
+                    állomány összetétel laktáció szerint
+                </h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Laktáció</th>
+                            <th>Létszám (db)</th>
+                            <th>Arány (%)</th>
+                            <th>Átlagtermelés (kg/nap)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var group in Model.Groups)
+                        {
+                            <tr>
+                                <td>@group.LactationNumber. laktáció</td>
+                                <td>@group.Count db</td>
+                                <td>@group.Percentage.ToString("N1") %</td>
+                                <td>@group.AvgDailyYield.ToString("N1") kg</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-secondary fw-bold">
+                        <tr>
+                            <td>Összesen:</td>
+                            <td>@Model.TotalCows db</td>
+                            <td>100%</td>
+                            <td>@((Model.Groups.Any() ? Model.Groups.Average(g => g.AvgDailyYield) : 0).ToString("N1")) kg</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Megoszlás szemléltetése</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="lactationPieChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('lactationPieChart').getContext('2d');
+        const data = {
+        labels: @Html.Raw(Json.Serialize(Model.Groups.Select(g => g.LactationNumber + ". laktáció"))),
+        datasets: [{
+        data: @Html.Raw(Json.Serialize(Model.Groups.Select(g => g.Count))),
+        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'],
+        hoverBorderColor: "rgba(234, 236, 244, 1)",
+        }]
+        };
+
+        new Chart(ctx, {
+        type: 'pie',
+        data: data,
+        options: {
+        maintainAspectRatio: false,
+        plugins: {
+        legend: { position: 'bottom' }
+        }
+        }
+        });
+    </script>
+}

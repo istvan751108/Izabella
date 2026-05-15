@@ -12,6 +12,9 @@ namespace Izabella.Models
         [Display(Name = "Név")]
         public string Name { get; set; }
 
+        [Display(Name = "Inszeminátor kód")]
+        public string? InseminatorCode { get; set; }
+
         [Display(Name = "Szerepkör")]
         public StaffRole Role { get; set; }
 

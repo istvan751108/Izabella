@@ -18,11 +18,23 @@ namespace Izabella.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Staff person)
         {
+            // Extra validáció: Ha inszeminátor, kötelező a kód
+            if (person.Role == StaffRole.Inszeminátor && string.IsNullOrWhiteSpace(person.InseminatorCode))
+            {
+                ModelState.AddModelError("InseminatorCode", "Az inszeminátor kód megadása kötelező ebben a szerepkörben!");
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(person);
                 await _context.SaveChangesAsync();
                 TempData["Success"] = $"{person.Name} hozzáadva a listához.";
+            }
+            else
+            {
+                // Ha hiba van, visszaadjuk a listát a hibaüzenetekkel
+                var staff = await _context.Staffs.OrderBy(s => s.Role).ThenBy(s => s.Name).ToListAsync();
+                return View("Index", staff);
             }
             return RedirectToAction(nameof(Index));
         }

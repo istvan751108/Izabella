@@ -4,217 +4,486 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Izabella</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/lib/font-awesome/css/all.min.css" />
+
     <style>
-        body { padding-top: 70px; background-color: #f4f7f6; }
-        .navbar { background-color: #2c3e50 !important; }
-        .nav-link { font-weight: 500; color: white !important; margin-right: 15px; }
-        .nav-link:hover { color: #3498db !important; }
-        .dropdown-menu { background-color: #2c3e50; border: 1px solid #34495e; }
-        .dropdown-item { color: white; }
-        .dropdown-item:hover { background-color: #3498db; color: white; }
-        /* Tömörebb menü közepes és nagy felbontás között (992px - 1400px) */
-        @@media (min-width: 992px) and (max-width: 1400px) {
-            .nav-link {
-                padding-left: 5px !important;
-                padding-right: 5px !important;
-                margin-right: 4px !important;
-                font-size: 0.8rem; /* Kicsit kisebb betű, hogy beférjen */
-            }
-    
-            .navbar-brand {
-                margin-right: 2rem !important; /* Fix távolság a logó után */
-                padding-left: 0;
+            body {
+                background-color: #f4f7f6;
+                overflow-x: hidden;
             }
 
-            /* Az ikonok melletti távolság csökkentése */
-            .nav-link i {
-                margin-right: 3px !important;
+            .sidebar {
+                width: 300px;
+                height: 100vh;
+                position: fixed;
+                left: 0;
+                top: 0;
+                background: #2c3e50;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 2px 0 10px rgba(0,0,0,.15);
             }
-        }
-        /* Ha extra széles a képernyő, ne engedjük túl messzire szaladni a menüt, 
-        de maradjon meg a balra zárt jelleg */
-        @@media (min-width: 1600px) {
-            .container-fluid {
-                max-width: 95%; 
-            }
-        }
-        /* Biztonsági tartalék: ha még így is szűkös lenne (pl. 13-as laptopon) */
-        @@media (max-width: 1350px) {
-            .nav-link {
-                margin-right: 3px !important;
-                font-size: 0.85rem !important;
-            }
-        }
 
-        /* Fix: A dropdown-ok láthatóságának biztosítása */
-        .navbar-collapse {
-            overflow: visible !important; 
-        }
+            .brand {
+                display: block;
+                padding: 20px;
+                color: white;
+                font-size: 1.35rem;
+                font-weight: bold;
+                text-decoration: none;
+                backdrop-filter: blur(10px);
+                background: rgba(26, 37, 47, 0.85); /* Áttetszőbbé tesszük */
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
+            }
+
+                .brand i {
+                    color: #3498db; /* Az ikon legyen élénk kék */
+                    text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+                }
+
+            .content {
+                margin-left: 300px;
+                padding: 25px;
+            }
+
+            .accordion-button {
+                background: #2c3e50 !important;
+                color: white !important;
+                box-shadow: none !important;
+                font-weight: 500;
+            }
+
+            .accordion-button, .single-link, .submenu a {
+                transition: all 0.25s ease-in-out !important;
+            }
+                .accordion-button:not(.collapsed) {
+                    background: #34495e !important;
+                }
+
+            .accordion-item {
+                border: none;
+            }
+
+            .menu-label {
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #7f8c8d;
+                padding: 20px 20px 5px 20px;
+                font-weight: bold;
+            }
+
+            .menu-search-container .input-group-text {
+                border-right: none;
+            }
+
+            #menuSearch {
+                border-left: none;
+                font-size: 0.85rem;
+            }
+
+                #menuSearch::placeholder {
+                    color: #7f8c8d;
+                }
+
+            /* Kiemelés, ha találat van */
+            .search-highlight {
+                color: #3498db !important;
+                font-weight: bold;
+                background: rgba(52, 152, 219, 0.1);
+            }
+
+            .submenu {
+                background: #243342;
+            }
+
+                .submenu a {
+                    color: #fff;
+                    text-decoration: none;
+                    padding: 10px 20px 10px 45px;
+                    display: block;
+                    font-size: .92rem;
+                }
+
+                    .submenu a.active {
+                        background: linear-gradient(to right, rgba(52, 152, 219, 0.15), transparent);
+                        color: #3498db;
+                        box-shadow: inset 4px 0 0 #3498db;
+                        border-left: none;
+                        padding-left: 41px; /* A border miatt kicsit korrigáljuk */
+                        font-weight: bold;
+                        position: relative;
+                    }
+
+                        .submenu a.active::before {
+                            content: "";
+                            position: absolute;
+                            left: 0;
+                            top: 15%;
+                            height: 70%;
+                            width: 4px;
+                            background: #3498db;
+                            border-radius: 0 4px 4px 0;
+                            box-shadow: 0 0 10px #3498db;
+                        }
+
+                    .submenu a:hover {
+                        padding-left: 50px; /* Egy pici mozgás befelé, amitől élő lesz */
+                        background: rgba(255,255,255,0.05);
+                        color: #3498db !important;
+                        text-shadow: 0 0 8px rgba(52, 152, 219, 0.4);
+                    }
+
+            .single-link {
+                color: white;
+                padding: 14px 20px;
+                display: block;
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+                .single-link:hover {
+                    background: #34495e;
+                    color: #3498db;
+                }
+
+            @@media(max-width:992px) {
+                .sidebar {
+                    position: relative;
+                    width: 100%;
+                    height: auto;
+                }
+
+                .content {
+                    margin-left: 0;
+                }
+            }
+            /* Sidebar görgetősáv stílusa */
+            .sidebar::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            .sidebar::-webkit-scrollbar-track {
+                background: #2c3e50;
+            }
+
+            .sidebar::-webkit-scrollbar-thumb {
+                background: #455a64;
+                border-radius: 10px;
+            }
+
+                .sidebar::-webkit-scrollbar-thumb:hover {
+                    background: #3498db;
+                }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-xl navbar-dark fixed-top">
-    <div class="container-fluid px-4">
-        <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
+
+    <div class="sidebar">
+
+        <a class="brand" asp-controller="Home" asp-action="Index">
             <i class="bi bi-database-fill-check me-2"></i>IZABELLA DB
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="mainMenu">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door me-2"></i>Főoldal</a>
-                </li>
 
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="cattleDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-clipboard2-data"></i> Állomány kezelés
-                    </a>
-                    <ul class="dropdown-menu shadow dropdown-menu-dark" aria-labelledby="cattleDropdown">
-                        <li><a class="dropdown-item" asp-controller="Cattle" asp-action="Calving"><i class="fa-solid fa-baby-carriage me-2 text-success"></i>Új ellés rögzítése</a></li>
-                        <li><a class="dropdown-item" asp-controller="Cattle" asp-action="GenderChangeList"><i class="bi bi-gender-ambiguous me-2"></i>Borjú nemének megváltoztatása</a></li>
-                        <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Index"><i class="bi bi-list-ul me-2"></i>Aktív Állomány listája</a></li>
-                        <li><a class="dropdown-item" asp-controller="Cattle" asp-action="PassportUpdate"><i class="bi bi-file-earmark-arrow-up me-2"></i>Marhalevél szám feltöltés</a></li>
-                        <li><a class="dropdown-item" asp-controller="Sales" asp-action="Index"><i class="bi bi-journal-arrow-up me-2"></i>Kikerülési napló</a></li>
-                        <li><a class="dropdown-item" asp-controller="Cattles" asp-action="LivestockUnitSummary"><i class="bi bi-calculator me-2"></i>Számos állat lekérdezés</a></li>
-                        <li><a class="dropdown-item" asp-controller="Cattles" asp-action="Movement"><i class="bi bi-arrows-move me-2"></i>Állománymozgatás és Súlymérés</a></li>
-                        <li><a class="dropdown-item" asp-controller="Sales" asp-action="MonthlyReport"><i class="bi bi-building-check me-2"></i>ENAR ügyintézés</a></li>
-                        <li><a class="dropdown-item text-danger" asp-controller="Cattle" asp-action="DeathLogList"><i class="bi bi-exclamation-octagon me-2"></i>Elhullások naplója</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="ExitReport"><i class="fas fa-cow me-2"></i>Havi kikerülések</a></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="ReclassificationReport"><i class="fas fa-repeat me-2"></i>Havi átminősítések</a></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="MonthlyCowInventory"><i class="bi bi-123 me-2"></i>Tehén aktuális db-szám</a></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="DailyFeedReport"><i class="fas fa-calculator me-2"></i>Napi létszám adatok</a></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="MonthlyClosing"><i class="fas fa-lock me-2"></i>Havi Zárási adatok</a></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="OffspringLog"><i class="fa-solid fa-baby me-2"></i>Szaporulati napló</a></li>
-                    </ul>
-                </li>
+        <a class="single-link" asp-controller="Home" asp-action="Index">
+            <i class="bi bi-house-door me-2"></i>Főoldal
+        </a>
 
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="examDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-geo-alt"></i> Helyszíni műveletek
-                    </a>
-                    <ul class="dropdown-menu shadow dropdown-menu-dark">
-                        <li><a class="dropdown-item" asp-controller="BloodTest" asp-action="BloodTestSelector"><i class="bi bi-droplet-fill me-2 text-danger"></i>Vérvizsgálat (Mintavétel)</a></li>
-                        <li><a class="dropdown-item" asp-controller="Weight" asp-action="QuickWeightEntry"><i class="fa-solid fa-weight-hanging me-2"></i>Súlymérés</a></li>
-                        <li><a class="dropdown-item" asp-controller="Inventory" asp-action="Index"><i class="bi bi-box-seam me-2"></i>Leltár</a></li>
-                    </ul>
-                </li>
+        <!-- Csak mobilon látszik -->
+        <div class="d-lg-none bg-dark text-white p-3 d-flex justify-content-between align-items-center">
+            <span>IZABELLA DB</span>
+            <button class="btn btn-outline-light btn-sm" onclick="$('.sidebar').toggleClass('active')">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
 
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="insemDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-calendar-check"></i> Szaporodásbiológia
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-dark shadow">
-                        <li><h6 class="dropdown-header text-info fw-bold">TERMÉKENYÍTÉS</h6></li>
-                        <li><a class="dropdown-item" asp-controller="Insemination" asp-action="Index"><i class="bi bi-plus-circle me-2 text-success"></i>Új rögzítése</a></li>
-                        <li><a class="dropdown-item" asp-controller="Insemination" asp-action="UsageSummary"><i class="bi bi-file-earmark-bar-graph me-2"></i>Felhasználási jelentés</a></li>
-                        <li><a class="dropdown-item" asp-controller="SemenInventory" asp-action="Index"><i class="bi bi-box-seam me-2"></i>Sperma készlet</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><h6 class="dropdown-header text-danger fw-bold">VEMHESSÉGI VIZSGÁLAT</h6></li>
-                        <li><a class="dropdown-item" asp-controller="Pregnancy" asp-action="Index"><i class="bi bi-search me-2 text-danger"></i>Várólista (VEX)</a></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="ExpectedCalvings"><i class="fa-solid fa-venus-mars me-2"></i>Szaporodásbiológiai Riportok</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li> <a class="dropdown-item" asp-controller="Insemination" asp-action="Statistics"> <i class="bi bi-graph-up-arrow me-2 text-info"></i>Statisztika </a> </li>
-                    </ul>
-                </li>
-
-                @if (User.Identity.IsAuthenticated)
-                {
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="manureDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-moisture"></i> Trágyakezelés
-                        </a>
-                        <ul class="dropdown-menu shadow dropdown-menu-dark">
-                            @if (User.IsInRole("Admin"))
-                            {
-                                <li><a class="dropdown-item" asp-controller="Manure" asp-action="Index"><i class="bi bi-plus-square me-2 text-success"></i>Trágya rögzítés</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                            }
-                            <li><a class="dropdown-item" asp-controller="Report" asp-action="Index"><i class="bi bi-table me-2"></i>Havi riport (Táblázatok)</a></li>
-                            <li><a class="dropdown-item" asp-controller="Report" asp-action="Charts"><i class="bi bi-graph-up me-2 text-info"></i>Grafikonok</a></li>
-                        </ul>
-                    </li>
-                }
-
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="supportDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="bi bi-file-earmark-pdf-fill"></i> Támogatások
-                    </a>
-                    <ul class="dropdown-menu shadow dropdown-menu-dark">
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="SlaughterSupportIndex"><i class="bi bi-truck me-2"></i>Vágóhídi (2334)</a></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="PregnantSupportIndex"><i class="bi bi-gender-female me-2"></i>Vemhes üsző (2335)</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" asp-controller="CattleReports" asp-action="EditSupportConfig"><i class="bi bi-sliders me-2"></i>Beállítások</a></li>
-                    </ul>
-                </li>
-
-                @if (User.IsInRole("Admin"))
-                {
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-gear-fill"></i> Admin
-                        </a>
-                        <ul class="dropdown-menu shadow dropdown-menu-dark">
-                            <li><a class="dropdown-item" asp-controller="Companies" asp-action="Index"><i class="bi bi-building me-2"></i>Cégek</a></li>
-                            <li><a class="dropdown-item" asp-controller="Customers" asp-action="Index"><i class="bi bi-people me-2"></i>Vásárlók</a></li>
-                            <li><a class="dropdown-item" asp-controller="Herds" asp-action="Index"><i class="fa-solid fa-map-location-dot me-2"></i>Tenyészetek</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" asp-controller="DeathReasons" asp-action="Index"><i class="bi bi-question-circle me-2"></i>Elhullás okok</a></li>
-                            <li><a class="dropdown-item" asp-controller="SemenInventory" asp-action="Index"><i class="bi bi-database-fill me-2"></i>Sperma készletkezelés</a></li>
-                            <li><a class="dropdown-item" asp-controller="Mating" asp-action="Index"><i class="bi bi-heart-fill me-2 text-danger"></i>Bika párosítási javaslat</a></li>
-                            <li><a class="dropdown-item" asp-controller="Staff" asp-action="Index"><i class="bi bi-person-badge me-2"></i>Inszeminátorok</a></li>
-                            <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users"><i class="bi bi-person-lock me-2"></i>Felhasználók</a></li>
-                        </ul>
-                    </li>
-                }
-            </ul>
-            <div class="navbar-nav">
-                <partial name="_LoginPartial" />
+        <div class="menu-search-container px-3 mb-3">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-dark border-secondary text-secondary">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" id="menuSearch"
+                       class="form-control bg-dark border-secondary text-white shadow-none"
+                       placeholder="Funkció keresése..."
+                       autocomplete="off">
             </div>
         </div>
-    </div>
-</nav>
 
-    <div class="container mt-4">
-        @RenderBody()
-        
-        @* Toast értesítések *@
-        <div class="toast-container position-fixed bottom-0 end-0 p-3">
-            <div id="liveToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="d-flex">
-                    <div class="toast-body" id="toastMessage">Sikeres mentés!</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <div class="accordion" id="sidebarMenu">
+
+            <!-- Állomány kezelés -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#cattleMenu">
+                        <i class="bi bi-clipboard2-data me-2"></i>Állomány kezelés
+                    </button>
+                </h2>
+                <div id="cattleMenu" class="accordion-collapse collapse">
+                    <div class="submenu">
+                        <a asp-controller="Cattle" asp-action="Calving"><i class="fa-solid fa-baby-carriage me-2 text-success"></i>Új ellés rögzítése</a>
+                        <a asp-controller="Cattle" asp-action="GenderChangeList"><i class="bi bi-gender-ambiguous me-2"></i>Borjú nemének megváltoztatása</a>
+                        <a asp-controller="Cattles" asp-action="Index"><i class="bi bi-list-ul me-2"></i>Aktív állomány listája</a>
+                        <a asp-controller="Cattle" asp-action="PassportUpdate"><i class="bi bi-file-earmark-arrow-up me-2"></i>Marhalevél szám feltöltés</a>
+                        <a asp-controller="Sales" asp-action="Index"><i class="bi bi-journal-arrow-up me-2"></i>Kikerülési napló</a>
+                        <a asp-controller="Cattles" asp-action="LivestockUnitSummary"><i class="bi bi-calculator me-2"></i>Számos állat lekérdezés</a>
+                        <a asp-controller="Cattles" asp-action="Movement"><i class="bi bi-arrows-move me-2"></i>Állománymozgatás és Súlymérés</a>
+                        <a asp-controller="Sales" asp-action="MonthlyReport"><i class="bi bi-building-check me-2"></i>ENAR ügyintézés</a>
+                        <a asp-controller="Cattle" asp-action="DeathLogList"><i class="bi bi-exclamation-octagon me-2"></i>Elhullások naplója</a>
+                        <hr class="text-light m-1">
+                        <a asp-controller="CattleReports" asp-action="ExitReport"><i class="fas fa-cow me-2"></i>Havi kikerülések</a>
+                        <a asp-controller="CattleReports" asp-action="ReclassificationReport"><i class="fas fa-repeat me-2"></i>Havi átminősítések</a>
+                        <a asp-controller="CattleReports" asp-action="MonthlyCowInventory"><i class="bi bi-123 me-2"></i>Tehén aktuális db-szám</a>
+                        <a asp-controller="CattleReports" asp-action="DailyFeedReport"><i class="fas fa-calculator me-2"></i>Napi létszám adatok</a>
+                        <a asp-controller="CattleReports" asp-action="MonthlyClosing"><i class="fas fa-lock me-2"></i>Havi zárási adatok</a>
+                        <a asp-controller="CattleReports" asp-action="OffspringLog"><i class="fa-solid fa-baby me-2"></i>Szaporulati napló</a>
+                    </div>
                 </div>
             </div>
+
+            <!-- Laktációs adatok -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#milkMenu">
+                        <i class="fa-solid fa-cow me-2"></i>Laktációs adatok
+                    </button>
+                </h2>
+                <div id="milkMenu" class="accordion-collapse collapse">
+                    <div class="submenu">
+                        <a asp-controller="MilkImport" asp-action="StagingList">
+                            <i class="bi bi-droplet-fill me-2 text-info"></i>Fejési adat import Afimilkből
+                        </a>
+                        <a asp-controller="MilkImport" asp-action="MonthlyPivot">
+                            <i class="bi bi-bar-chart-line me-2"></i>Tejtermelési statisztika
+                        </a>
+                        <a asp-controller="MilkImport" asp-action="LactationReport">
+                            <i class="bi bi-123 me-2"></i>Laktációs szám kimutatás
+                        </a>
+                        <a asp-controller="MilkImport" asp-action="PerformanceReport">
+                            <i class="bi bi-award me-2"></i>Termelési Rangsor és Életteljesítmény
+                        </a>
+                        <a asp-controller="MilkImport" asp-action="YieldDistributionReport">
+                            <i class="bi bi-bar-chart-steps me-2"></i></i>Sávos fejési átlag
+                        </a>
+                        <a asp-controller="Treatment" asp-action="DryOffCandidates">
+                            <i class="bi bi-pause-circle me-2"></i>Szárazra állítás
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Helyszíni műveletek -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#examMenu">
+                        <i class="bi bi-geo-alt me-2"></i>Helyszíni műveletek
+                    </button>
+                </h2>
+                <div id="examMenu" class="accordion-collapse collapse">
+                    <div class="submenu">
+                        <a asp-controller="BloodTest" asp-action="BloodTestSelector"><i class="bi bi-droplet-fill me-2 text-danger"></i>Vérvizsgálat</a>
+                        <a asp-controller="Weight" asp-action="QuickWeightEntry"><i class="fa-solid fa-weight-hanging me-2"></i>Súlymérés</a>
+                        <a asp-controller="Inventory" asp-action="Index"><i class="bi bi-box-seam me-2"></i>Leltár</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Szaporodásbiológia -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#reproMenu">
+                        <i class="bi bi-heart-fill text-danger"></i>Szaporodásbiológia
+                    </button>
+                </h2>
+                <div id="reproMenu" class="accordion-collapse collapse">
+                    <div class="submenu">
+                        <li><h6 class="dropdown-header text-info fw-bold">TERMÉKENYÍTÉS</h6></li>
+                        <a asp-controller="Insemination" asp-action="Index"><i class="bi bi-plus-circle me-2 text-success"></i>Új Új rögzítése</a>
+                        <a asp-controller="Insemination" asp-action="UsageSummary"><i class="bi bi-file-earmark-bar-graph me-2"></i>Felhasználási jelentés</a>
+                        <a asp-controller="SemenInventory" asp-action="Index"><i class="bi bi-box-seam me-2"></i>Sperma készlet</a>
+                        <hr class="text-light m-1">
+                        <li><h6 class="dropdown-header text-danger fw-bold">VEMHESSÉGI VIZSGÁLAT</h6></li>
+                        <a asp-controller="Pregnancy" asp-action="Index"><i class="bi bi-search me-2 text-danger"></i>Várólista (VEX)</a>
+                        <a asp-controller="CattleReports" asp-action="ExpectedCalvings"><i class="fa-solid fa-venus-mars me-2"></i>Szaporodásbiológiai Riportok</a>
+                        <a asp-controller="Insemination" asp-action="InseminationReport"><i class="fas fa-syringe me-2"></i>Termékenyítési napló Befejéshez</a>
+                        <a asp-controller="Insemination" asp-action="Statistics"><i class="bi bi-graph-up-arrow me-2 text-info"></i>Statisztika</a>
+                    </div>
+                </div>
+            </div>
+
+            @if (User.Identity.IsAuthenticated)
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#manureMenu">
+                            <i class="bi bi-moisture me-2"></i>Trágyakezelés
+                        </button>
+                    </h2>
+                    <div id="manureMenu" class="accordion-collapse collapse">
+                        <div class="submenu">
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <a asp-controller="Manure" asp-action="Index"><i class="bi bi-plus-square me-2 text-success"></i>Trágya rögzítés</a>
+                            }
+                            <a asp-controller="Report" asp-action="Index"><i class="bi bi-table me-2"></i>Havi riport</a>
+                            <a asp-controller="Report" asp-action="Charts"><i class="bi bi-graph-up me-2 text-info"></i>Grafikonok</a>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Támogatások -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#supportMenu">
+                        <i class="bi bi-cash-stack text-success"></i>Támogatások
+                    </button>
+                </h2>
+                <div id="supportMenu" class="accordion-collapse collapse">
+                    <div class="submenu">
+                        <a asp-controller="CattleReports" asp-action="SlaughterSupportIndex"><i class="bi bi-truck me-2"></i>Vágóhídi (2334)</a>
+                        <a asp-controller="CattleReports" asp-action="PregnantSupportIndex"><i class="bi bi-gender-female me-2"></i>Vemhes üsző (2335)</a>
+                        <hr class="dropdown-divider">
+                        <a asp-controller="CattleReports" asp-action="EditSupportConfig"><i class="bi bi-sliders me-2"></i>Beállítások</a>
+                    </div>
+                </div>
+            </div>
+
+            @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#adminMenu">
+                            <i class="bi bi-gear-fill text-secondary me-2"></i>Admin
+                        </button>
+                    </h2>
+                    <div id="adminMenu" class="accordion-collapse collapse">
+                        <div class="submenu">
+                            <a asp-controller="Companies" asp-action="Index"><i class="bi bi-building me-2"></i>Cégek</a>
+                            <a asp-controller="Customers" asp-action="Index"><i class="bi bi-people me-2"></i>Vásárlók</a>
+                            <a asp-controller="Herds" asp-action="Index"><i class="fa-solid fa-map-location-dot me-2"></i>Tenyészetek</a>
+                            <a asp-controller="DeathReasons" asp-action="Index"><i class="bi bi-question-circle me-2"></i>Elhullás okok</a>
+                            <a asp-controller="SemenInventory" asp-action="Index"><i class="bi bi-database-fill me-2"></i>Sperma készletkezelés</a>
+                            <a asp-controller="Mating" asp-action="Index"><i class="bi bi-heart-fill me-2 text-danger"></i>Bika párosítási javaslat</a>
+                            <a asp-controller="Staff" asp-action="Index"><i class="bi bi-person-badge me-2"></i>Inszeminátorok</a>
+                            <a asp-controller="Medications" asp-action="Index"><i class="bi bi-capsule-pill me-2"></i>Gyógyszerek</a>
+                            <a asp-controller="Admin" asp-action="Users"><i class="bi bi-person-lock me-2"></i>Felhasználók</a>
+                        </div>
+                    </div>
+                </div>
+            }
+
         </div>
+
+        @if (User.Identity.IsAuthenticated)
+        {
+            <div class="mt-auto p-3 bg-dark-subtle border-top border-secondary">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-person-circle fs-3 text-secondary"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3 overflow-hidden">
+                        <p class="text-white mb-0 small fw-bold text-truncate">@User.Identity.Name</p>
+                        <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                            <button type="submit" class="p-0 btn btn-link text-muted small text-decoration-none border-0">Kijelentkezés</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="mt-auto p-3 border-top border-secondary text-center">
+                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Bejelentkezés
+                </a>
+            </div>
+        }
+
     </div>
+
+    <main class="content">
+        <div class="container-fluid">
+            <div class="card shadow-sm border-0 rounded-3 p-4">
+                @RenderBody()
+            </div>
+        </div>
+    </main>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/tableToExcel.js"></script>
-
     <script>
-        function showToast(message, isError = false) {
-        const toastElement = document.getElementById('liveToast');
-        const toastMessage = document.getElementById('toastMessage');
-        if (!toastElement) return;
+    $(document).ready(function () {
+        // Megkeressük az aktív linket (ASP.NET Core generálja az URL-t)
+        var currentUrl = window.location.pathname;
+    
+        $('.submenu a').each(function () {
+            var linkUrl = $(this).attr('href');
+            if (currentUrl === linkUrl) {
+                $(this).addClass('active');
+                // Kinyitjuk a szülőt (accordion-collapse)
+                $(this).closest('.accordion-collapse').addClass('show');
+                // Megváltoztatjuk a gomb stílusát, hogy ne legyen "collapsed"
+                $(this).closest('.accordion-item').find('.accordion-button').removeClass('collapsed');
+            }
+        });
+                    $('#menuSearch').on('keyup', function () {
+                var value = $(this).val().toLowerCase();
 
-        // Szín beállítása
-        toastElement.classList.remove('bg-success', 'bg-danger');
-        toastElement.classList.add(isError ? 'bg-danger' : 'bg-success');
+                // Ha üres a kereső, zárjuk vissza az összeset, kivéve az eredetileg aktívat
+                if (value === "") {
+                    $('.accordion-collapse').collapse('hide');
+                    // Visszanyitjuk azt, ami ténylegesen aktív az URL alapján (ha van ilyen)
+                    $('.submenu a.active').closest('.accordion-collapse').collapse('show');
+                    $('.accordion-item, .submenu a, .single-link').show();
+                    return;
+                }
 
-        toastMessage.innerText = message;
+                // Szűrjük a szubmenü linkeket
+                $('.submenu a').each(function () {
+                    var text = $(this).text().toLowerCase();
+                    var isMatch = text.indexOf(value) > -1;
+                    $(this).toggle(isMatch);
+                });
 
-        // Autohide beállítása (5000ms = 5 másodperc)
-        const toast = new bootstrap.Toast(toastElement, { delay: 5000, autohide: true });
-        toast.show();
-        }
+                // Szűrjük a főmenü (single-link) elemeket is
+                $('.single-link').each(function () {
+                    var text = $(this).text().toLowerCase();
+                    $(this).toggle(text.indexOf(value) > -1);
+                });
+
+                // Az accordion kategóriák kezelése
+                $('.accordion-item').each(function () {
+                    var hasVisibleChild = $(this).find('.submenu a:visible').length > 0;
+                    var categoryTitle = $(this).find('.accordion-button').text().toLowerCase();
+        
+                    // Ha a kategória nevében van a találat, mutassuk az egészet
+                    if (categoryTitle.indexOf(value) > -1) {
+                        $(this).show();
+                        $(this).find('.submenu a').show();
+                        $(this).find('.accordion-collapse').collapse('show');
+                    }
+                    // Ha csak egy almenüben van találat
+                    else if (hasVisibleChild) {
+                        $(this).show();
+                        $(this).find('.accordion-collapse').collapse('show');
+                    }
+                    // Ha nincs találat sehol az adott kategóriában
+                    else {
+                        $(this).hide();
+                    }
+                });
+            });
+    });
     </script>
+
     @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>

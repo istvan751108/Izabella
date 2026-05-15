@@ -1,0 +1,229 @@
+﻿@using Izabella.Models.ViewModels
+@model YieldDistributionViewModel
+
+<div class="card shadow mb-4 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label fw-bold">Vizsgált év</label>
+                <input type="number" name="year" class="form-control" value="@Model.Year" />
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary me-2">Szűrés</button>
+                <a asp-action="ExportYieldDistributionToExcel" asp-route-year="@Model.Year" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel"></i> Excel Export
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@* 1. Laktációs táblázat *@
+<div class="card shadow mb-5">
+    <div class="card-header py-3 bg-primary text-white">
+        <h6 class="m-0 font-weight-bold">2026. 1. laktációs tehenek fejési átlagának eloszlása</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm m-0 text-center custom-dist-table">
+                <thead class="table-light">
+                    <tr>
+                        <th class="sticky-col">Sáv</th>
+                        @foreach (var m in Model.Months)
+                        {
+                            <th>@m</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in Model.FirstLactationGroups)
+                    {
+                        <tr>
+                            <td class="fw-bold bg-light sticky-col">@g.Bracket</td>
+                            @foreach (var count in g.MonthlyCounts)
+                            {
+                                <td>@(count > 0 ? count.ToString() : "")</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info d-flex align-items-center no-print mt-3 shadow-sm" role="alert">
+    <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+    <div>
+        <strong>Tipp a diagramhoz:</strong> A diagram alatti színes hónapnevekre kattintva
+        <strong>ki- és bekapcsolhatja</strong> az egyes hónapok megjelenítését.
+        Így könnyen összehasonlíthatja például csak a tavaszi vagy az őszi időszakokat.
+    </div>
+</div>
+
+<div class="card shadow mb-5">
+    <div class="card-body">
+        <canvas id="chartFirstLactation" style="height: 350px;"></canvas>
+    </div>
+</div>
+
+@* 2+ Laktációs táblázat *@
+<div class="card shadow mb-5">
+    <div class="card-header py-3 bg-success text-white">
+        <h6 class="m-0 font-weight-bold">2026. 2-nél nagyobb laktációjú tehenek fejési átlagának eloszlása</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm m-0 text-center custom-dist-table">
+                <thead class="table-light">
+                    <tr>
+                        <th class="sticky-col">Sáv</th>
+                        @foreach (var m in Model.Months)
+                        {
+                            <th>@m</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in Model.MultiLactationGroups)
+                    {
+                        <tr>
+                            <td class="fw-bold bg-light sticky-col">@g.Bracket</td>
+                            @foreach (var count in g.MonthlyCounts)
+                            {
+                                <td>@(count > 0 ? count.ToString() : "")</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td class="sticky-col">Összes fejt tehén:</td>
+                        @foreach (var total in Model.TotalCowsByMonth)
+                        {
+                            <td>@total</td>
+                        }
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info d-flex align-items-center no-print mt-3 shadow-sm" role="alert">
+    <i class="bi bi-info-circle-fill me-3 fs-4"></i>
+    <div>
+        <strong>Tipp a diagramhoz:</strong> A diagram alatti színes hónapnevekre kattintva
+        <strong>ki- és bekapcsolhatja</strong> az egyes hónapok megjelenítését.
+        Így könnyen összehasonlíthatja például csak a tavaszi vagy az őszi időszakokat.
+    </div>
+</div>
+
+<div class="card shadow mb-5">
+    <div class="card-body">
+        <canvas id="chartMultiLactation" style="height: 350px;"></canvas>
+    </div>
+</div>
+
+<style>
+    .custom-dist-table {
+        font-size: 0.85rem;
+        table-layout: fixed;
+        width: 100%;
+        min-width: 1000px;
+    }
+
+        .custom-dist-table th, .custom-dist-table td {
+            min-width: 80px;
+            padding: 0.5rem;
+            width: 7.5%;
+            overflow: hidden;
+        }
+
+    /* Ha sok a hónap, a sáv oszlop maradjon rögzítve */
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        z-index: 5;
+        border-right: 2px solid #dee2e6 !important;
+        width: 10% !important;
+        background-color: #f8f9fc;
+    }
+
+    @@media print {
+        .card {
+            border: 1px solid #000;
+            margin-bottom: 20px;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function createChart(canvasId, title, months, groups) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+
+        // 12 különböző szín a hónapokhoz
+        const colors = [
+        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796',
+        '#5a5c69', '#f8f9fc', '#4e73df', '#b533ff', '#ff33b5', '#33ff57'
+        ];
+
+        const datasets = months.map((monthName, index) => ({
+        label: monthName,
+        data: groups.map(g => g.monthlyCounts[index]),
+        backgroundColor: colors[index % colors.length],
+        hidden: false // Alapértelmezettként minden látszik
+        }));
+
+        new Chart(ctx, {
+        type: 'bar',
+        data: {
+        labels: groups.map(g => g.bracket),
+        datasets: datasets
+        },
+
+        options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+        title: { display: true, text: title, font: { size: 16 } },
+        legend: {
+        position: 'bottom',
+        cursor: 'pointer', // Vizuális visszajelzés
+        labels: {
+        boxWidth: 15,
+        padding: 20,
+        usePointStyle: true // Kicsit modernebb megjelenés (körök a négyzetek helyett)
+        },
+        onHover: (event, legendItem, legend) => {
+        event.native.target.style.cursor = 'pointer';
+        },
+        onLeave: (event, legendItem, legend) => {
+        event.native.target.style.cursor = 'default';
+        }
+        },
+        tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Állatok száma (db)' } },
+        x: { title: { display: true, text: 'Fejési sávok (kg)' } }
+        }
+        }
+        });
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+        const months = @Html.Raw(Json.Serialize(Model.Months));
+        const firstGroups = @Html.Raw(Json.Serialize(Model.FirstLactationGroups));
+        const multiGroups = @Html.Raw(Json.Serialize(Model.MultiLactationGroups));
+
+        createChart('chartFirstLactation', '1. laktációs tehenek eloszlása', months, firstGroups);
+        createChart('chartMultiLactation', '2+ laktációs tehenek eloszlása', months, multiGroups);
+        });
+    </script>
+}

@@ -7,9 +7,13 @@
         <div class="card-body bg-light">
             <h5 class="card-title">Új munkatárs hozzáadása</h5>
             <form asp-action="Create" method="post" class="row g-3 align-items-end">
-                <div class="col-md-5">
+                <div class="col-md-3">
                     <label class="form-label small fw-bold">Név</label>
-                    <input name="Name" class="form-control" placeholder="Pl. Kovács János" required />
+                    <input name="Name" class="form-control" required />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Insz. kód</label>
+                    <input name="InseminatorCode" class="form-control" placeholder="Pl. 12345" />
                 </div>
                 <div class="col-md-4">
                     <label class="form-label small fw-bold">Szerepkör</label>
@@ -25,6 +29,7 @@
     </div>
 
     <div class="row">
+        @* INSZEMINÁTOROK *@
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-primary text-white fw-bold">
@@ -34,15 +39,24 @@
                     @foreach (var s in Model.Where(x => x.Role == StaffRole.Inszeminátor))
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center @(s.IsActive ? "" : "bg-light opacity-75")">
-                            <span class="@(s.IsActive ? "fw-bold" : "text-decoration-line-through text-muted")">@s.Name</span>
-                            <div class="btn-group">
-                                <form asp-action="ToggleStatus" asp-route-id="@s.Id" method="post">
+                            <div>
+                                <span class="@(s.IsActive ? "fw-bold" : "text-decoration-line-through text-muted")">@s.Name</span>
+                                <br />
+                                <small class="text-muted">Kód: @(string.IsNullOrEmpty(s.InseminatorCode) ? "???" : s.InseminatorCode)</small>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                @* Állapotváltó *@
+                                <form asp-action="ToggleStatus" asp-route-id="@s.Id" method="post" class="me-1">
                                     <button type="submit" class="btn btn-sm @(s.IsActive ? "btn-outline-warning" : "btn-outline-success")">
-                                        @(s.IsActive ? "Inaktivál" : "Aktivál")
+                                        <i class="bi bi-power"></i>
                                     </button>
                                 </form>
-                                <form asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Törlöd a listáról?')">
-                                    <button type="submit" class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button>
+                            
+                                @* Törlés *@
+                                <form asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Biztosan törlöd @s.Name nevű munkatársat?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </form>
                             </div>
                         </li>
@@ -51,6 +65,7 @@
             </div>
         </div>
 
+        @* JELÖLŐK - hasonlót ide is, hogy szimmetrikus legyen *@
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-info text-white fw-bold">
@@ -61,14 +76,14 @@
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center @(s.IsActive ? "" : "bg-light opacity-75")">
                             <span class="@(s.IsActive ? "fw-bold" : "text-decoration-line-through text-muted")">@s.Name</span>
-                            <div class="btn-group">
-                                <form asp-action="ToggleStatus" asp-route-id="@s.Id" method="post">
+                            <div class="d-flex">
+                                <form asp-action="ToggleStatus" asp-route-id="@s.Id" method="post" class="me-1">
                                     <button type="submit" class="btn btn-sm @(s.IsActive ? "btn-outline-warning" : "btn-outline-success")">
-                                        @(s.IsActive ? "Inaktivál" : "Aktivál")
+                                        <i class="bi bi-power"></i>
                                     </button>
                                 </form>
-                                <form asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Törlöd a listáról?')">
-                                    <button type="submit" class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button>
+                                <form asp-action="Delete" asp-route-id="@s.Id" method="post" onsubmit="return confirm('Törlöd?')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                                 </form>
                             </div>
                         </li>

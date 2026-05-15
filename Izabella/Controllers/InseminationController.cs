@@ -1,4 +1,5 @@
-﻿using Izabella.Models;
+﻿using ClosedXML.Excel;
+using Izabella.Models;
 using Izabella.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -288,6 +289,176 @@ namespace Izabella.Controllers
             stats.HeiferPreg = stats.MarkerStats.Sum(m => m.HeiferPreg);
 
             return View(stats);
+        }
+        [HttpGet]
+        public async Task<IActionResult> InseminationReport(DateTime? startDate, DateTime? endDate, int? companyId)
+        {
+            // Alapértelmezés: aktuális hónap elejétől a mai napig
+            var start = startDate ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+            var end = endDate ?? DateTime.Now;
+
+            var vm = await GetInseminationReportData(start, end, companyId);
+            ViewBag.AllCompaniesForFilter = await _context.Companies.OrderBy(c => c.Name).ToListAsync();
+
+            return View(vm);
+        }
+
+        private async Task<InseminationReportVm> GetInseminationReportData(DateTime start, DateTime end, int? companyId)
+        {
+            var finalEndDate = end.Date.AddDays(1).AddTicks(-1);
+
+            var vm = new InseminationReportVm
+            {
+                StartDate = start,
+                EndDate = end,
+                SelectedCompanyId = companyId
+            };
+
+            // 1. Alap logok lekérése
+            var logsQuery = _context.InseminationLogs
+                .Include(l => l.BullSemen)
+                .Where(l => l.EventDate >= start && l.EventDate <= finalEndDate);
+
+            // 2.Cég szerinti szűrés
+            if (companyId.HasValue)
+            {
+                // Itt már szűrhetünk korcsoportra is, ha a cég ki van választva
+                var cattleIdsForCompany = await _context.Cattles
+                    .Where(c => c.CompanyId == companyId.Value && c.AgeGroup == "Tehén")
+                    .Select(c => c.EarTag)
+                    .ToListAsync();
+
+                logsQuery = logsQuery.Where(l => cattleIdsForCompany.Contains(l.CattleEarTag));
+            }
+
+            var logs = await logsQuery.ToListAsync();
+
+            // 3. Gyorsítótárazás - Itt is szűrünk korcsoportra, hogy ha NINCS cég választva, 
+            // akkor is csak a tehenek kerüljenek be a riportba
+            var earTags = logs.Select(l => l.CattleEarTag).Distinct().ToList();
+
+            var cattles = await _context.Cattles
+                .Where(c => earTags.Contains(c.EarTag) && c.AgeGroup == "Tehén") // KORCSOPORT SZŰRÉS
+                .ToDictionaryAsync(c => c.EarTag, c => c.EnarNumber);
+
+            var staffCodes = await _context.Staffs
+                .Where(s => s.Role == StaffRole.Inszeminátor)
+                .ToDictionaryAsync(s => s.Name, s => s.InseminatorCode);
+
+            foreach (var log in logs)
+            {
+                // Csak akkor adjuk hozzá, ha az állat a szűrt szótárban benne van (tehát Tehén)
+                if (cattles.TryGetValue(log.CattleEarTag, out string? enarNumber))
+                {
+                    string sType = log.BullSemen?.Type == SemenType.Fagyasztott ? "2" : "1";
+                    string sMethod = log.BullSemen?.ProductionMethod == SemenProductionMethod.Mesterséges ? "1" : "2";
+                    string sOrigin = log.BullSemen?.Origin == SemenOrigin.Import ? "2" : "1";
+
+                    vm.Entries.Add(new InseminationReportEntry
+                    {
+                        EnarNumber = enarNumber,
+                        InseminationDate = log.EventDate.Date,
+                        Klsz = log.BullSemen?.Klsz ?? "",
+                        BullName = log.BullSemen?.BullName ?? "",
+                        Method = sMethod,
+                        InseminatorCode = staffCodes.GetValueOrDefault(log.InseminatorName) ?? "00000",
+                        SemenBatchNumber = log.BullSemen?.ProductionNumber ?? "-",
+                        SemenType = sType,
+                        SemenOrigin = sOrigin
+                    });
+                }
+            }
+
+            return vm;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportInseminationReportToExcel(DateTime startDate, DateTime endDate, int? companyId)
+        {
+            var vm = await GetInseminationReportData(startDate, endDate, companyId);
+
+            // Cégadatok lekérése a fejléchez
+            string companyName = "Összes állomány";
+            string herdCode = "-";
+
+            if (companyId.HasValue)
+            {
+                var company = await _context.Companies.FindAsync(companyId.Value);
+                if (company != null)
+                {
+                    companyName = company.Name;
+
+                   var herd = await _context.Herds
+                        .FirstOrDefaultAsync(h => h.CompanyId == companyId.Value);
+
+                    herdCode = herd?.HerdCode ?? "Nincs megadva";
+                }
+            }
+            using (var workbook = new ClosedXML.Excel.XLWorkbook())
+            {
+                var ws = workbook.Worksheets.Add("Termékenyítési Napló");
+
+                // Cím formázása: Csak az év.hónap.nap (pl. 2024.05.11.)
+                string titleDateRange = $"{startDate:yyyy.MM.dd.} - {endDate:yyyy.MM.dd.}";
+                ws.Cell(1, 1).Value = $"TERMÉKENYÍTÉSI NAPLÓ ({titleDateRange})";
+                ws.Range(1, 1, 1, 9).Merge().Style.Font.SetBold().Font.FontSize = 14;
+                ws.Range(1, 1, 1, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                ws.Range(1, 1, 1, 9).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                // 2. sor: Tulajdonos és Tenyészet adatok (ÚJ RÉSZ)
+                ws.Cell(2, 1).Value = $"Tulajdonos: {companyName} | Tenyészetkód: {herdCode}";
+                ws.Range(2, 1, 2, 9).Merge().Style.Font.SetItalic().Font.FontSize = 11;
+
+                // Fejlécek
+                string[] headers = { "Állat ENAR", "Termékenyítés dátuma", "Bika KPLSZ", "Bika név", "Term. módja", "Inszeminátor kódja", "Sperma gyártási sz.", "Sperma típusa", "Sperma eredete" };
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    var cell = ws.Cell(3, i + 1);
+                    cell.Value = headers[i];
+                    cell.Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightBlue);
+                    cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    cell.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                }
+
+                // Adatok
+                int row = 4;
+                foreach (var entry in vm.Entries.OrderBy(e => e.InseminationDate))
+                {
+                    ws.Cell(row, 1).Value = entry.EnarNumber;
+
+                    // Dátum cella formázása
+                    var dateCell = ws.Cell(row, 2);
+                    dateCell.Value = entry.InseminationDate;
+                    dateCell.Style.DateFormat.Format = "yyyy.mm.dd";
+
+                    ws.Cell(row, 3).Value = entry.Klsz;
+                    ws.Cell(row, 4).Value = entry.BullName;
+                    ws.Cell(row, 5).Value = entry.Method;
+                    ws.Cell(row, 6).Value = entry.InseminatorCode;
+                    ws.Cell(row, 7).Value = entry.SemenBatchNumber;
+                    ws.Cell(row, 8).Value = entry.SemenType;
+                    ws.Cell(row, 9).Value = entry.SemenOrigin;
+                    var dataRange = ws.Range(row, 1, row, 9);
+
+                    dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    dataRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    dataRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+                    row++;
+                }
+
+                ws.Columns().AdjustToContents();
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+
+                    // Fájlnév formázása (hogy ne legyenek benne tiltott karakterek, pl. kettőspont az időből)
+                    string fileName = $"Termekenyitesi_Naplo_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}.xlsx";
+
+                    return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+                }
+            }
         }
     }
 }

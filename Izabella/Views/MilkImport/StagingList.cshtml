@@ -1,0 +1,126 @@
+﻿@model IEnumerable<Izabella.Models.MilkDataStaging>
+@{
+    ViewData["Title"] = "Napi Tejimport Puffer";
+}
+
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0 text-primary fw-bold"><i class="bi bi-moisture me-2"></i>Tejadat Puffer</h4>
+            <small class="text-muted">Afimilk DIF fájlok beolvasása és ellenőrzése</small>
+        </div>
+        
+        <form asp-action="Upload" method="post" enctype="multipart/form-data" class="d-flex align-items-center">
+            <div class="input-group shadow-sm">
+                <input type="file" name="file" class="form-control" id="inputFile">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-cloud-upload me-1"></i> Beolvasás
+                </button>
+            </div>
+        </form>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info border-0 shadow-sm text-center py-4">
+            <i class="bi bi-info-circle fs-3 d-block mb-2"></i> Jelenleg nincs feldolgozásra váró adat.
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-secondary">Feldolgozandó tételek (@Model.Count() sor)</h6>
+                <button type="button" class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#approveModal">
+                    <i class="bi bi-check-all me-1"></i> Jóváhagyás és Kiegyenlítés
+                </button>
+
+                <div class="modal fade" id="approveModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form asp-action="ApproveAll" method="post">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Napi tejadatok véglegesítése</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Aznapi összes fejt tej (kg) - Afimilk mérleg szerint:</label>
+                                        <input type="number" step="0.1" name="totalMeasuredMilk" class="form-control" required />
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label class="form-label">Karantén istálló:</label>
+                                            <input type="text" name="quarantineBarn" class="form-control" value="13" />
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label">Gyógyszeres istálló:</label>
+                                            <input type="text" name="medicatedBarn" class="form-control" value="8" />
+                                        </div>
+                                    </div>
+                                    <p class="text-muted small mt-2">
+                                        *A rendszer a különbséget szétosztja a hiányzó, nem karanténos fejősök között.
+                                    </p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mégse</button>
+                                    <button type="submit" class="btn btn-primary">Feldolgozás indítása</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead class="table-light text-secondary small text-uppercase">
+                        <tr>
+                            <th class="ps-3">Dátum</th>
+                            <th>Fülszám</th>
+                            <th>Istálló</th>
+                            <th>ENAR</th>
+                            <th>Lakt./Nap</th>
+                            <th>Fejés (1-2-3)</th>
+                            <th>Zsír %</th>
+                            <th>Fehérje %</th>
+                            <th class="text-end pe-3">Műveletek</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr class="@(string.IsNullOrEmpty(item.Enar) ? "table-danger" : "")">
+                                <td class="ps-3 fw-bold text-muted">@item.RecordDate.ToString("MM.dd.")</td>
+                                <td><span class="badge bg-primary">@item.EarTag</span></td>
+                                <td class="fw-bold text-dark">@item.BarnId</td>
+                                <td class="small text-muted">@item.Enar</td>
+                                <td>
+                                    <span class="fw-bold text-dark">@item.LactationNo</span>. <small>(@item.DaysInMilk. nap)</small>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold">@(item.Yield1?.ToString("N1") ?? "--")</span> |
+                                    <span class="text-success fw-bold">@(item.Yield2?.ToString("N1") ?? "--")</span> |
+                                    <span class="text-success fw-bold">@(item.Yield3?.ToString("N1") ?? "--")</span>
+                                </td>
+                                <td class="small">
+                                    @(item.Fat1?.ToString("N2") ?? "-") / @(item.Fat2?.ToString("N2") ?? "-") / @(item.Fat3?.ToString("N2") ?? "-")
+                                </td>
+                                <td class="small">
+                                    @(item.Protein1?.ToString("N2") ?? "-") / @(item.Protein2?.ToString("N2") ?? "-") / @(item.Protein3?.ToString("N2") ?? "-")
+                                </td>
+                                <td class="text-end pe-3">
+                                    <form asp-action="DeleteStaging" asp-route-id="@item.Id" method="post"
+                                          onsubmit="return confirm('Biztosan törölni akarja ezt a sort a pufferből?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

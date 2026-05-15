@@ -4,6 +4,7 @@ using Izabella.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,13 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Izabella.Migrations
 {
     [DbContext(typeof(IzabellaDbContext))]
-    partial class IzabellaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260513093035_AddLactationAndCalvingDate")]
+    partial class AddLactationAndCalvingDate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -450,42 +453,6 @@ namespace Izabella.Migrations
                     b.ToTable("DeathReasons");
                 });
 
-            modelBuilder.Entity("Izabella.Models.DryOffEvent", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CattleId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("DryOffDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsSeparated")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MedicationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Note")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("SeparationDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CattleId");
-
-                    b.HasIndex("MedicationId");
-
-                    b.ToTable("DryOffEvents");
-                });
-
             modelBuilder.Entity("Izabella.Models.Herd", b =>
                 {
                     b.Property<int>("Id")
@@ -653,42 +620,6 @@ namespace Izabella.Migrations
                     b.ToTable("MatingSuggestions");
                 });
 
-            modelBuilder.Entity("Izabella.Models.Medication", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Category")
-                        .HasColumnType("int");
-
-                    b.Property<double>("DefaultDose")
-                        .HasColumnType("float");
-
-                    b.Property<bool>("IsAntibiotic")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<double>("Quantity")
-                        .HasColumnType("float");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("WithdrawalPeriodMilk")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Medications");
-                });
-
             modelBuilder.Entity("Izabella.Models.MilkDataStaging", b =>
                 {
                     b.Property<int>("Id")
@@ -754,66 +685,6 @@ namespace Izabella.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("MilkDataStagings");
-                });
-
-            modelBuilder.Entity("Izabella.Models.MilkProduction", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CattleId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("DaysInMilk")
-                        .HasColumnType("int");
-
-                    b.Property<double?>("Fat1")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("Fat2")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("Fat3")
-                        .HasColumnType("float");
-
-                    b.Property<bool>("IsEstimated")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("LactationNo")
-                        .HasColumnType("int");
-
-                    b.Property<double?>("Protein1")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("Protein2")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("Protein3")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Yield1")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Yield2")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Yield3")
-                        .HasColumnType("float");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CattleId");
-
-                    b.ToTable("MilkProductions");
                 });
 
             modelBuilder.Entity("Izabella.Models.SaleTransaction", b =>
@@ -1443,25 +1314,6 @@ namespace Izabella.Migrations
                     b.Navigation("Cattle");
                 });
 
-            modelBuilder.Entity("Izabella.Models.DryOffEvent", b =>
-                {
-                    b.HasOne("Izabella.Models.Cattle", "Cattle")
-                        .WithMany()
-                        .HasForeignKey("CattleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Izabella.Models.Medication", "Medication")
-                        .WithMany()
-                        .HasForeignKey("MedicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cattle");
-
-                    b.Navigation("Medication");
-                });
-
             modelBuilder.Entity("Izabella.Models.Herd", b =>
                 {
                     b.HasOne("Izabella.Models.Company", "Company")
@@ -1493,17 +1345,6 @@ namespace Izabella.Migrations
                         .IsRequired();
 
                     b.Navigation("LiquidManure");
-                });
-
-            modelBuilder.Entity("Izabella.Models.MilkProduction", b =>
-                {
-                    b.HasOne("Izabella.Models.Cattle", "Cattle")
-                        .WithMany()
-                        .HasForeignKey("CattleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cattle");
                 });
 
             modelBuilder.Entity("Izabella.Models.SaleTransaction", b =>

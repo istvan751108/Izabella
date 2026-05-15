@@ -1,0 +1,80 @@
+﻿@model Izabella.Models.ViewModels.InseminationReportVm
+
+<div class="container-fluid shadow p-4 mt-3 bg-white">
+    <div class="card mb-4 border-info">
+        <div class="card-body bg-light">
+            <h3 class="text-info mb-3">
+                <i class="fas fa-syringe me-2"></i>Termékenyítési Napló:
+                @* Itt formázzuk a címet óra/perc nélkül *@
+                <small class="text-muted">@Model.StartDate.ToString("yyyy.MM.dd.") - @Model.EndDate.ToString("yyyy.MM.dd.")</small>
+            </h3>
+            
+            <form asp-action="InseminationReport" method="get" class="row g-3 align-items-end">
+                @* Az inputok maradnak yyyy-MM-dd formátumban, mert a HTML5 date picker ezt várja *@
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Kezdő dátum</label>
+                    <input type="date" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Záró dátum</label>
+                    <input type="date" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Cég</label>
+                    <select name="companyId" class="form-select"
+                            asp-items="@(new SelectList(ViewBag.AllCompaniesForFilter, "Id", "Name", Model.SelectedCompanyId))">
+                        <option value="">-- Összes cég --</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-info text-white w-100">
+                        <i class="fas fa-search"></i> Szűrés
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a asp-action="ExportInseminationReportToExcel"
+                           asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+                           asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+                           asp-route-companyId="@Model.SelectedCompanyId"
+                           class="btn btn-success w-100">
+                        <i class="fas fa-file-excel"></i> Excel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-responsive shadow-sm">
+        <table class="table table-hover table-bordered table-sm">
+            <thead class="table-info text-center">
+                <tr>
+                    <th>Állat ENAR</th>
+                    <th>Termékenyítés dátuma</th>
+                    <th>Bika KPLSZ</th>
+                    <th>Bika Név</th>
+                    <th>Termékenyítés Módja</th>
+                    <th>Inszeminátor kódja</th>
+                    <th>Gyártási szám</th>
+                    <th>Sperma Típusa</th>
+                    <th>Sperma Eredete</th>
+                </tr>
+            </thead>
+            <tbody class="text-center">
+                @foreach (var item in Model.Entries.OrderBy(e => e.InseminationDate))
+                {
+                    <tr>
+                        <td class="fw-bold">@item.EnarNumber</td>
+                        <td>@item.InseminationDate.ToString("yyyy.MM.dd.")</td>
+                        <td>@item.Klsz</td>
+                        <td>@item.BullName</td>
+                        <td><span class="badge bg-light text-dark border">@item.Method</span></td>
+                        <td>@item.InseminatorCode</td>
+                        <td class="small">@item.SemenBatchNumber</td>
+                        <td><span class="badge bg-light text-dark border">@item.SemenType</span></td>
+                        <td><span class="badge bg-light text-dark border">@item.SemenOrigin</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

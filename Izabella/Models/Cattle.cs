@@ -113,5 +113,8 @@ namespace Izabella.Models
 
         [Display(Name = "Utolsó vemhességi vizsgálat dátuma")]
         public DateTime? LastPregnancyTestDate { get; set; }
+
+        [Display(Name = "Aktuális laktáció")]
+        public int CurrentLactationNo { get; set; } = 0; // Alapértelmezett 0 (üszőknél)
     }
 }

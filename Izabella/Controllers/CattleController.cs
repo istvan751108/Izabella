@@ -302,27 +302,48 @@ namespace Izabella.Controllers
                             if (!alive2) AddDeathLog(secondCalf, "Halva született");
                         }
 
-                        // 3. ANYA FRISSÍTÉSE (Csak ha tényleg volt anya a DB-ben)
+                        // --- 3. ANYA FRISSÍTÉSE ÉS LAKTÁCIÓ LÉPTETÉSE ---
                         if (dam != null)
                         {
-                            if (dam.AgeGroup == "Vemhes üsző")
+                            // Ha vemhes üsző volt, mostantól Tehén
+                            if (dam.AgeGroup == "Vemhes üsző" || dam.AgeGroup == "Vemhes uszo")
                             {
-                                // STATISZTIKA: Kivonjuk az üszőkből, hozzáadjuk a tehenekhez
-                                // Az üsző súlyával mozgatjuk a kg-okat is
                                 await _statService.UpdateDailyStatAsync(calf.BirthDate, dam.CompanyId, "Vemhes üsző", -1, -dam.CurrentWeight);
                                 await _statService.UpdateDailyStatAsync(calf.BirthDate, dam.CompanyId, "Tehén", 1, dam.CurrentWeight);
                                 dam.AgeGroup = "Tehén";
                             }
-                            dam.PregnancyStatus = PregnancyStatus.Üres; // Ellés után üres
+
+                            // LAKTÁCIÓ LÉPTETÉSE:
+                            // Megnézzük a korábbi termelési adatait vagy a Cattle táblában tárolt számot
+                            // Ha most ellik először (CurrentLactationNo == 0), akkor 1 lesz.
+                            // Ha már volt laktációja, növeljük eggyel.
+                            dam.CurrentLactationNo++;
+
+                            // Alaphelyzetbe állítjuk a reprodukciós státuszt
+                            dam.PregnancyStatus = PregnancyStatus.Üres;
                             dam.LastInseminationDate = null;
+                            dam.Stall = "1"; // Alapértelmezett fejős istálló kód az első ellés után, ha szükséges
+
                             _context.Update(dam);
 
+                            // Eseménynaplóba bejegyezzük az ellést és az új laktáció kezdetét
+                            _context.AnimalHistories.Add(new AnimalHistory
+                            {
+                                CattleId = dam.Id,
+                                EventDate = calf.BirthDate,
+                                Type = "Ellés",
+                                Comment = $"Sikeres ellés. Új laktáció: {dam.CurrentLactationNo}. Anya ENAR: {dam.EnarNumber}",
+                                StallName = dam.Stall
+                            });
+
+                            // Lezárjuk a korábbi vemhességi rekordot a Breeding táblában
                             var breeding = await _context.BreedingDatas
                                 .FirstOrDefaultAsync(b => b.CattleId == dam.Id && b.IsPregnant == true);
 
                             if (breeding != null)
                             {
                                 breeding.IsPregnant = false;
+                                breeding.ActualCalvingDate = calf.BirthDate; // Jó ha tudjuk, mikor ellett valójában
                                 _context.Update(breeding);
                             }
                         }
@@ -401,6 +422,7 @@ namespace Izabella.Controllers
             int checksum = (10 - (sum % 10)) % 10;
             return "HU" + baseNumber + checksum;
         }
+
         [HttpGet]
         public IActionResult CalculateEnar(string earTag, int herdId)
         {
@@ -410,7 +432,6 @@ namespace Izabella.Controllers
             string enar = GenerateEnar(earTag, herd.EnarPrefix ?? "35984");
             return Json(new { enar = enar });
         }
-
 
         // --- ENAR BEJELENTŐ LISTA ---
         public async Task<IActionResult> EnarReporting()
@@ -452,7 +473,7 @@ namespace Izabella.Controllers
                 string enarOnly = calf.EnarNumber.Replace("HU", "").Trim();
                 string motherEnarOnly = (calf.MotherEnar ?? "").Replace("HU", "").Trim();
 
-                // A belső elemeket NÉVTÉR NÉLKÜL (XName.Get) hozzuk létre, 
+                // A belső elemeket NÉVTÉR NÉLKÜL (XName.Get) hozzuk létre,
                 // így nem lesz előttük ns2: és nem lesz bennük xmlns sem.
                 var bejelento = new XElement("SzmarhaBejelento",
                     new XElement("Sorszam", sorszam++),
@@ -514,6 +535,7 @@ namespace Izabella.Controllers
 
             return File(fileBytes, "text/xml", fileName);
         }
+
         [HttpPost]
         public async Task<IActionResult> GenerateEnarPdf(int[] selectedIds)
         {
@@ -626,6 +648,7 @@ namespace Izabella.Controllers
                             .BorderBottom(1)
                             .BorderColor(Colors.Grey.Lighten3);
         }
+
         // --- NEMVÁLTÁS LISTA (Csak Itatásos borjú) ---
         public async Task<IActionResult> GenderChangeList()
         {
@@ -681,6 +704,7 @@ namespace Izabella.Controllers
 
             return RedirectToAction(nameof(GenderChangeList));
         }
+
         // GET: Cattle/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -734,6 +758,7 @@ namespace Izabella.Controllers
             ViewBag.CurrentHerdId = new SelectList(_context.Herds, "Id", "HerdCode", cattle.CurrentHerdId);
             return View(cattle);
         }
+
         [HttpGet]
         public async Task<IActionResult> RecordDeath(int id)
         {
@@ -802,7 +827,7 @@ namespace Izabella.Controllers
                         EstimatedWeight = weight,
                         EarTagAtDeath = cattle.EarTag,
                         EnarNumberAtDeath = cattle.EnarNumber
-                        // Megjegyzés: Ha a DeathLog táblában is el akarod tárolni a papír tömb számát, 
+                        // Megjegyzés: Ha a DeathLog táblában is el akarod tárolni a papír tömb számát,
                         // akkor a DeathLog modellhez is hozzá kell adni egy ReceiptNumber mezőt!
                     };
                     _context.DeathLogs.Add(log);
@@ -825,6 +850,7 @@ namespace Izabella.Controllers
                 }
             }
         }
+
         public async Task<IActionResult> DeathLogList(int? year, int? month)
         {
             var y = year ?? DateTime.Now.Year;
@@ -851,6 +877,7 @@ namespace Izabella.Controllers
 
             return View(logs);
         }
+
         [HttpPost]
         public IActionResult GenerateTransportReceipt(List<int> selectedLogIds, DateTime transportDate)
         {
@@ -899,6 +926,7 @@ namespace Izabella.Controllers
             var document = new TransportReceiptDocument(currentNormal, currentStillborn, pendingPassports, transportDate);
             return File(document.GeneratePdf(), "application/pdf", $"Bizonylat_{transportDate:yyyyMMdd}.pdf");
         }
+
         [HttpGet]
         public async Task<IActionResult> PassportUpdate()
         {

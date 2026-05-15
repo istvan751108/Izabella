@@ -1,0 +1,166 @@
+﻿@using Izabella.Models.ViewModels
+@model TopPerformanceViewModel
+
+@{
+    ViewData["Title"] = "Termelési Rangsor és Életteljesítmény";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Termelési Rangsorok</h1>
+        <button onclick="window.print()" class="btn btn-sm btn-dark no-print">
+            <i class="bi bi-printer"></i> Nyomtatás
+        </button>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-6 col-md-12">
+            <div class="card shadow mb-4 border-left-warning">
+                <div class="card-header py-3 bg-warning text-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">TOP 10 - Legjobb laktációs teljesítmények</h6>
+                    <i class="bi bi-trophy-fill fs-4"></i>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Fülszám</th>
+                                    <th>Laktáció</th>
+                                    <th class="text-end">Összes tej (kg)</th>
+                                    <th class="text-end">Napi átlag</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopByLactation.Count; i++)
+                                {
+                                    var item = Model.TopByLactation[i];
+                                    <tr class="@(i == 0 ? "table-warning fw-bold" : "")">
+                                        <td>@(i + 1).</td>
+                                        <td><span class="badge bg-secondary">@item.EarTag</span></td>
+                                        <td>@item.LactationNo. lakt.</td>
+                                        <td class="text-end">@item.TotalYield.ToString("N0")</td>
+                                        <td class="text-end">@item.DailyAverage.ToString("N1")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6 col-md-12">
+            <div class="card shadow mb-4 border-left-success">
+                <div class="card-header py-3 bg-success text-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold">TOP 10 - Legnagyobb életteljesítmény</h6>
+                    <i class="bi bi-star-fill fs-4"></i>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Fülszám</th>
+                                    <th class="text-end">Összes tej (kg)</th>
+                                    <th class="text-end">Napi átlag (életút)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TopByLifetime.Count; i++)
+                                {
+                                    var item = Model.TopByLifetime[i];
+                                    <tr class="@(i == 0 ? "table-success fw-bold" : "")">
+                                        <td>@(i + 1).</td>
+                                        <td><span class="badge bg-primary">@item.EarTag</span></td>
+                                        <td class="text-end">@item.TotalYield.ToString("N0")</td>
+                                        <td class="text-end">@item.DailyAverage.ToString("N1")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-light d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-dark">Minden állat életteljesítmény adatai</h6>
+            <a asp-action="ExportPerformanceToExcel" class="btn btn-sm btn-success no-print">
+                <i class="bi bi-file-earmark-excel"></i> Excel Export
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm datatable" id="performanceTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Fülszám</th>
+                            <th class="text-center">Laktációk száma</th>
+                            <th class="text-center">Legjobb laktáció</th>
+                            <th class="text-end">Legjobb lakt. (kg)</th>
+                            <th class="text-end">Összes termelt tej (kg)</th>
+                            <th class="text-end">Életút átlag (kg/nap)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.AllCattlePerformances.OrderBy(x => x.EarTag))
+                        {
+                            <tr>
+                                <td class="fw-bold">@item.EarTag</td>
+                                <td class="text-center">@item.Lactations.Count</td>
+                                <td class="text-center">@item.BestLactationNumber. lakt.</td>
+                                <td class="text-end">@item.BestLactationYield.ToString("N0")</td>
+                                <td class="text-end fw-bold text-primary">@item.TotalLifeYield.ToString("N0")</td>
+                                <td class="text-end">@item.OverallDailyAverage.ToString("N1")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card-header i {
+        opacity: 0.5;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,0,0,.03);
+    }
+
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        .card {
+            border: 1px solid #ccc !important;
+            shadow: none !important;
+        }
+
+        .container-fluid {
+            width: 100%;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        // Opcionális: Ha használsz DataTables-t a kereséshez
+        $(document).ready(function() {
+            if ($.fn.DataTable) {
+                $('#performanceTable').DataTable({
+                    language: { url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Hungarian.json' },
+                    pageLength: 25
+                });
+            }
+        });
+    </script>
+}

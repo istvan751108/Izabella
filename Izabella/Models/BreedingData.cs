@@ -20,5 +20,9 @@ namespace Izabella.Models
 
         [DataType(DataType.Date)]
         public DateTime? AbortionDate { get; set; }
+       
+        [DataType(DataType.Date)]
+        [Display(Name = "Tényleges ellés dátuma")]
+        public DateTime? ActualCalvingDate { get; set; }
     }
 }

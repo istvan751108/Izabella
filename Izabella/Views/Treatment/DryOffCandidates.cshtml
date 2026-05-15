@@ -1,0 +1,95 @@
+﻿@model Izabella.Models.ViewModels.DryOffActionViewModel
+
+<div class="container-fluid mt-4">
+    <h1 class="display-5 fw-bold text-primary"><i class="bi bi-droplet-slash"></i> Apasztásra várók (60-80 napos ablak)</h1>
+
+    <form asp-action="ProcessDryOff" method="post">
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><input type="checkbox" id="selectAll" class="form-check-input" /></th>
+                                    <th>Fülszám</th>
+                                    <th>Utolsó term.</th>
+                                    <th>Várható ellés</th>
+                                    <th>Hátralévő napok</th>
+                                    <th>Státusz</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.Candidates.Count; i++)
+                                {
+                                    var item = Model.Candidates[i];
+                                    <tr class="@(item.DaysUntilCalving < 65 ? "table-warning" : "")">
+                                        <td>
+                                            <input type="checkbox" name="SelectedCattleIds" value="@item.Cattle.Id" class="form-check-input cattle-check" />
+                                        </td>
+                                        <td class="fw-bold">@item.Cattle.EarTag</td>
+                                        <td>@item.Cattle.LastInseminationDate?.ToString("yyyy.MM.dd.")</td>
+                                        <td class="fw-bold">@item.ExpectedCalving.ToString("yyyy.MM.dd.")</td>
+                                        <td>
+                                            <span class="badge @(item.DaysUntilCalving < 65 ? "bg-danger" : "bg-info")">
+                                                @item.DaysUntilCalving nap
+                                            </span>
+                                        </td>
+                                        <td><span class="small text-muted">Fejés alatt</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm sticky-top" style="top: 20px;">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Kezelés rögzítése</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Apasztás dátuma (Kezelés)</label>
+                            <input type="date" name="DryOffDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Alkalmazott gyógyszer(ek)</label>
+                            <div class="border p-2 rounded" style="max-height: 200px; overflow-y: auto;">
+                                @foreach (var med in (List<Medication>)ViewBag.Medications)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="SelectedMedicationIds" value="@med.Id" id="med_@med.Id">
+                                        <label class="form-check-label" for="med_@med.Id">
+                                            @med.Name <small class="text-muted">(@med.Quantity @med.Unit van)</small>
+                                        </label>
+                                    </div>
+                                }
+                            </div>
+                            <small class="text-muted">Több is kijelölhető (pl. tesztelés esetén)</small>
+                        </div>
+
+                        <div class="alert alert-warning small">
+                            <i class="bi bi-info-circle"></i> A rögzítés után a kiválasztott állatok
+                            <strong>Apasztott</strong> státuszba kerülnek, és a készlet automatikusan csökken.
+                        </div>
+
+                        <button type="submit" class="btn btn-success btn-lg w-100 shadow-sm">
+                            <i class="bi bi-check2-circle"></i> Apasztás végrehajtása
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('selectAll').addEventListener('change', function() {
+            document.querySelectorAll('.cattle-check').forEach(cb => cb.checked = this.checked);
+        });
+    </script>
+}

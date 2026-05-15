@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Client;
 
 namespace Izabella.Models;
 
@@ -35,6 +36,12 @@ public class IzabellaDbContext : IdentityDbContext
     public DbSet<SemenTransaction> SemenTransactions { get; set; }
     public DbSet<SupportFormConfig> SupportFormConfigs { get; set; }
     public DbSet<DailyStat> DailyStats { get; set; }
+
+    public DbSet<MilkDataStaging> MilkDataStagings { get; set; }
+
+    public DbSet<MilkProduction> MilkProductions { get; set; }
+    public DbSet<DryOffEvent> DryOffEvents { get; set; }
+    public DbSet<Medication> Medications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

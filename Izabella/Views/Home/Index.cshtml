@@ -45,6 +45,8 @@
     .card-support { border-top-color: #0dcaf0; }
     .card-admin { border-top-color: #ffc107; }
 
+    .card-milk { border-top-color: #3498db;}
+
     .nav-icon {
         font-size: 2.5rem;
         margin-bottom: 15px;
@@ -77,10 +79,9 @@
         </div>
     </div>
 
-    <!-- Navigációs kártyák -->
-    <div class="row g-4">
+    <div class="row g-4 justify-content-center">
         <!-- Állomány kezelés -->
-        <div class="col-md-4 col-lg-2">
+        <div class="col-md-4 col-lg">
             <a asp-controller="Cattles" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-cattle text-center">
                     <div class="card-body">
@@ -92,8 +93,21 @@
             </a>
         </div>
 
+        <!-- Laktációs adatok (ÚJ KÁRTYA) -->
+        <div class="col-md-4 col-lg">
+            <a asp-controller="MilkImport" asp-action="MonthlyPivot" class="text-decoration-none text-dark">
+                <div class="card shadow-sm nav-card card-milk text-center">
+                    <div class="card-body">
+                        <i class="fa-solid fa-cow nav-icon text-info"></i>
+                        <h5 class="card-title">Laktáció</h5>
+                        <p class="text-small text-muted">Tejtermelés, Afimilk import és rangsor.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
         <!-- Helyszíni műveletek -->
-        <div class="col-md-4 col-lg-2">
+        <div class="col-md-4 col-lg">
             <a asp-controller="Weight" asp-action="QuickWeightEntry" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-ops text-center">
                     <div class="card-body">
@@ -106,52 +120,52 @@
         </div>
 
         <!-- Szaporodásbiológia -->
-        <div class="col-md-4 col-lg-2">
+        <div class="col-md-4 col-lg">
             <a asp-controller="Insemination" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-repro text-center">
                     <div class="card-body">
                         <i class="bi bi-calendar-check nav-icon text-danger"></i>
                         <h5 class="card-title">Szaporodás</h5>
-                        <p class="text-small text-muted">Inszeminálás, VEX és sperma készlet.</p>
+                        <p class="text-small text-muted">Inszeminálás, VEX és sperma.</p>
                     </div>
                 </div>
             </a>
         </div>
 
         <!-- Trágyakezelés -->
-        <div class="col-md-4 col-lg-2">
+        <div class="col-md-4 col-lg">
             <a asp-controller="Report" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-manure text-center">
                     <div class="card-body">
                         <i class="bi bi-moisture nav-icon text-success"></i>
                         <h5 class="card-title">Trágya</h5>
-                        <p class="text-small text-muted">Rögzítés, havi riportok és grafikonok.</p>
+                        <p class="text-small text-muted">Rögzítés, riportok és grafikonok.</p>
                     </div>
                 </div>
             </a>
         </div>
 
         <!-- Támogatások -->
-        <div class="col-md-4 col-lg-2">
+        <div class="col-md-4 col-lg">
             <a asp-controller="CattleReports" asp-action="SlaughterSupportIndex" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-support text-center">
                     <div class="card-body">
-                        <i class="bi bi-file-earmark-pdf nav-icon text-info"></i>
+                        <i class="bi bi-file-earmark-pdf nav-icon text-primary"></i>
                         <h5 class="card-title">Támogatás</h5>
-                        <p class="text-small text-muted">2334, 2335 PDF generálás és beállítások.</p>
+                        <p class="text-small text-muted">2334, 2335 PDF és beállítások.</p>
                     </div>
                 </div>
             </a>
         </div>
 
         <!-- Adminisztráció -->
-        <div class="col-md-4 col-lg-2">
+        <div class="col-md-4 col-lg">
             <a asp-controller="Companies" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-admin text-center">
                     <div class="card-body">
                         <i class="bi bi-gear-fill nav-icon text-warning"></i>
                         <h5 class="card-title">Admin</h5>
-                        <p class="text-small text-muted">Cégek, tenyészetek és felhasználók.</p>
+                        <p class="text-small text-muted">Cégek, tenyészetek és júzerek.</p>
                     </div>
                 </div>
             </a>
