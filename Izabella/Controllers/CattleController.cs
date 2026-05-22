@@ -133,10 +133,9 @@ namespace Izabella.Controllers
             }
 
             // Számoljuk ki a vemhességi időt
-            int gestationDays = -1; // Alapértelmezett érték, ha nincs adat
+            int gestationDays = -1;
             if (dam.LastInseminationDate.HasValue)
             {
-                // A TotalDays-t használjuk, hogy biztosan pontos egész számot kapjunk
                 gestationDays = (int)(calf.BirthDate.Date - dam.LastInseminationDate.Value.Date).TotalDays;
             }
 
@@ -149,14 +148,12 @@ namespace Izabella.Controllers
                     {
                         if (dam.LastInseminationDate.HasValue)
                         {
-                            // Megkeressük az utolsó termékenyítést, és KÖTELEZŐEN betöltjük a bikát is (.Include)
                             var lastInsem = await _context.InseminationLogs
-                                .Include(l => l.BullSemen) // <--- EZ HIÁNYZOTT!
+                                .Include(l => l.BullSemen)
                                 .Where(l => l.CattleEarTag == dam.EarTag)
                                 .OrderByDescending(l => l.EventDate)
                                 .FirstOrDefaultAsync();
 
-                            // Csak akkor próbáljuk menteni a javaslatot, ha a rekord ÉS a bika is megvan
                             if (lastInsem != null && lastInsem.BullSemen != null)
                             {
                                 _context.MatingSuggestions.Add(new MatingSuggestion
@@ -169,7 +166,7 @@ namespace Izabella.Controllers
                                 });
                             }
                         }
-                        // Most már nullázhatjuk az anya vemhességi adatait
+
                         dam.PregnancyStatus = PregnancyStatus.Üres;
                         dam.LastInseminationDate = null;
 
@@ -197,7 +194,6 @@ namespace Izabella.Controllers
             }
 
             // 3. NORMÁL ELLÉS VAGY HULLAELLÉS (240 nap felett)
-            // Mivel a halva születettnek nincs fülszáma, a validátornak megengedjük az üres mezőt
             ModelState.Remove("EarTag");
             ModelState.Remove("EnarNumber");
             ModelState.Remove("PassportNumber");
@@ -213,9 +209,7 @@ namespace Izabella.Controllers
                 {
                     try
                     {
-                        // --- ÚJ RÉSZ: APA ÉS ANYA-KOR ADATAINAK ELŐKÉSZÍTÉSE ---
                         string lastBullKlsz = null;
-                        // Megkeressük az utolsó sikeres termékenyítést az apa azonosításához
                         var lastInsemination = await _context.InseminationLogs
                             .Where(l => l.CattleEarTag == dam.EarTag)
                             .OrderByDescending(l => l.EventDate)
@@ -225,22 +219,21 @@ namespace Izabella.Controllers
                         {
                             lastBullKlsz = lastInsemination.BullSemen?.Klsz;
                         }
-                        // Elmentjük, mi volt az anya korcsoportja AZ ELLÉS PILLANATÁBAN
-                        // Ez kell a riportnak!
+
                         string damAgeAtMomentOfCalving = dam.AgeGroup;
 
                         // 1. ELSŐ BORJÚ
                         if (!alive1)
                         {
-                            calf.EarTag = "HALVA-" + DateTime.Now.Ticks.ToString().Substring(10); // Belső technikai azonosító
+                            calf.EarTag = "HALVA-" + DateTime.Now.Ticks.ToString().Substring(10);
                             calf.EnarNumber = "HALVA-SZÜLETETT";
                         }
 
                         calf.CurrentWeight = calf.BirthWeight;
-                        calf.FatherKlsz = lastBullKlsz; // <--- APA RÖGZÍTÉSE
+                        calf.FatherKlsz = lastBullKlsz;
                         calf.DamAgeAtCalving = damAgeAtMomentOfCalving;
                         ProcessNewborn(calf, dam, alive1);
-                        // Explicit módon mondjuk meg az EF-nek, hogy ezek változtak
+
                         _context.Cattles.Add(calf);
                         if (alive1)
                         {
@@ -248,13 +241,12 @@ namespace Izabella.Controllers
                         }
                         await _context.SaveChangesAsync();
 
-                        // ÚJ: Születési napló bejegyzés
                         _context.AnimalHistories.Add(new AnimalHistory
                         {
                             CattleId = calf.Id,
                             EventDate = calf.BirthDate,
                             NewAgeGroup = calf.AgeGroup,
-                            StallName = calf.Stall, // Ez lesz a "Borjúkert"
+                            StallName = calf.Stall,
                             Weight = calf.BirthWeight,
                             Type = "Születés"
                         });
@@ -273,8 +265,8 @@ namespace Izabella.Controllers
                                 BreedCode = calf.BreedCode,
                                 IsTwin = true,
                                 IsAlive = alive2,
-                                FatherKlsz = lastBullKlsz, // <--- IKER APA RÖGZÍTÉSE
-                                DamAgeAtCalving = damAgeAtMomentOfCalving // <--- IKER ANYA KORA
+                                FatherKlsz = lastBullKlsz,
+                                DamAgeAtCalving = damAgeAtMomentOfCalving
                             };
 
                             secondCalf.CurrentWeight = secondCalf.BirthWeight;
@@ -294,7 +286,6 @@ namespace Izabella.Controllers
                             _context.Cattles.Add(secondCalf);
                             await _context.SaveChangesAsync();
 
-                            // STATISZTIKA: Ikerborjú érkezett
                             if (alive2)
                             {
                                 await _statService.UpdateDailyStatAsync(secondCalf.BirthDate, secondCalf.CompanyId, "Itatásos borjú", 1, secondCalf.BirthWeight);
@@ -302,9 +293,23 @@ namespace Izabella.Controllers
                             if (!alive2) AddDeathLog(secondCalf, "Halva született");
                         }
 
-                        // --- 3. ANYA FRISSÍTÉSE ÉS LAKTÁCIÓ LÉPTETÉSE ---
+                        // --- 3. ANYA FRISSÍTÉSE ÉS LAKTÁCIÓ LÉPTETÉSE (KEI logikával kiegészítve) ---
                         if (dam != null)
                         {
+                            int? calvingIntervalDays = null;
+
+                            // Megkeressük az anya legutolsó, KORÁBBI sikeres ellését az eseménynaplóból
+                            var previousCalving = await _context.AnimalHistories
+                                .Where(h => h.CattleId == dam.Id && h.Type == "Ellés")
+                                .OrderByDescending(h => h.EventDate)
+                                .FirstOrDefaultAsync();
+
+                            if (previousCalving != null)
+                            {
+                                // Kiszámoljuk a két ellés között eltelt napokat
+                                calvingIntervalDays = (int)(calf.BirthDate.Date - previousCalving.EventDate.Date).TotalDays;
+                            }
+
                             // Ha vemhes üsző volt, mostantól Tehén
                             if (dam.AgeGroup == "Vemhes üsző" || dam.AgeGroup == "Vemhes uszo")
                             {
@@ -313,27 +318,30 @@ namespace Izabella.Controllers
                                 dam.AgeGroup = "Tehén";
                             }
 
-                            // LAKTÁCIÓ LÉPTETÉSE:
-                            // Megnézzük a korábbi termelési adatait vagy a Cattle táblában tárolt számot
-                            // Ha most ellik először (CurrentLactationNo == 0), akkor 1 lesz.
-                            // Ha már volt laktációja, növeljük eggyel.
+                            // Laktációs szám növelése
                             dam.CurrentLactationNo++;
 
-                            // Alaphelyzetbe állítjuk a reprodukciós státuszt
+                            // Állapotok alaphelyzetbe állítása
                             dam.PregnancyStatus = PregnancyStatus.Üres;
                             dam.LastInseminationDate = null;
-                            dam.Stall = "1"; // Alapértelmezett fejős istálló kód az első ellés után, ha szükséges
+                            dam.Stall = "1";
 
                             _context.Update(dam);
 
-                            // Eseménynaplóba bejegyezzük az ellést és az új laktáció kezdetét
+                            // Anya eseménynapló bejegyzés összeállítása
+                            string keiComment = $"Sikeres ellés. Új laktáció: {dam.CurrentLactationNo}. Anya ENAR: {dam.EnarNumber}";
+                            if (calvingIntervalDays.HasValue)
+                            {
+                                keiComment += $" | Két ellés közötti idő: {calvingIntervalDays.Value} nap.";
+                            }
+
                             _context.AnimalHistories.Add(new AnimalHistory
                             {
                                 CattleId = dam.Id,
                                 EventDate = calf.BirthDate,
                                 Type = "Ellés",
-                                Comment = $"Sikeres ellés. Új laktáció: {dam.CurrentLactationNo}. Anya ENAR: {dam.EnarNumber}",
-                                StallName = dam.Stall
+                                Comment = keiComment,
+                                Weight = calvingIntervalDays ?? 0 // A napok számát elmentjük a Weight mezőbe a gyors statisztikához!
                             });
 
                             // Lezárjuk a korábbi vemhességi rekordot a Breeding táblában
@@ -343,17 +351,15 @@ namespace Izabella.Controllers
                             if (breeding != null)
                             {
                                 breeding.IsPregnant = false;
-                                breeding.ActualCalvingDate = calf.BirthDate; // Jó ha tudjuk, mikor ellett valójában
+                                breeding.ActualCalvingDate = calf.BirthDate;
                                 _context.Update(breeding);
                             }
                         }
 
                         await _context.SaveChangesAsync();
                         await transaction.CommitAsync();
-                        // SIKERES MENTÉS UTÁN:
-                        TempData["SuccessMessage"] = $"Az ellés ({calf.MotherEnar} anyától) sikeresen rögzítve!";
 
-                        // Visszaküldjük az Ellés oldalra az Index helyett
+                        TempData["SuccessMessage"] = $"Az ellés ({calf.MotherEnar} anyától) sikeresen rögzítve!";
                         return RedirectToAction("Calving");
                     }
                     catch (Exception ex)
@@ -364,7 +370,6 @@ namespace Izabella.Controllers
                 }
             }
 
-            // Ha hiba van, vagy az adatok nem validak, újra betöltjük a nézetet
             ViewBag.Herds = new SelectList(_context.Herds.Where(h => !string.IsNullOrEmpty(h.DefaultPrefix)), "Id", "Name");
             return View("Calving", calf);
         }

@@ -1,0 +1,42 @@
+﻿@model Izabella.Models.ViewModels.DailyMilkExportViewModel
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-excel me-2"></i> Afimilk Napi Korrigált Tejadat Export
+                    </h4>
+                </div>
+                <div class="card-body bg-light">
+                    <p class="text-muted small">
+                        Válaszd ki a napot, amelyre le szeretnéd tölteni a korrigált fejési értékeket. A rendszer kigyűjti a fülszámokat, ENAR számokat, istállókat, a 3 műszak egyedi kg adatait és a beltartalmi értékeket.
+                    </p>
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger" asp-validation-summary="All"></div>
+                    }
+
+                    <form asp-action="ExportDailyMilkToExcel" method="post">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label asp-for="TargetDate" class="form-label fw-bold small">Kiválasztott nap</label>
+                                <input asp-for="TargetDate" class="form-control" type="date" required />
+                                <div class="form-text text-muted small">Alapértelmezetten a legutóbbi zárás előtti nap van beállítva.</div>
+                                <span asp-validation-for="TargetDate" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">
+                                    <i class="fas fa-download me-2"></i> Excel Lista Letöltése (.xlsx)
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

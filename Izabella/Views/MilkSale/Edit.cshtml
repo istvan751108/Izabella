@@ -1,0 +1,118 @@
+﻿@model Izabella.Models.MilkSale
+
+@{
+    ViewData["Title"] = "Szállítmány Korrekció";
+}
+
+<div class="container mt-4" style="max-width: 700px;">
+    <div class="card shadow-sm border-warning">
+        <div class="card-header bg-warning text-dark py-3">
+            <h4 class="mb-0 fw-bold"><i class="bi bi-pencil-square"></i> Fuvar Adatok Korrekciója</h4>
+        </div>
+        <div class="card-body p-4">
+            <h6 class="text-muted mb-4">
+                Módosítás alatt: <strong>@Model.DeliveryDate.ToString("yyyy.MM.dd.")</strong> — @Model.DailyDeliverySequence. számú napi fuvar
+            </h6>
+
+            <form asp-action="Edit" method="post">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="DailyDeliverySequence" />
+                <input type="hidden" asp-for="CreatedAt" />
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="DeliveryDate" class="form-label fw-bold"></label>
+                        <input asp-for="DeliveryDate" class="form-control" type="date" />
+                        <span asp-validation-for="DeliveryDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="EkaerNumber" class="form-label fw-bold"></label>
+                        <input asp-for="EkaerNumber" class="form-control" />
+                        <span asp-validation-for="EkaerNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="TruckPlateNumber" class="form-label fw-bold">Teherautó rendszám</label>
+                        <input asp-for="TruckPlateNumber" class="form-control" />
+                        <span asp-validation-for="TruckPlateNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="TrailerPlateNumber" class="form-label fw-bold">Pótkocsi rendszám</label>
+                        <input asp-for="TrailerPlateNumber" class="form-control" />
+                        <span asp-validation-for="TrailerPlateNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="WeightKg" class="form-label fw-bold">Valós, mázsált súly (kg)</label>
+                        <input asp-for="WeightKg" class="form-control text-primary fw-bold fs-5" type="number" step="0.1" />
+                        <span asp-validation-for="WeightKg" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="UnitPrice" class="form-label fw-bold">Végleges egységár (Ft/kg)</label>
+                        <input asp-for="UnitPrice" class="form-control text-success fw-bold fs-5" type="number" step="0.01" />
+                        <span asp-validation-for="UnitPrice" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 mt-3">
+                        <div class="form-check form-switch p-3 bg-light rounded border">
+                            <input class="form-check-input ms-0 me-2" type="checkbox" asp-for="IsEkaerClosed" id="flexSwitchCheckDefault">
+                            <label class="form-check-label fw-bold" for="flexSwitchCheckDefault">Hivatalos EKÁER szám lezárva a NAV felületén</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                    <a asp-action="Index" class="btn btn-outline-secondary">Mégse</a>
+                    <button type="submit" class="btn btn-warning px-4 fw-bold">Módosítások Mentése</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        function setupPlateNumberAutoformat(inputElement) {
+            if (!inputElement) return;
+
+            // Gépelés közben: csak nagybetűsítünk és kiszűrjük a felesleges karaktereket
+            inputElement.addEventListener('input', function (e) {
+                let value = e.target.value.toUpperCase();
+                // Csak betűk és számok maradhatnak (a kötőjeleket is tisztítjuk, hogy a végén mi tegyük ki jól)
+                value = value.replace(/[^A-Z0-9]/g, '');
+                e.target.value = value;
+            });
+
+            // Amikor elhagyja a mezőt (blur): pontosan formázzuk a magyar szabályok szerint
+            inputElement.addEventListener('blur', function (e) {
+                let value = e.target.value.replace(/[^A-Z0-9]/g, ''); // tisztítás biztonság kedvéért
+
+                // 1. Régi típusú rendszám: 3 betű + 3 szám (pl. PSP561 -> PSP-561)
+                if (value.length === 6 && /^[A-Z]{3}[0-9]{3}$/.test(value)) {
+                    value = value.slice(0, 3) + '-' + value.slice(3);
+                }
+                // 2. Új típusú rendszám: 4 betű + 3 szám (pl. AABB123 -> AA-BB-123)
+                else if (value.length === 7 && /^[A-Z]{4}[0-9]{3}$/.test(value)) {
+                    value = value.slice(0, 2) + '-' + value.slice(2, 4) + '-' + value.slice(4);
+                }
+                // 3. Ha már eleve kötőjellel írták be vagy egyéb egyedi eset, hagyjuk békén,
+                // de ha pl. csak 3 betűt írt be, ne tegyen semmit.
+
+                e.target.value = value;
+            });
+        }
+
+        // Alkalmazás a mezőkre az ID alapján
+        document.addEventListener("DOMContentLoaded", function() {
+            setupPlateNumberAutoformat(document.getElementById('TruckPlateNumber'));
+            setupPlateNumberAutoformat(document.getElementById('TrailerPlateNumber'));
+        });
+    </script>
+}

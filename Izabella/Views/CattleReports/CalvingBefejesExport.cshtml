@@ -1,0 +1,70 @@
+﻿@model Izabella.Models.ViewModels.CalvingExportSettingsViewModel
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-success">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-archive me-2"></i> KÁT Havi Befejés Adatcsomag Exportálása
+                    </h4>
+                </div>
+                <div class="card-body bg-light">
+                    <p class="text-muted small">
+                        Ez a modul összegyűjti az előző lezárás óta történt összes ellési, termékenyítési, vemhességi, átminősítési és kiesési eseményt. Generálja mind a 12 hivatalos dBase (.dbf) állományt, majd a KÁT szabványnak megfelelő (TEHEN és USZO) mappaszerkezetben egyetlen ZIP csomagként letölti.
+                    </p>
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger" asp-validation-summary="All"></div>
+                    }
+
+                    <form asp-action="ExportFullKatPackage" method="post">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label asp-for="Megye" class="form-label fw-bold small">Megye kód</label>
+                                <input asp-for="Megye" class="form-control" type="text" maxlength="2" placeholder="pl. 14" required />
+                                <span asp-validation-for="Megye" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="Tenyeszet" class="form-label fw-bold small">Tenyészet kód</label>
+                                <input asp-for="Tenyeszet" class="form-control" type="text" maxlength="3" placeholder="pl. 341" required />
+                                <span asp-validation-for="Tenyeszet" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="Telep" class="form-label fw-bold small">Telep kód</label>
+                                <input asp-for="Telep" class="form-control" type="text" maxlength="2" placeholder="pl. 21" required />
+                                <span asp-validation-for="Telep" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-3">
+                                <label asp-for="EnarTeny" class="form-label fw-bold small">Tenyészet ENAR</label>
+                                <input asp-for="EnarTeny" class="form-control" type="text" maxlength="7" placeholder="pl. 0467355" required />
+                                <span asp-validation-for="EnarTeny" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6 mt-3">
+                                <label asp-for="UtolsoBefejesDatuma" class="form-label fw-bold small">Előző időszak lezárása (mettől szűr)</label>
+                                <input asp-for="UtolsoBefejesDatuma" type="date" class="form-control" required />
+                                <div class="form-text text-info small">Az utolsó sikeres exportálás napja.</div>
+                                <span asp-validation-for="UtolsoBefejesDatuma" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6 mt-3">
+                                <label asp-for="BefejesDatuma" class="form-label fw-bold small">Aktuális lezárás dátuma (meddig szűr)</label>
+                                <input asp-for="BefejesDatuma" type="date" class="form-control" required />
+                                <div class="form-text text-muted small">A tárgyhó utolsó napja vagy a jelentés napja.</div>
+                                <span asp-validation-for="BefejesDatuma" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <button type="submit" class="btn btn-success w-100 py-3 fw-bold btn-lg shadow-sm">
+                                    <i class="fas fa-download me-2"></i> Teljes KÁT ZIP Csomag Letöltése
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

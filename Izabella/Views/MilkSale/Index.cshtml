@@ -1,0 +1,167 @@
+﻿@model IEnumerable<Izabella.Models.MilkSale>
+
+@{
+    ViewData["Title"] = "Tej Értékesítés és EKÁER";
+    DateTime currentMonth = ViewBag.CurrentMonthDisplay;
+
+    // Havi és dekád összesítések
+    var totalMonthlyWeight = Model.Sum(s => s.WeightKg);
+    var totalMonthlyValue = Model.Sum(s => s.TotalValue);
+    var dekad1Weight = Model.Where(s => s.DeliveryDate.Day <= 10).Sum(s => s.WeightKg);
+    var dekad2Weight = Model.Where(s => s.DeliveryDate.Day > 10 && s.DeliveryDate.Day <= 20).Sum(s => s.WeightKg);
+    var dekad3Weight = Model.Where(s => s.DeliveryDate.Day > 20).Sum(s => s.WeightKg);
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-5 fw-bold text-primary"><i class="bi bi-truck"></i> Tej Értékesítés & EKÁER</h1>
+            <p class="text-muted">Napi fuvarok, súlykorrekciók és EKÁER státuszok követése</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary btn-lg shadow-sm">
+            <i class="bi bi-plus-lg"></i> Új EKÁER / Fuvar tervezése
+        </a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body bg-light">
+            <form asp-action="Index" method="get" class="row align-items-end g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold text-secondary">Havi jegyzék szűrő</label>
+                    <input type="month" name="monthFilter" class="form-control" value="@ViewBag.CurrentMonthFilter" onchange="this.form.submit();" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold text-secondary">Napi összesítő szűrő</label>
+                    <div class="input-group">
+                        <input type="date" name="dayFilter" class="form-control" value="@ViewBag.CurrentDayFilter" />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Nap megtekintése
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-5 text-end">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise"></i> Ma / Aktuális hónap
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark border-0 shadow-sm text-center h-100 d-flex flex-column justify-content-between">
+                <div class="card-body py-3">
+                    <h6 class="text-uppercase small fw-bold text-muted">Napi Összesen (@DateTime.Parse(ViewBag.CurrentDayFilter).ToString("yyyy.MM.dd."))</h6>
+                    <h3 class="fw-bold">@(((double)ViewBag.DailyWeight).ToString("N1")) <span class="fs-6">kg</span></h3>
+                    <small class="fw-bold d-block mb-2">@ViewBag.DailyCount fuvar | @(((double)ViewBag.DailyValue).ToString("N0")) Ft</small>
+                </div>
+                @if ((double)ViewBag.DailyWeight > 0)
+                {
+                    <div class="p-2 bg-dark bg-opacity-10 border-top">
+                        <a asp-action="Distribute" asp-route-date="@ViewBag.CurrentDayFilter" class="btn btn-dark btn-sm w-100 fw-bold">
+                            <i class="bi bi-diagram-3"></i> Napi tej felosztása
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-light border-0 shadow-sm text-center h-100 py-3">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small fw-bold">I. Dekád (1-10)</h6>
+                    <h4 class="fw-bold text-dark mt-2">@dekad1Weight.ToString("N1") <span class="fs-6 text-muted">kg</span></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-light border-0 shadow-sm text-center h-100 py-3">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small fw-bold">II. Dekád (11-20)</h6>
+                    <h4 class="fw-bold text-dark mt-2">@dekad2Weight.ToString("N1") <span class="fs-6 text-muted">kg</span></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-light border-0 shadow-sm text-center h-100 py-3">
+                <div class="card-body">
+                    <h6 class="text-muted text-uppercase small fw-bold">III. Dekád (21+)</h6>
+                    <h4 class="fw-bold text-dark mt-2">@dekad3Weight.ToString("N1") <span class="fs-6 text-muted">kg</span></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white border-0 shadow-sm text-center h-100 py-3">
+                <div class="card-body">
+                    <h6 class="text-white-50 text-uppercase small fw-bold">Havi Összesen (@currentMonth.ToString("yyyy. MMMM"))</h6>
+                    <h3 class="fw-bold">@totalMonthlyWeight.ToString("N1") <span class="fs-6">kg</span></h3>
+                    <small class="text-white-50">Érték: @totalMonthlyValue.ToString("N0") Ft</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Dátum / Fuvar</th>
+                            <th>Rendszám(ok)</th>
+                            <th>EKÁER Szám</th>
+                            <th class="text-end">Súly (kg)</th>
+                            <th class="text-end">Egységár</th>
+                            <th class="text-end">Összérték</th>
+                            <th class="text-center">Státusz</th>
+                            <th class="text-end pe-4">Műveletek</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr class="@(item.IsEkaerClosed ? "table-light opacity-75" : "fw-bold")">
+                                <td class="ps-4">
+                                    <div>@item.DeliveryDate.ToString("yyyy.MM.dd.")</div>
+                                    <span class="badge bg-secondary">@item.DailyDeliverySequence. fuvar</span>
+                                </td>
+                                <td>
+                                    <i class="bi bi-truck"></i> @item.TruckPlateNumber
+                                    @if (!string.IsNullOrEmpty(item.TrailerPlateNumber))
+                                    {
+                                        <span class="text-muted"> | +Pótkocsi: @item.TrailerPlateNumber</span>
+                                    }
+                                </td>
+                                <td><code class="fs-6 text-dark">@item.EkaerNumber</code></td>
+                                <td class="text-end fs-5">@item.WeightKg.ToString("N1")</td>
+                                <td class="text-end">@item.UnitPrice.ToString("N2") Ft</td>
+                                <td class="text-end text-success">@item.TotalValue.ToString("N0") Ft</td>
+                                <td class="text-center">
+                                    @if (item.IsEkaerClosed)
+                                    {
+                                        <span class="badge bg-success"><i class="bi bi-check-lg"></i> Lezárva</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Nyitott</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="btn-group shadow-sm">
+                                        @if (!item.IsEkaerClosed)
+                                        {
+                                            <form asp-action="CloseEkaer" asp-route-id="@item.Id" method="post" style="display:inline;">
+                                                <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-lock"></i> Lezárás</button>
+                                            </form>
+                                        }
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm"><i class="bi bi-pencil"></i> Módosítás</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

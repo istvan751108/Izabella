@@ -1,0 +1,122 @@
+﻿@model List<MilkDistributionVM>
+@{
+    ViewData["Title"] = "Napi tej felosztása cégek között";
+    DateTime targetDate = ViewBag.TargetDate;
+}
+
+<div class="container mt-4" style="max-width: 800px;">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white py-3">
+            <h4><i class="bi bi-diagram-3"></i> Napi Tejmennyiség Szétosztása (Könyvelési alapú)</h4>
+            <span class="badge bg-primary">Dátum: @targetDate.ToString("yyyy.MM.dd.")</span>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info d-flex justify-content-between">
+                <div><strong>Aznapi gyári összes mérés (Bázis):</strong></div>
+                <div>
+                    <span class="fw-bold" id="totalDayKg">@ViewBag.TotalDayKg.ToString("N1")</span> Kg |
+                    <span class="fw-bold" id="totalDayLiter">@ViewBag.TotalDayLiter.ToString("N3")</span> Liter
+                </div>
+            </div>
+
+            <form asp-action="Distribute" asp-route-date="@targetDate.ToString("yyyy-MM-dd")" method="post">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>Cég neve</th>
+                            <th width="200" class="table-warning">Átadott LITER (Könyvelés)</th>
+                            <th width="200">Kalkulált KG</th>
+                            <th>Segéd</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="hidden" asp-for="@Model[i].CompanyId" />
+                                    <input type="hidden" asp-for="@Model[i].CompanyName" />
+                                    <strong class="fs-5">@Model[i].CompanyName</strong>
+                                </td>
+                                <td>
+                                    <input asp-for="@Model[i].Liter" class="form-control form-control-lg bg-warning bg-opacity-10 comp-liter" type="number" step="0.001" placeholder="0.000" />
+                                </td>
+                                <td>
+                                    <input asp-for="@Model[i].Kg" class="form-control form-control-lg comp-kg" type="number" step="0.001" placeholder="0.000" />
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm btn-calc-remainder" data-index="@i">
+                                        Maradék L + Kg
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a asp-controller="MilkSale" asp-action="Index" class="btn btn-outline-secondary">Vissza</a>
+                    <button type="submit" class="btn btn-success btn-lg px-5">Felosztás Mentése</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Szövegtisztító a tizedesjelek és csoportosítások kezelésére
+    const parseCleanFloat = (text) => {
+        if (!text) return 0;
+        let clean = text.toString().replace(/\s/g, '').replace(',', '.');
+        return parseFloat(clean) || 0;
+    };
+
+    const KG_TO_LITER_FACTOR = 0.971;
+
+    // 1. VISSZASZÁMOLÁS LITERBŐL KG-BA: Ha beírod a könyvelési Litert, kiszámolja a Kg súlyt
+    document.querySelectorAll('.comp-liter').forEach((input, index) => {
+        input.addEventListener('input', function() {
+            const literValue = parseCleanFloat(this.value);
+            const kgInput = document.querySelectorAll('.comp-kg')[index];
+
+            if (literValue > 0) {
+                // Literből Kg-ba: Liter / 0.971
+                kgInput.value = (literValue / KG_TO_LITER_FACTOR).toFixed(3);
+            } else {
+                kgInput.value = 0;
+            }
+        });
+    });
+
+    // 2. MARADÉK GOMB: Kiszámolja a maradék könyvelési Litert és a hozzátartozó Kg-ot is
+    document.querySelectorAll('.btn-calc-remainder').forEach(button => {
+        button.addEventListener('click', function() {
+            const index = this.getAttribute('data-index');
+
+            const totalDayKg = parseCleanFloat(document.getElementById('totalDayKg').innerText);
+            const totalDayLiter = parseCleanFloat(document.getElementById('totalDayLiter').innerText);
+
+            let usedKg = 0;
+            let usedLiter = 0;
+
+            // Összegezzük a többi cég adatait
+            document.querySelectorAll('.comp-kg').forEach((input, idx) => {
+                if(idx != index) usedKg += parseCleanFloat(input.value);
+            });
+            document.querySelectorAll('.comp-liter').forEach((input, idx) => {
+                if(idx != index) usedLiter += parseCleanFloat(input.value);
+            });
+
+            // Kiszámítjuk a tiszta maradékokat
+            let remainderLiter = (totalDayLiter - usedLiter).toFixed(3);
+            let remainderKg = (totalDayKg - usedKg).toFixed(3);
+
+            const targetLiterInput = document.querySelectorAll('.comp-liter')[index];
+            const targetKgInput = document.querySelectorAll('.comp-kg')[index];
+
+            // Értékek beírása (negatív értékvédelemmel)
+            targetLiterInput.value = remainderLiter >= 0 ? remainderLiter : 0;
+            targetKgInput.value = remainderKg >= 0 ? remainderKg : 0;
+        });
+    });
+</script>

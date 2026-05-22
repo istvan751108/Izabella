@@ -1,0 +1,24 @@
+﻿@{
+    ViewData["Title"] = "Afimilk Összevetés";
+}
+
+<div class="container mt-5">
+    <div class="card shadow-sm max-width-600 mx-auto">
+        <div class="card-header bg-primary text-white py-3">
+            <h4 class="mb-0"><i class="bi bi-arrow-left-right"></i> Afimilk Adat-összevetés</h4>
+        </div>
+        <div class="card-body py-4">
+            <p class="text-muted">Töltsd fel a legfrissebb Afimilkből kimentett **Szárazonállók** .dif fájlt az adatok ellenőrzéséhez.</p>
+
+            <form asp-action="ReconcileDryOff" asp-controller="Treatment" method="post" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">DIF fájl kiválasztása</label>
+                    <input type="file" name="difFile" class="form-control form-control-lg" accept=".dif" required />
+                </div>
+                <button type="submit" class="btn btn-success btn-lg w-100 shadow-sm">
+                    <i class="bi bi-cloud-upload"></i> Összevetés indítása
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

@@ -4,6 +4,7 @@ using Izabella.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Izabella.Migrations
 {
     [DbContext(typeof(IzabellaDbContext))]
-    partial class IzabellaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260518120110_MilkSales")]
+    partial class MilkSales
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -689,33 +692,6 @@ namespace Izabella.Migrations
                     b.ToTable("Medications");
                 });
 
-            modelBuilder.Entity("Izabella.Models.MilkCompanyDistribution", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
-                    b.Property<double>("DistributedKg")
-                        .HasColumnType("float");
-
-                    b.Property<double>("DistributedLiter")
-                        .HasColumnType("float");
-
-                    b.Property<DateTime>("DistributionDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CompanyId");
-
-                    b.ToTable("MilkCompanyDistributions");
-                });
-
             modelBuilder.Entity("Izabella.Models.MilkDataStaging", b =>
                 {
                     b.Property<int>("Id")
@@ -843,37 +819,6 @@ namespace Izabella.Migrations
                     b.ToTable("MilkProductions");
                 });
 
-            modelBuilder.Entity("Izabella.Models.MilkQualityLab", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BacteriaCount")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("DekadNumber")
-                        .HasColumnType("int");
-
-                    b.Property<double>("FatPercentage")
-                        .HasColumnType("float");
-
-                    b.Property<double>("ProteinPercentage")
-                        .HasColumnType("float");
-
-                    b.Property<DateTime>("RecordDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SomaticCellCount")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MilkQualityLabs");
-                });
-
             modelBuilder.Entity("Izabella.Models.MilkSale", b =>
                 {
                     b.Property<int>("Id")
@@ -900,6 +845,7 @@ namespace Izabella.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("TrailerPlateNumber")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TruckPlateNumber")
@@ -1594,17 +1540,6 @@ namespace Izabella.Migrations
                         .IsRequired();
 
                     b.Navigation("LiquidManure");
-                });
-
-            modelBuilder.Entity("Izabella.Models.MilkCompanyDistribution", b =>
-                {
-                    b.HasOne("Izabella.Models.Company", "Company")
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Company");
                 });
 
             modelBuilder.Entity("Izabella.Models.MilkProduction", b =>

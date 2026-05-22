@@ -1,0 +1,124 @@
+﻿@model IEnumerable<Izabella.Models.DryOffEvent>
+
+@{
+    ViewData["Title"] = "Szárazonállók Elkülönítése";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="display-5 fw-bold text-success"><i class="fa-solid fa-arrows-split-up-and-left me-2"></i> Szerdai Elkülönítési Lista</h1>
+            <p class="text-muted">Apasztó kezelést kapott, szétválogatásra váró állatok adminisztrációja</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-dark fs-6 p-2">Várható elkülönítés: Szerda reggel</span>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <form asp-action="ConfirmSeparation" method="post">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center py-3">
+                <div class="form-check m-0">
+                    <input type="checkbox" id="selectAllSeparation" class="form-check-input" />
+                    <label class="form-check-label fw-bold text-secondary" for="selectAllSeparation">Mindet kijelöl áthelyezésre</label>
+                </div>
+                <button type="submit" class="btn btn-success shadow-sm" id="submitBtn" disabled>
+                    <i class="bi bi-box-arrow-right"></i> Kijelöltek áthelyezése a száraz csoportba
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 50px;"></th>
+                                <th>Fülszám</th>
+                                <th>Kezelés dátuma</th>
+                                <th>Alkalmazott gyógyszer</th>
+                                <th>Jelenlegi hely (Istálló)</th>
+                                <th>Megjegyzés</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ev in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="eventIds" value="@ev.Id" class="form-check-input separation-check" />
+                                    </td>
+                                    <td class="fw-bold fs-5 text-primary">@ev.Cattle?.EarTag</td>
+                                    <td>
+                                        <i class="bi bi-calendar-check me-1 text-muted"></i>
+                                        @ev.DryOffDate.ToString("yyyy.MM.dd.")
+                                        @if (ev.DryOffDate == DateTime.Today.AddDays(-1))
+                                        {
+                                            <span class="badge bg-warning text-dark ms-1">Tegnapi apasztás</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info text-dark">
+                                            <i class="bi bi-capsule"></i> @(ev.Medication?.Name ?? "Nincs megadva")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            <i class="bi bi-house-door"></i> @(ev.Cattle?.Stall ?? "Fejős istálló")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="notes_@ev.Id" class="form-control form-control-sm" placeholder="Opcionális megjegyzés..." value="@ev.Note" />
+                                    </td>
+                                </tr>
+                            }
+                            @if (!Model.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="bi bi-check2-all text-success display-1 d-block mb-3"></i>
+                                        <span class="fs-5 fw-bold text-dark d-block">Minden állat el lett különítve!</span>
+                                        Nincs újabb apasztott tehén, aki szétválogatásra várna.
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        const selectAll = document.getElementById('selectAllSeparation');
+        const checkboxes = document.querySelectorAll('.separation-check');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Gomb állapotának frissítése (csak akkor aktív, ha van kijelölés)
+        function updateButtonState() {
+            const checkedCount = document.querySelectorAll('.separation-check:checked').length;
+            submitBtn.disabled = checkedCount === 0;
+        }
+
+        if(selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => {
+                    cb.checked = this.checked;
+                });
+                updateButtonState();
+            });
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateButtonState);
+        });
+    </script>
+}

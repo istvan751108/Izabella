@@ -1,0 +1,154 @@
+﻿@model List<Izabella.Controllers.MilkReportRow>
+@{
+    ViewData["Title"] = "Havi Tej Értékesítési Ív";
+    var companies = ViewBag.Companies as List<Izabella.Models.Company>;
+}
+
+<div class="container-fluid mt-4">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+            <h4 class="mb-0"><i class="bi bi-file-earmark-spreadsheet"></i> Havi Tejértékesítési Kimutatás és Laboradatok</h4>
+            <div>
+                <a asp-controller="MilkQualityLab" asp-action="Create" asp-route-returnMonth="@ViewBag.CurrentMonthFilter" class="btn btn-warning me-2 fw-bold">
+                    <i class="bi bi-flask"></i> Új Laboradat rögzítése
+                </a>
+                <a asp-action="ExportToExcel" asp-route-monthFilter="@ViewBag.CurrentMonthFilter" asp-route-feedMilk="@ViewBag.FeedMilk" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel"></i> Excel Exportálás
+                </a>
+            </div>
+        </div>
+        <div class="card-body bg-light">
+            <form asp-action="MonthlyStatement" method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Vizsgált Időszak</label>
+                    <input type="month" name="monthFilter" class="form-control" value="@ViewBag.CurrentMonthFilter" onchange="this.form.submit();" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Takarmánytej alapértelmezés (L)</label>
+                    <input type="number" name="customFeedMilk" class="form-control" value="@ViewBag.FeedMilk" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100"><i class="bi bi-arrow-clockwise"></i> Újraszámol</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle text-center mb-0" style="font-size:0.9rem;">
+                <thead class="table-secondary">
+                    <tr>
+                        <th rowspan="2">Dátum</th>
+                        <th colspan="2" class="table-primary">Összesen Értékesített</th>
+                        <th rowspan="2" class="table-info">Takarmánytej (L)</th>
+                        @foreach (var comp in companies)
+                        {
+                            <th colspan="2" class="bg-white text-dark border-bottom-0">@comp.Name</th>
+                        }
+                        <th colspan="4" class="table-warning">Minőségi Mintavételezés (Labor)</th>
+                    </tr>
+                    <tr>
+                        <th class="table-primary">Kg</th>
+                        <th class="table-primary">Liter</th>
+                        @foreach (var comp in companies)
+                        {
+                            <th class="bg-light">Kg</th>
+                            <th class="bg-warning text-dark">Liter</th>
+                        }
+                        <th class="table-warning">Zsír %</th>
+                        <th class="table-warning">Fehérje %</th>
+                        <th class="table-warning">Szomatika</th>
+                        <th class="table-warning">Csíraszám</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 0; i < Model.Count; i++)
+                    {
+                        var row = Model[i];
+                        <tr>
+                            <td class="fw-bold">@row.Date.ToString("dd.")</td>
+                            <td class="text-end fw-bold">@row.TotalKg.ToString("N1")</td>
+                            <td class="text-end text-primary fw-bold">@row.TotalLiter.ToString("N3")</td>
+                            <td class="text-end">@row.FeedMilkLiter.ToString("N0")</td>
+
+                            @* MODOSÍTVA: Kézi cégoszlopok dinamikus megjelenítése *@
+                            @foreach (var comp in companies)
+                            {
+                                if (row.CompanyValues.TryGetValue(comp.Id, out var vals))
+                                {
+                                    <td class="bg-light text-end fw-normal">@(vals.Kg > 0 ? vals.Kg.ToString("N3") : "")</td>
+                                    <td class="bg-warning bg-opacity-10 text-end fw-bold">@(vals.Liter > 0 ? vals.Liter.ToString("N3") : "")</td>
+                                }
+                                else
+                                {
+                                    <td class="bg-light text-muted small">-</td>
+                                    <td class="bg-warning bg-opacity-10 text-muted small">-</td>
+                                }
+                            }
+
+                            @* Labor adatok *@
+                            <td class="fw-bold text-danger">@(row.FatPercentage > 0 ? row.FatPercentage.ToString("N2") + "%" : "")</td>
+                            <td class="fw-bold text-success">@(row.ProteinPercentage > 0 ? row.ProteinPercentage.ToString("N2") + "%" : "")</td>
+                            <td>@(!string.IsNullOrEmpty(row.SomaticCellCount) ? row.SomaticCellCount : "")</td>
+                            <td>@(!string.IsNullOrEmpty(row.BacteriaCount) ? row.BacteriaCount : "")</td>
+                        </tr>
+
+                        @* Dekád összesítések beszúrása *@
+                        if (row.Date.Day == 10 || row.Date.Day == 20 || i == Model.Count - 1)
+                        {
+                            var dekadRows = Model.Where(r => r.Dekad == row.Dekad).ToList();
+                            <tr class="table-success fw-bold">
+                                <td>@row.Dekad. Dekád</td>
+                                <td class="text-end">@dekadRows.Sum(r => r.TotalKg).ToString("N1")</td>
+                                <td class="text-end">@dekadRows.Sum(r => r.TotalLiter).ToString("N3")</td>
+                                <td class="text-end">@dekadRows.Sum(r => r.FeedMilkLiter).ToString("N0")</td>
+
+                                @* MÓDOSÍTVA: Dekád szintű cégösszesítések *@
+                                @foreach (var comp in companies)
+                                {
+                                    var compDekadKg = dekadRows.Sum(r => r.CompanyValues.ContainsKey(comp.Id) ? r.CompanyValues[comp.Id].Kg : 0);
+                                    var compDekadLit = dekadRows.Sum(r => r.CompanyValues.ContainsKey(comp.Id) ? r.CompanyValues[comp.Id].Liter : 0);
+                                    <td class="text-end text-dark small">@(compDekadKg > 0 ? compDekadKg.ToString("N1") : "0.0")</td>
+                                    <td class="text-end text-dark small">@(compDekadLit > 0 ? compDekadLit.ToString("N1") : "0.0")</td>
+                                }
+                                <td colspan="4" class="text-start ps-3 text-muted">Dekád elszámolási alap</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+                <tfoot class="table-dark fw-bold fs-6">
+                    <tr>
+                        <td>Havi Össz:</td>
+                        <td class="text-end">@Model.Sum(r => r.TotalKg).ToString("N1") kg</td>
+                        <td class="text-end">@Model.Sum(r => r.TotalLiter).ToString("N3") L</td>
+                        <td class="text-end">@Model.Sum(r => r.FeedMilkLiter).ToString("N0") L</td>
+
+                        @* MÓDOSÍTVA: Havi cégösszesítők a láblécben *@
+                        @foreach (var comp in companies)
+                        {
+                            var compTotalKg = Model.Sum(r => r.CompanyValues.ContainsKey(comp.Id) ? r.CompanyValues[comp.Id].Kg : 0);
+                            var compTotalLit = Model.Sum(r => r.CompanyValues.ContainsKey(comp.Id) ? r.CompanyValues[comp.Id].Liter : 0);
+                            <td class="text-end text-warning small">@compTotalKg.ToString("N1")</td>
+                            <td class="text-end text-warning small">@compTotalLit.ToString("N1")</td>
+                        }
+                        <td colspan="4" class="text-center text-warning">Havi záró elszámolás</td>
+                    </tr>
+                    <tr class="table-secondary text-dark">
+                        <td>Havi Átlag:</td>
+                        <td class="text-end">@( (Model.Sum(r => r.TotalKg) / Model.Count).ToString("N3") ) kg/nap</td>
+                        <td class="text-end">@( (Model.Sum(r => r.TotalLiter) / Model.Count).ToString("N3") ) L/nap</td>
+                        <td></td>
+                        @foreach (var comp in companies)
+                        {
+                            <td colspan="2"></td>
+                        }
+                        <td class="text-danger">@(Model.Where(r => r.FatPercentage > 0).Average(r => (double?)r.FatPercentage)?.ToString("N2") ?? "0")%</td>
+                        <td class="text-success">@(Model.Where(r => r.ProteinPercentage > 0).Average(r => (double?)r.ProteinPercentage)?.ToString("N2") ?? "0")%</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>

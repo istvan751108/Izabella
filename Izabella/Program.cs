@@ -10,7 +10,8 @@ QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Identity konfigurálása
-builder.Services.AddDefaultIdentity<IdentityUser>(options => {
+builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+{
     options.SignIn.RequireConfirmedAccount = false;
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
@@ -30,6 +31,7 @@ builder.Services.AddScoped<VoucherService>();
 builder.Services.AddScoped<ManureCalculationService>();
 builder.Services.AddScoped<SolidManureService>();
 builder.Services.AddScoped<IStatService, StatService>();
+builder.Services.AddScoped<CalvingDbfExportService>();
 var app = builder.Build();
 
 app.UseHttpsRedirection();

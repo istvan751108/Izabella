@@ -3,6 +3,7 @@ using iText.Forms;
 using iText.Kernel.Pdf;
 using Izabella.Models;
 using Izabella.Models.ViewModels;
+using Izabella.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +14,12 @@ namespace Izabella.Controllers
     public class CattleReportsController : Controller
     {
         private readonly IzabellaDbContext _context;
+        private readonly CalvingDbfExportService _dbfExportService;
 
-        public CattleReportsController(IzabellaDbContext context)
+        public CattleReportsController(IzabellaDbContext context, CalvingDbfExportService dbfExportService)
         {
             _context = context;
+            _dbfExportService = dbfExportService;
         }
 
         // 1. VETÉLÉSI JELENTÉS
@@ -89,6 +92,7 @@ namespace Izabella.Controllers
 
             return View(report);
         }
+
         public async Task<IActionResult> CalvingCharts()
         {
             var today = DateTime.Today;
@@ -119,6 +123,7 @@ namespace Izabella.Controllers
 
             return View();
         }
+
         public async Task<IActionResult> DownloadSlaughterSupport(int year, int month, int companyId)
         {
             var company = await _context.Companies.FindAsync(companyId);
@@ -164,6 +169,7 @@ namespace Izabella.Controllers
             if (eventDate.Day < birthDate.Day) months--;
             return months;
         }
+
         public async Task<IActionResult> GenerateSlaughterPdf(int year, int month, int companyId)
         {
             var company = await _context.Companies.FirstOrDefaultAsync(c => c.Id == companyId);
@@ -225,6 +231,7 @@ namespace Izabella.Controllers
                 return File(zipStream.ToArray(), "application/zip", $"Vago_Tamogatasok_{company.Name}_{year}_{month}.zip");
             }
         }
+
         private async Task<byte[]> CreateSinglePdfBytes(dynamic groupedData, Company company, DateTime targetMonth, SupportFormConfig config, string herdCode)
         {
             string templatePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "templates", "2334_sablon.pdf");
@@ -295,6 +302,7 @@ namespace Izabella.Controllers
 
             return ms.ToArray();
         }
+
         // 1. A főoldal, ahol a paramétereket megadjuk
         public async Task<IActionResult> SlaughterSupportIndex()
         {
@@ -333,6 +341,7 @@ namespace Izabella.Controllers
             }
             return View(config);
         }
+
         public async Task<IActionResult> GeneratePregnantHeiferPdf(int year, int month, int companyId)
         {
             var company = await _context.Companies.FirstOrDefaultAsync(c => c.Id == companyId);
@@ -390,6 +399,7 @@ namespace Izabella.Controllers
                 return File(zipStream.ToArray(), "application/zip", $"Vemhes_Tamogatasok_{reportDate:yyyy_MM}.zip");
             }
         }
+
         private async Task<byte[]> CreatePregnantPdfBytes(List<string> enars, Company company, DateTime targetMonth, SupportFormConfig config, string herdCode)
         {
             string templatePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "templates", "2335_sablon.pdf");
@@ -470,11 +480,13 @@ namespace Izabella.Controllers
                 return outputMs.ToArray();
             }
         }
+
         public async Task<IActionResult> PregnantSupportIndex()
         {
             ViewBag.Companies = await _context.Companies.ToListAsync();
             return View();
         }
+
         [HttpGet]
         public async Task<IActionResult> ExitReport(int? year, int? month, int? companyId)
         {
@@ -524,6 +536,7 @@ namespace Izabella.Controllers
 
             return View(vm);
         }
+
         [HttpGet]
         public async Task<IActionResult> ExportExitsToExcel(int year, int month, int? companyId)
         {
@@ -645,6 +658,7 @@ namespace Izabella.Controllers
                 _ => type.ToString()                       // Alapértelmezett, ha új típust adnál hozzá
             };
         }
+
         [HttpGet]
         public async Task<IActionResult> ReclassificationReport(int? year, int? month, int? companyId)
         {
@@ -698,6 +712,7 @@ namespace Izabella.Controllers
 
             return View(viewModel);
         }
+
         public async Task<IActionResult> ExportReclassificationToExcel(int year, int month, int? companyId)
         {
             // Ugyanaz a lekérdezés, mint fent...
@@ -753,6 +768,7 @@ namespace Izabella.Controllers
                 }
             }
         }
+
         [HttpGet]
         public async Task<IActionResult> MonthlyCowInventory(int? companyId)
         {
@@ -785,6 +801,7 @@ namespace Izabella.Controllers
 
             return View(vm);
         }
+
         [HttpGet]
         public async Task<IActionResult> ExportInventoryToExcel(int? companyId)
         {
@@ -856,6 +873,7 @@ namespace Izabella.Controllers
                 }
             }
         }
+
         [HttpGet]
         public async Task<IActionResult> DailyFeedReport(int? year, int? month, int? companyId)
         {
@@ -888,6 +906,7 @@ namespace Izabella.Controllers
             }
             return View(vm);
         }
+
         [HttpGet]
         public async Task<IActionResult> ExportDailyFeedReportToExcel(int? year, int? month, int? companyId)
         {
@@ -1009,6 +1028,7 @@ namespace Izabella.Controllers
                 }
             }
         }
+
         [HttpGet]
         public async Task<IActionResult> MonthlyClosing(int? year, int? month, int? companyId)
         {
@@ -1025,7 +1045,7 @@ namespace Izabella.Controllers
             };
 
             // 1. ÉRTÉKESÍTÉS ÉS ELHULLÁS (SaleTransactions + Cattle Exit adatok)
-            // Megjegyzés: Az elhullás is szerepelhet a SaleTransaction-ben 0-ás árral, 
+            // Megjegyzés: Az elhullás is szerepelhet a SaleTransaction-ben 0-ás árral,
             // vagy a Cattle táblában ExitType.Elhullás-sal.
             var sales = await _context.SaleTransactions
                 .Include(s => s.Cattle)
@@ -1327,6 +1347,7 @@ namespace Izabella.Controllers
                 }
             }
         }
+
         // Segédfüggvény a keretezéshez
         private void ApplyTableStyles(IXLWorksheet ws, int startRow, int endRow, int lastCol)
         {
@@ -1467,13 +1488,14 @@ namespace Izabella.Controllers
 
             return vm;
         }
+
         [HttpGet]
         public async Task<IActionResult> MonthlyInventorySummary(int? year, int? month, int? companyId)
         {
             int rYear = year ?? DateTime.Now.Year;
             int rMonth = month ?? DateTime.Now.Month;
 
-            // 1. Lekérjük az adatokat. 
+            // 1. Lekérjük az adatokat.
             // FONTOS: A GetMonthlyClosingData-ban a vm.Companies-be csak a szűrt cég(ek) kerülnek!
             var vm = await GetMonthlyClosingData(rYear, rMonth, companyId);
 
@@ -1590,6 +1612,441 @@ namespace Izabella.Controllers
                     workbook.SaveAs(stream);
                     return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Szaporulati_Naplo_{year}_{month}.xlsx");
                 }
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CalvingIntervalReport(int? year, int? month)
+        {
+            int selectedYear = year ?? DateTime.Now.Year;
+            int selectedMonth = month ?? DateTime.Now.Month;
+
+            // A hónap legelső pillanata: 2026.04.01 00:00:00
+            var startDate = new DateTime(selectedYear, selectedMonth, 1);
+
+            // A hónap utolsó napjának legutolsó pillanata: 2026.04.30 23:59:59
+            var endDate = startDate.AddMonths(1).AddTicks(-1);
+
+            // Lekérjük az adott hónapban történt ellések history rekordjait (lefedve az egész napot az utolsó ezredmásodpercig)
+            var monthlyCalvingHistories = await _context.AnimalHistories
+                .Include(h => h.Cattle)
+                .Where(h => h.Type == "Ellés" && h.EventDate >= startDate && h.EventDate <= endDate)
+                .OrderBy(h => h.EventDate)
+                .ToListAsync();
+
+            var multiParousCalvings = monthlyCalvingHistories.Where(h => h.Weight > 0).ToList();
+            double averageDays = multiParousCalvings.Any() ? multiParousCalvings.Average(h => h.Weight) : 0;
+
+            var viewModel = new CalvingIntervalReportViewModel
+            {
+                Year = selectedYear,
+                Month = selectedMonth,
+                AverageIntervalDays = Math.Round(averageDays, 1),
+                TotalCalvingsInMonth = monthlyCalvingHistories.Count,
+                MultiParousCalvingsCount = multiParousCalvings.Count
+            };
+
+            foreach (var history in monthlyCalvingHistories)
+            {
+                viewModel.Details.Add(new CalvingIntervalDetailsItem
+                {
+                    EarTag = history.Cattle?.EarTag ?? "Ismeretlen",
+                    EnarNumber = history.Cattle?.EnarNumber ?? "Ismeretlen",
+                    CalvingDate = history.EventDate,
+                    LactationNo = history.Cattle?.CurrentLactationNo ?? 0,
+                    IntervalDays = (int)history.Weight
+                });
+            }
+
+            ViewBag.Years = Enumerable.Range(DateTime.Now.Year - 5, 6).OrderByDescending(y => y).ToList();
+            ViewBag.Months = Enumerable.Range(1, 12).ToList();
+
+            return View(viewModel);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CalvingBefejesExport()
+        {
+            // Megkeressük az utolsó olyan history bejegyzést, ami az exportról szólt,
+            // hogy lássuk, meddig mentünk el legutóbb
+            var utolsoExport = await _context.AnimalHistories
+                .Where(h => h.Type == "KÁT_Jelles_Export")
+                .OrderByDescending(h => h.EventDate)
+                .FirstOrDefaultAsync();
+
+            var model = new CalvingExportSettingsViewModel
+            {
+                Megye = "14",
+                Tenyeszet = "341",
+                Telep = "21",
+                EnarTeny = "467355",
+                BefejesDatuma = DateTime.Now,
+                UtolsoBefejesDatuma = utolsoExport?.EventDate ?? DateTime.Now.AddMonths(-1)
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportJellesDbf(CalvingExportSettingsViewModel model)
+        {
+            byte[] fileBytes;
+
+            // 1. LÉPÉS: DBF fájl generálása
+            try
+            {
+                fileBytes = await _dbfExportService.GenerateJellesDbfAsync(
+                    model.Megye,
+                    model.Tenyeszet,
+                    model.Telep,
+                    model.BefejesDatuma,
+                    model.UtolsoBefejesDatuma
+                );
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba történt a DBF fájl generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+
+            // 2. LÉPÉS: A határnap elmentése az adatbázisban (Biztonságos, fiktív háttér-rekorddal)
+            try
+            {
+                // Megkeressük a virtuális rendszer-állatunkat az adatbázisban az EarTag alapján
+                var rendszerAllat = await _context.Cattles.FirstOrDefaultAsync(c => c.EarTag == "SYSTEM");
+
+                // Ha még soha nem létezett (pl. első futás), létrehozzuk egyszer a modellednek megfelelő kötelező mezőkkel
+                if (rendszerAllat == null)
+                {
+                    rendszerAllat = new Cattle
+                    {
+                        EarTag = "SYSTEM",
+                        EnarNumber = "HU0000000000",
+                        PassportNumber = "SYSTEM-EXPORT",
+                        PassportSequence = 1,
+                        BirthDate = DateTime.Today,
+                        Gender = Gender.Üsző,
+                        BreedCode = 22,
+                        IsActive = false, // Ne zavarjon be az élő állatok listájában
+                        IsAlive = true,
+                        AgeGroup = "SYSTEM", // 🔥 JAVÍTÁS: Ezzel kiküszöböljük a NOT NULL hibát!
+                        CompanyId = 1,      // Írj be egy létező Cég ID-t az adatbázisodból
+                        CurrentHerdId = 1   // Írj be een létező Tenyészet ID-t az adatbázisodból
+                    };
+                    _context.Cattles.Add(rendszerAllat);
+                    await _context.SaveChangesAsync();
+                }
+
+                var historyLog = new AnimalHistory
+                {
+                    Type = "KÁT_Jelles_Export",
+                    // 🔥 Az EventDate mezőbe mentjük a kiválasztott befejezési dátumot
+                    EventDate = model.BefejesDatuma,
+                    CattleId = rendszerAllat.Id, // Örökre ehhez a fix virtuális rekordhoz kötjük!
+                    Comment = $"Sikeres export. Határnap: {model.BefejesDatuma:yyyy.MM.dd}",
+                    IsEnarReported = true
+                };
+
+                _context.AnimalHistories.Add(historyLog);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                var innerMessage = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                ModelState.AddModelError("", "A DBF elkészült, de a dátum mentése sikertelen: " + innerMessage);
+                return View("CalvingBefejesExport", model);
+            }
+
+            // 3. LÉPÉS: Fájl letöltése a böngészőben
+            return File(fileBytes, "application/x-dbf", "jelles.dbf");
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportTehenKiesesDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = await _dbfExportService.GenerateTehenKiesesDbfAsync(
+                    model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                );
+                return File(fileBytes, "application/x-dbf", "jkieses_tehen.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba a tehén kiesés generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportUszoKiesesDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = await _dbfExportService.GenerateUszoKiesesDbfAsync(
+                    model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                );
+                // A letöltési név itt is jkieses.dbf legyen, de a teszt kedvéért elnevezheted másnak is
+                return File(fileBytes, "application/x-dbf", "jkieses_uszo.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba az üsző kiesés generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public IActionResult ExportJtelepDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = _dbfExportService.GenerateJtelepDbf(
+                    model.Megye, model.Tenyeszet, model.Telep, model.EnarTeny, model.BefejesDatuma
+                );
+                return File(fileBytes, "application/x-dbf", "jtelep.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba a jtelep generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportTehenTermekenyitesDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = await _dbfExportService.GenerateTehenTermekenyitesDbfAsync(
+                    model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                );
+                return File(fileBytes, "application/x-dbf", "jterm_tehen.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba a tehén termékenyítés generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportUszoTermekenyitesDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = await _dbfExportService.GenerateUszoTermekenyitesDbfAsync(
+                    model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                );
+                return File(fileBytes, "application/x-dbf", "jterm_uszo.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba az üsző termékenyítés generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public IActionResult ExportUszoUjFelvDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = _dbfExportService.GenerateUszoUjFelvEtelDbf();
+                return File(fileBytes, "application/x-dbf", "jujfelv_uszo.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba az üsző új felvétel generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportTehenUjFelvDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = await _dbfExportService.GenerateTehenUjFelvetelDbfAsync(
+                    model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                );
+                return File(fileBytes, "application/x-dbf", "jujfelv_tehen.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba a tehén új felvétel generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportTehenVemhDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = await _dbfExportService.GenerateTehenVemhessegDbfAsync(
+                    model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                );
+                return File(fileBytes, "application/x-dbf", "jvemh_tehen.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba a tehén vemhesség generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportUszoVmhDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = await _dbfExportService.GenerateUszoVemhessegDbfAsync(
+                    model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                );
+                return File(fileBytes, "application/x-dbf", "jvemh_uszo.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba az üsző vemhesség generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public IActionResult ExportJhibakDbf(CalvingExportSettingsViewModel model)
+        {
+            try
+            {
+                byte[] fileBytes = _dbfExportService.GenerateJhibakDbf();
+                return File(fileBytes, "application/x-dbf", "jhibak.dbf");
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba a hibajegyzék generálása közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ExportFullKatPackage(CalvingExportSettingsViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View("CalvingBefejesExport", model);
+            }
+
+            try
+            {
+                using (var zipMS = new MemoryStream())
+                {
+                    using (var archive = new ZipArchive(zipMS, ZipArchiveMode.Create, true))
+                    {
+                        // ==========================================
+                        // 1. TEHÉN MAPPA TARTALMA (TEHEN/)
+                        // ==========================================
+
+                        // jelles.dbf
+                        var jellesBytes = await _dbfExportService.GenerateJellesDbfAsync(
+                            model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                        );
+                        CreateZipEntry(archive, "TEHEN/jelles.dbf", jellesBytes);
+
+                        // jkieses.dbf (Tehén)
+                        var jkiesesTehenBytes = await _dbfExportService.GenerateTehenKiesesDbfAsync(
+                            model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                        );
+                        CreateZipEntry(archive, "TEHEN/jkieses.dbf", jkiesesTehenBytes);
+
+                        // jtelep.dbf (Tehén)
+                        var jtelepTehenBytes = _dbfExportService.GenerateJtelepDbf(
+                            model.Megye,
+                            model.Tenyeszet,
+                            model.Telep,
+                            model.EnarTeny, // <-- EZT ADTUK HOZZÁ
+                            model.BefejesDatuma
+                        );
+                        CreateZipEntry(archive, "TEHEN/jtelep.dbf", jtelepTehenBytes);
+
+                        // jterm.dbf (Tehén)
+                        var jtermTehenBytes = await _dbfExportService.GenerateTehenTermekenyitesDbfAsync(
+                            model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                        );
+                        CreateZipEntry(archive, "TEHEN/jterm.dbf", jtermTehenBytes);
+
+                        // jujfelv.dbf (Tehén)
+                        var jujfelvTehenBytes = await _dbfExportService.GenerateTehenUjFelvetelDbfAsync(
+                            model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                        );
+                        CreateZipEntry(archive, "TEHEN/jujfelv.dbf", jujfelvTehenBytes);
+
+                        // jvemh.dbf (Tehén)
+                        var jvemhTehenBytes = await _dbfExportService.GenerateTehenVemhessegDbfAsync(
+                            model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                        );
+                        CreateZipEntry(archive, "TEHEN/jvemh.dbf", jvemhTehenBytes);
+
+                        // jhibak.dbf (Üres hibajegyzék a tehenekhez)
+                        var jhibakBytes = _dbfExportService.GenerateJhibakDbf();
+                        CreateZipEntry(archive, "TEHEN/jhibak.dbf", jhibakBytes);
+
+                        // ==========================================
+                        // 2. ÜSZŐ MAPPA TARTALMA (USZO/)
+                        // ==========================================
+
+                        // jkieses.dbf (Üsző)
+                        var jkiesesUszoBytes = await _dbfExportService.GenerateUszoKiesesDbfAsync(
+                            model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                        );
+                        CreateZipEntry(archive, "USZO/jkieses.dbf", jkiesesUszoBytes);
+
+                        // jtelep.dbf (Üsző)
+                        var jtelepUszoBytes = _dbfExportService.GenerateJtelepDbf(
+                            model.Megye,
+                            model.Tenyeszet,
+                            model.Telep,
+                            model.EnarTeny, // <-- EZT ADTUK HOZZÁ
+                            model.BefejesDatuma
+                        );
+                        CreateZipEntry(archive, "USZO/jtelep.dbf", jtelepUszoBytes);
+
+                        // jterm.dbf (Üsző)
+                        var jtermUszoBytes = await _dbfExportService.GenerateUszoTermekenyitesDbfAsync(
+                            model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                        );
+                        CreateZipEntry(archive, "USZO/jterm.dbf", jtermUszoBytes);
+
+                        // jujfelv_uszo.dbf -> A mappában fixen 'jujfelv.dbf' néven fut az üszőknél is!
+                        var jujfelvUszoBytes = _dbfExportService.GenerateUszoUjFelvEtelDbf();
+                        CreateZipEntry(archive, "USZO/jujfelv.dbf", jujfelvUszoBytes);
+
+                        // jvemh.dbf (Üsző)
+                        var jvemhUszoBytes = await _dbfExportService.GenerateUszoVemhessegDbfAsync(
+                            model.Megye, model.Tenyeszet, model.Telep, model.BefejesDatuma, model.UtolsoBefejesDatuma
+                        );
+                        CreateZipEntry(archive, "USZO/jvemh.dbf", jvemhUszoBytes);
+                    }
+
+                    // Fájlnév generálása a befejezés hónapja alapján (pl. KAT_befejezes_2026_05.zip)
+                    string zipFileName = $"KAT_befejezes_{model.BefejesDatuma:yyyy_MM}.zip";
+
+                    return File(zipMS.ToArray(), "application/zip", zipFileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", "Hiba történt a teljes KÁT csomag összekészítése közben: " + ex.Message);
+                return View("CalvingBefejesExport", model);
+            }
+        }
+
+        // Kisegítő metódus a zip bejegyzések tisztább létrehozásához
+        private void CreateZipEntry(ZipArchive archive, string entryPath, byte[] content)
+        {
+            var entry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
+            using (var entryStream = entry.Open())
+            {
+                entryStream.Write(content, 0, content.Length);
             }
         }
     }
