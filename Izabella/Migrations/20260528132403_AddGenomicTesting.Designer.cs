@@ -4,6 +4,7 @@ using Izabella.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Izabella.Migrations
 {
     [DbContext(typeof(IzabellaDbContext))]
-    partial class IzabellaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260528132403_AddGenomicTesting")]
+    partial class AddGenomicTesting
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -244,9 +247,6 @@ namespace Izabella.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("GenomicTestDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("InseminationBullKlsz")
                         .HasColumnType("nvarchar(max)");
 
@@ -254,6 +254,9 @@ namespace Izabella.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsAlive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsGenomicTested")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsTwin")

@@ -1,0 +1,114 @@
+﻿@model IEnumerable<Izabella.Models.Cattle>
+@{
+    ViewData["Title"] = "Genomvizsgálat";
+    var candidates = ViewBag.Candidates as IEnumerable<Izabella.Models.Cattle>;
+    var currentMonth = ViewBag.SelectedYearMonth as string;
+}
+
+<div class="card shadow-sm border-0 p-4 mb-4 bg-white rounded-3">
+    <div class="row align-items-center g-3">
+        <div class="col-md-5">
+            <h2 class="mb-1">Genomvizsgálat (Porcminta)</h2>
+            <p class="text-muted mb-0">Itatásos üsző borjak mintavételi jegyzéke.</p>
+        </div>
+        <div class="col-md-3">
+            <form method="get" action="@Url.Action("Index")" id="monthFilterForm">
+                <label class="form-label small fw-bold text-muted">Vizsgálati Időszak (Hónap):</label>
+                <input type="month" name="yearMonth" value="@currentMonth" class="form-control" onchange="document.getElementById('monthFilterForm').submit();" />
+            </form>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a asp-action="ExportToExcel" asp-route-yearMonth="@currentMonth" class="btn btn-success btn-lg shadow-sm w-100 w-md-auto">
+                <i class="bi bi-file-earmark-excel me-2"></i> @currentMonth Excel Exportálása
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="card-title mb-0"><i class="bi bi-hourglass-split me-2"></i>1. Mintavételre váró itatásos üszők</h5>
+            </div>
+            <div class="table-responsive p-3">
+                <table class="table table-hover align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fülszám</th>
+                            <th>ENAR szám</th>
+                            <th>Született</th>
+                            <th>Anya / Apa</th>
+                            <th class="text-center">Művelet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (candidates == null || !candidates.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">Nincs jelenleg mintázható új borjú.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in candidates)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-secondary">@item.EarTag</span></td>
+                                    <td class="fw-bold">@item.EnarNumber @(item.IsTwin ? "(Iker)" : "")</td>
+                                    <td>@item.BirthDate.ToString("yyyy.MM.dd")</td>
+                                    <td><span class="text-muted">A:</span> @(item.MotherEnar ?? "-")<br /><span class="text-muted">F:</span> @(item.FatherKlsz ?? "-")</td>
+                                    <td class="text-center">
+                                        <form asp-action="RecordSample" asp-route-id="@item.Id" asp-route-yearMonth="@currentMonth" method="post">
+                                            <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                                                <i class="bi bi-check2-circle"></i> Levéve
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="card-title mb-0"><i class="bi bi-file-check me-2"></i>2. @currentMonth hónapban mintázva</h5>
+            </div>
+            <div class="table-responsive p-3">
+                <table class="table table-striped align-middle small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fülszám</th>
+                            <th>ENAR szám</th>
+                            <th>Mintavétel ideje</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="3" class="text-center text-muted py-4">Ebben a hónapban még nem történt rögzített mintavétel.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-success">@item.EarTag</span></td>
+                                    <td class="text-muted">@item.EnarNumber</td>
+                                    <td class="fw-bold text-success">@item.GenomicTestDate?.ToString("yyyy. MM. dd. HH:mm")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

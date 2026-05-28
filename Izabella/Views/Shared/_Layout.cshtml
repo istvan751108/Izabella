@@ -62,6 +62,7 @@
             .accordion-button, .single-link, .submenu a {
                 transition: all 0.25s ease-in-out !important;
             }
+
                 .accordion-button:not(.collapsed) {
                     background: #34495e !important;
                 }
@@ -153,7 +154,7 @@
                     color: #3498db;
                 }
 
-            @@media(max-width:992px) {
+            @@media(max - width:992px) {
                 .sidebar {
                     position: relative;
                     width: 100%;
@@ -195,7 +196,6 @@
             <i class="bi bi-house-door me-2"></i>Főoldal
         </a>
 
-        <!-- Csak mobilon látszik -->
         <div class="d-lg-none bg-dark text-white p-3 d-flex justify-content-between align-items-center">
             <span>IZABELLA DB</span>
             <button class="btn btn-outline-light btn-sm" onclick="$('.sidebar').toggleClass('active')">
@@ -217,7 +217,6 @@
 
         <div class="accordion" id="sidebarMenu">
 
-            <!-- Állomány kezelés -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#cattleMenu">
@@ -243,12 +242,10 @@
                         <a asp-controller="CattleReports" asp-action="MonthlyClosing"><i class="fas fa-lock me-2"></i>Havi zárási adatok</a>
                         <a asp-controller="CattleReports" asp-action="OffspringLog"><i class="fa-solid fa-baby me-2"></i>Szaporulati napló</a>
                         <a asp-controller="CattleReports" asp-action="CalvingIntervalReport"><i class="bi bi-calendar-range me-2"></i>Két ellés közötti idő (KEI)</a>
-                        <a asp-controller="CattleReports" asp-action="CalvingBefejesExport"><i class="bi bi-database-down me-2"></i>Befejés ellés adat import</a>
                     </div>
                 </div>
             </div>
 
-            <!-- Laktációs adatok -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#milkMenu">
@@ -287,14 +284,27 @@
                         <a asp-controller="MilkReport" asp-action="MonthlyStatement" class="nav-link">
                             <i class="bi bi-currency-dollar me-2"></i>Tejelszámolás
                         </a>
-                        <a asp-controller="MilkReport" asp-action="DailyLactationExport" class="nav-link">
-                            <i class="bi bi-database-up me-2"></i>Befejéshez napi tej adat export
-                        </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Helyszíni műveletek -->
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#befejesMenu">
+                        <i class="bi bi-droplet me-2"></i>Befejés és Vizsgálatok
+                    </button>
+                </h2>
+                <div id="befejesMenu" class="accordion-collapse collapse">
+                    <div class="submenu">
+                        <a asp-controller="MilkReport" asp-action="DailyLactationExport"><i class="bi bi-database-up me-2"></i>Befejéshez napi tej adat export</a>
+                        <a asp-controller="CattleReports" asp-action="CalvingBefejesExport"><i class="bi bi-database-up me-2"></i>Befejési adatok exportálása</a>
+                        <a asp-controller="CattleReports" asp-action="ImportMilkLabResults"><i class="bi bi-database-down me-2"></i>Befejési Laboreredmények importálása</a>
+                        <a asp-controller="MilkAnalysis" asp-action="Index"><i class="fas fa-chart-line me-2"></i>Próbafejés Adatösszefüggés Elemzések</a>
+                        <a asp-controller="Genomic" asp-action="Index"><i class="fas fa-solid fa-dna me-2 text-warning"></i>Genomvizsgálat (Porcminta)</a>
+                    </div>
+                </div>
+            </div>
+
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#examMenu">
@@ -310,7 +320,6 @@
                 </div>
             </div>
 
-            <!-- Szaporodásbiológia -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#reproMenu">
@@ -354,7 +363,6 @@
                 </div>
             }
 
-            <!-- Támogatások -->
             <div class="accordion-item">
                 <h2 class="accordion-header">
                     <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#supportMenu">
@@ -436,68 +444,69 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/tableToExcel.js"></script>
     <script>
-    $(document).ready(function () {
+        $(document).ready(function () {
         // Megkeressük az aktív linket (ASP.NET Core generálja az URL-t)
         var currentUrl = window.location.pathname;
-    
+
         $('.submenu a').each(function () {
-            var linkUrl = $(this).attr('href');
-            if (currentUrl === linkUrl) {
-                $(this).addClass('active');
-                // Kinyitjuk a szülőt (accordion-collapse)
-                $(this).closest('.accordion-collapse').addClass('show');
-                // Megváltoztatjuk a gomb stílusát, hogy ne legyen "collapsed"
-                $(this).closest('.accordion-item').find('.accordion-button').removeClass('collapsed');
-            }
+        var linkUrl = $(this).attr('href');
+        if (currentUrl === linkUrl) {
+        $(this).addClass('active');
+        // Kinyitjuk a szülőt (accordion-collapse)
+        $(this).closest('.accordion-collapse').addClass('show');
+        // Megváltoztatjuk a gomb stílusát, hogy ne legyen "collapsed"
+        $(this).closest('.accordion-item').find('.accordion-button').removeClass('collapsed');
+        }
         });
-                    $('#menuSearch').on('keyup', function () {
-                var value = $(this).val().toLowerCase();
 
-                // Ha üres a kereső, zárjuk vissza az összeset, kivéve az eredetileg aktívat
-                if (value === "") {
-                    $('.accordion-collapse').collapse('hide');
-                    // Visszanyitjuk azt, ami ténylegesen aktív az URL alapján (ha van ilyen)
-                    $('.submenu a.active').closest('.accordion-collapse').collapse('show');
-                    $('.accordion-item, .submenu a, .single-link').show();
-                    return;
-                }
+        $('#menuSearch').on('keyup', function () {
+        var value = $(this).val().toLowerCase();
 
-                // Szűrjük a szubmenü linkeket
-                $('.submenu a').each(function () {
-                    var text = $(this).text().toLowerCase();
-                    var isMatch = text.indexOf(value) > -1;
-                    $(this).toggle(isMatch);
-                });
+        // Ha üres a kereső, zárjuk vissza az összeset, kivéve az eredetileg aktívat
+        if (value === "") {
+        $('.accordion-collapse').collapse('hide');
+        // Visszanyitjuk azt, ami ténylegesen aktív az URL alapján (ha van ilyen)
+        $('.submenu a.active').closest('.accordion-collapse').collapse('show');
+        $('.accordion-item, .submenu a, .single-link').show();
+        return;
+        }
 
-                // Szűrjük a főmenü (single-link) elemeket is
-                $('.single-link').each(function () {
-                    var text = $(this).text().toLowerCase();
-                    $(this).toggle(text.indexOf(value) > -1);
-                });
+        // Szűrjük a szubmenü linkeket
+        $('.submenu a').each(function () {
+        var text = $(this).text().toLowerCase();
+        var isMatch = text.indexOf(value) > -1;
+        $(this).toggle(isMatch);
+        });
 
-                // Az accordion kategóriák kezelése
-                $('.accordion-item').each(function () {
-                    var hasVisibleChild = $(this).find('.submenu a:visible').length > 0;
-                    var categoryTitle = $(this).find('.accordion-button').text().toLowerCase();
-        
-                    // Ha a kategória nevében van a találat, mutassuk az egészet
-                    if (categoryTitle.indexOf(value) > -1) {
-                        $(this).show();
-                        $(this).find('.submenu a').show();
-                        $(this).find('.accordion-collapse').collapse('show');
-                    }
-                    // Ha csak egy almenüben van találat
-                    else if (hasVisibleChild) {
-                        $(this).show();
-                        $(this).find('.accordion-collapse').collapse('show');
-                    }
-                    // Ha nincs találat sehol az adott kategóriában
-                    else {
-                        $(this).hide();
-                    }
-                });
-            });
-    });
+        // Szűrjük a főmenü (single-link) elemeket is
+        $('.single-link').each(function () {
+        var text = $(this).text().toLowerCase();
+        $(this).toggle(text.indexOf(value) > -1);
+        });
+
+        // Az accordion kategóriák kezelése
+        $('.accordion-item').each(function () {
+        var hasVisibleChild = $(this).find('.submenu a:visible').length > 0;
+        var categoryTitle = $(this).find('.accordion-button').text().toLowerCase();
+
+        // Ha a kategória nevében van a találat, mutassuk az egészet
+        if (categoryTitle.indexOf(value) > -1) {
+        $(this).show();
+        $(this).find('.submenu a').show();
+        $(this).find('.accordion-collapse').collapse('show');
+        }
+        // Ha csak egy almenüben van találat
+        else if (hasVisibleChild) {
+        $(this).show();
+        $(this).find('.accordion-collapse').collapse('show');
+        }
+        // Ha nincs találat sehol az adott kategóriában
+        else {
+        $(this).hide();
+        }
+        });
+        });
+        });
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)

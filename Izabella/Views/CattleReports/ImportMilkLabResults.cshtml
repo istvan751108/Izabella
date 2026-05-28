@@ -1,0 +1,55 @@
+﻿@{
+    ViewData["Title"] = "Laboreredmények Importálása";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-file-code me-2"></i> KÁT / Állattenyésztési Labor XML Import</h4>
+                </div>
+                <div class="card-body bg-light">
+                    <p class="text-muted">
+                        Töltsd fel a laboratóriumtól visszakapott XML állományt (pl. <code>1434121(1).xml</code> vagy <code>1472021(1).xml</code>). A rendszer automatikusan társítja az eredményeket a tehenekhez ENAR szám alapján, és elmenti az összesített napi, valamint a részletes napszaki adatokat is.
+                    </p>
+
+                    <form asp-action="ImportMilkLabResults" method="post" enctype="multipart/form-data" class="mt-4">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">XML fájl kiválasztása</label>
+                            <input type="file" name="xmlFile" class="form-control" accept=".xml" required />
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                            <i class="fas fa-upload me-2"></i> Importálás Indítása
+                        </button>
+                    </form>
+
+                    @if (ViewBag.SuccessCount != null)
+                    {
+                        <div class="alert alert-success mt-4">
+                            <i class="fas fa-check-circle me-2"></i> Sikeresen feldolgozva: <strong>@ViewBag.SuccessCount</strong> adatsor.
+                        </div>
+                    }
+
+                    @if (ViewBag.ImportErrors != null && ((List<string>)ViewBag.ImportErrors).Any())
+                    {
+                        <div class="card border-danger mt-3">
+                            <div class="card-header bg-danger text-white small fw-bold">
+                                Figyelmeztetések / Kihagyott sorok (@(((List<string>)ViewBag.ImportErrors).Count) db)
+                            </div>
+                            <div class="card-body p-2" style="max-height: 250px; overflow-y: auto;">
+                                <ul class="list-unstyled text-danger small mb-0">
+                                    @foreach (var error in (List<string>)ViewBag.ImportErrors)
+                                    {
+                                        <li><i class="fas fa-exclamation-triangle me-1"></i> @error</li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

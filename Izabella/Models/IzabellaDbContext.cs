@@ -45,6 +45,7 @@ public class IzabellaDbContext : IdentityDbContext
     public DbSet<MilkSale> MilkSales { get; set; }
     public DbSet<MilkQualityLab> MilkQualityLabs { get; set; }
     public DbSet<MilkCompanyDistribution> MilkCompanyDistributions { get; set; }
+    public DbSet<MilkLabResult> MilkLabResults { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

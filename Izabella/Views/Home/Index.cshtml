@@ -32,20 +32,44 @@
         height: 100%;
     }
 
-    .nav-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
-    }
+        .nav-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+        }
 
     /* Színkódok a menü alapján */
-    .card-cattle { border-top-color: #2c3e50; }
-    .card-ops { border-top-color: #6c757d; }
-    .card-repro { border-top-color: #dc3545; }
-    .card-manure { border-top-color: #198754; }
-    .card-support { border-top-color: #0dcaf0; }
-    .card-admin { border-top-color: #ffc107; }
+    .card-cattle {
+        border-top-color: #2c3e50;
+    }
 
-    .card-milk { border-top-color: #3498db;}
+    .card-ops {
+        border-top-color: #6c757d;
+    }
+
+    .card-repro {
+        border-top-color: #dc3545;
+    }
+
+    .card-manure {
+        border-top-color: #198754;
+    }
+
+    .card-support {
+        border-top-color: #0dcaf0;
+    }
+
+    .card-admin {
+        border-top-color: #ffc107;
+    }
+
+    .card-milk {
+        border-top-color: #3498db;
+    }
+
+    .card-milking {
+        border-top-color: #9b59b6;
+    }
+    /* Új szín a próbafejésnek */
 
     .nav-icon {
         font-size: 2.5rem;
@@ -66,7 +90,6 @@
 </style>
 
 <div class="container mt-4">
-    <!-- Hero szekció -->
     <div class="hero-section shadow-sm">
         <img src="~/images/logo/izabella_logo_clean.png" alt="Izabella Logo" class="hero-logo-img" />
         <div class="hero-text-block">
@@ -79,9 +102,8 @@
         </div>
     </div>
 
-    <div class="row g-4 justify-content-center">
-        <!-- Állomány kezelés -->
-        <div class="col-md-4 col-lg">
+    <div class="row g-4 row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 justify-content-center">
+        <div class="col">
             <a asp-controller="Cattles" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-cattle text-center">
                     <div class="card-body">
@@ -93,8 +115,7 @@
             </a>
         </div>
 
-        <!-- Laktációs adatok (ÚJ KÁRTYA) -->
-        <div class="col-md-4 col-lg">
+        <div class="col">
             <a asp-controller="MilkImport" asp-action="MonthlyPivot" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-milk text-center">
                     <div class="card-body">
@@ -106,8 +127,19 @@
             </a>
         </div>
 
-        <!-- Helyszíni műveletek -->
-        <div class="col-md-4 col-lg">
+        <div class="col">
+            <a asp-controller="MilkLabImport" asp-action="Index" class="text-decoration-none text-dark">
+                <div class="card shadow-sm nav-card card-milking text-center">
+                    <div class="card-body">
+                        <i class="bi bi-droplet-half nav-icon" style="color: #9b59b6;"></i>
+                        <h5 class="card-title">Próbafejés</h5>
+                        <p class="text-small text-muted">Labor adatok, befejezések és összefüggések.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col">
             <a asp-controller="Weight" asp-action="QuickWeightEntry" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-ops text-center">
                     <div class="card-body">
@@ -119,8 +151,7 @@
             </a>
         </div>
 
-        <!-- Szaporodásbiológia -->
-        <div class="col-md-4 col-lg">
+        <div class="col">
             <a asp-controller="Insemination" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-repro text-center">
                     <div class="card-body">
@@ -132,8 +163,7 @@
             </a>
         </div>
 
-        <!-- Trágyakezelés -->
-        <div class="col-md-4 col-lg">
+        <div class="col">
             <a asp-controller="Report" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-manure text-center">
                     <div class="card-body">
@@ -145,8 +175,7 @@
             </a>
         </div>
 
-        <!-- Támogatások -->
-        <div class="col-md-4 col-lg">
+        <div class="col">
             <a asp-controller="CattleReports" asp-action="SlaughterSupportIndex" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-support text-center">
                     <div class="card-body">
@@ -158,8 +187,7 @@
             </a>
         </div>
 
-        <!-- Adminisztráció -->
-        <div class="col-md-4 col-lg">
+        <div class="col">
             <a asp-controller="Companies" asp-action="Index" class="text-decoration-none text-dark">
                 <div class="card shadow-sm nav-card card-admin text-center">
                     <div class="card-body">
@@ -172,7 +200,6 @@
         </div>
     </div>
 
-    <!-- Lábjegyzet -->
     <div class="text-center mt-5 mb-4 text-muted small">
         <hr class="w-25 mx-auto" />
         <p>© 2026 Izabella Farm Management Software | All Rights Reserved</p>

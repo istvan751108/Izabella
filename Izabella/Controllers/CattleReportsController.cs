@@ -4,6 +4,7 @@ using iText.Kernel.Pdf;
 using Izabella.Models;
 using Izabella.Models.ViewModels;
 using Izabella.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -15,11 +16,13 @@ namespace Izabella.Controllers
     {
         private readonly IzabellaDbContext _context;
         private readonly CalvingDbfExportService _dbfExportService;
+        private readonly MilkLabImportService _labImportService;
 
-        public CattleReportsController(IzabellaDbContext context, CalvingDbfExportService dbfExportService)
+        public CattleReportsController(IzabellaDbContext context, CalvingDbfExportService dbfExportService, MilkLabImportService labImportService)
         {
             _context = context;
             _dbfExportService = dbfExportService;
+            _labImportService = labImportService;
         }
 
         // 1. VETÉLÉSI JELENTÉS
@@ -2048,6 +2051,38 @@ namespace Izabella.Controllers
             {
                 entryStream.Write(content, 0, content.Length);
             }
+        }
+
+        [HttpGet]
+        public IActionResult ImportMilkLabResults()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ImportMilkLabResults(IFormFile xmlFile)
+        {
+            if (xmlFile == null || xmlFile.Length == 0)
+            {
+                ModelState.AddModelError("", "Kérlek, válassz ki egy érvényes XML fájlt!");
+                return View();
+            }
+
+            if (!xmlFile.FileName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("", "Csak .xml kiterjesztésű fájl tölthető fel!");
+                return View();
+            }
+
+            using (var stream = xmlFile.OpenReadStream())
+            {
+                var (successCount, errors) = await _labImportService.ImportXmlAsync(stream);
+
+                ViewBag.SuccessCount = successCount;
+                ViewBag.ImportErrors = errors;
+            }
+
+            return View();
         }
     }
 }

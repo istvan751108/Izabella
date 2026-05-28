@@ -2,8 +2,12 @@
 
 namespace Izabella.Models
 {
-    public enum Gender { Bika, Üsző }
-    public enum ExitType { Vágás, Továbbtartás, Export, Elhullás, Tulajdonosváltás }
+    public enum Gender
+    { Bika, Üsző }
+
+    public enum ExitType
+    { Vágás, Továbbtartás, Export, Elhullás, Tulajdonosváltás }
+
     public enum PregnancyStatus
     {
         Üres = 0,           // Még nem termékenyített vagy negatív vizsgálat
@@ -37,11 +41,13 @@ namespace Izabella.Models
 
         [Display(Name = "Tulajdonos (Cég)")]
         public int CompanyId { get; set; }
+
         [Display(Name = "Cég")]
         public virtual Company? Company { get; set; }
 
         [Display(Name = "Aktuális Tenyészet")]
         public int CurrentHerdId { get; set; }
+
         [Display(Name = "Tenyészet kód")]
         public virtual Herd? CurrentHerd { get; set; }
 
@@ -81,21 +87,25 @@ namespace Izabella.Models
         [Display(Name = "Kikerülés dátuma")]
         [DataType(DataType.Date)]
         public DateTime? ExitDate { get; set; }
-        
+
         [Display(Name = "Kikerülés típusa")]
         public ExitType? ExitType { get; set; }
 
         [Display(Name = "Aktív?")]
         public bool IsActive { get; set; } = true;
+
         [Required]
         [Display(Name = "Fajta kód")]
         public int BreedCode { get; set; } = 22; // Alapértelmezett a Holstein-fríz
+
         [Display(Name = "Aktuális súly")]
         public double CurrentWeight { get; set; } // Aktuális súly
+
         [Display(Name = "Istálló / Box")]
         public string? Stall { get; set; }        // Istálló/Box helye
+
         public bool RequiresEnar5147 { get; set; } // Jelző az ENAR jelentéshez
-        
+
         [Display(Name = "Utolsó termékenyítés dátuma")]
         public DateTime? LastInseminationDate { get; set; }
 
@@ -116,5 +126,13 @@ namespace Izabella.Models
 
         [Display(Name = "Aktuális laktáció")]
         public int CurrentLactationNo { get; set; } = 0; // Alapértelmezett 0 (üszőknél)
+
+        [Display(Name = "Genomvizsgálat dátuma")]
+        [DataType(DataType.Date)]
+        public DateTime? GenomicTestDate { get; set; }
+
+        // A bool tulajdonságot átalakíthatjuk úgy, hogy automatikusan igazat adjon, ha van dátum
+        [Display(Name = "Genomvizsgálat elvégezve?")]
+        public bool IsGenomicTested => GenomicTestDate.HasValue;
     }
 }

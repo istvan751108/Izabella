@@ -32,6 +32,10 @@ builder.Services.AddScoped<ManureCalculationService>();
 builder.Services.AddScoped<SolidManureService>();
 builder.Services.AddScoped<IStatService, StatService>();
 builder.Services.AddScoped<CalvingDbfExportService>();
+builder.Services.AddScoped<MilkLabImportService>();
+builder.Services.AddScoped<MilkAnalysisService>();
+builder.Services.AddScoped<EmailSenderService>();
+
 var app = builder.Build();
 
 app.UseHttpsRedirection();
