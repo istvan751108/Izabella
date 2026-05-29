@@ -35,3 +35,5 @@ node_modules/
 .DS_Store
 thumbs.db
 desktop.ini
+# Titkos adatokat tartalmazó fájlok kiszűrése
+appsettings.json

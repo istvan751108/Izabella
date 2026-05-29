@@ -2,9 +2,61 @@
 @using Izabella.Models
 
 <div class="container mt-4">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismissible="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismissible="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Info"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i> @TempData["Info"]
+            <button type="button" class="btn-close" data-bs-dismissible="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-clipboard2-pulse text-danger"></i> Vemhességi vizsgálati lista</h2>
         <span class="badge bg-dark fs-6">Várakozók: @Model.Count db</span>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body">
+            <h5 class="card-title text-dark fw-bold mb-3">
+                <i class="bi bi-file-earmark-arrow-up text-primary"></i> Automatikus vemhesség átvétel Afimilk programból
+            </h5>
+            <form asp-action="ImportAfiPregnancy" method="post" enctype="multipart/form-data" class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <label class="input-group-text" for="fileTypeSelect"><i class="bi bi-tags"></i> Típus</label>
+                        <select class="form-select" id="fileTypeSelect" name="fileType" required>
+                            <option value="Tehén" selected>Vemhes tehenek (DIF)</option>
+                            <option value="Üsző">Vemhes üszők (DIF)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <input type="file" name="file" class="form-control" accept=".dif" required />
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
+                        <i class="bi bi-lightning-charge"></i> Adatok Összevetése
+                    </button>
+                </div>
+            </form>
+            <div class="form-text text-muted mt-2">
+                <i class="bi bi-info-circle"></i> A rendszer összeveti a feltöltött fájlban található állatokat a lenti listával. Ha megegyezik a <strong>fülszám</strong> és a <strong>sikeres termékenyítés dátuma</strong>, az állat státuszát automatikusan <strong>VEMHES</strong>-re állítja.
+            </div>
+        </div>
     </div>
 
     <div class="card shadow border-0">
@@ -33,7 +85,7 @@
                     @foreach (var c in Model)
                     {
                         var daysSince = (DateTime.Now - (c.LastInseminationDate ?? DateTime.Now)).Days;
-                        
+
                         <tr>
                             <td class="fw-bold fs-5">@c.EarTag</td>
                             <td>@c.LastInseminationDate?.ToShortDateString()</td>
@@ -60,7 +112,7 @@
                                         <input type="hidden" name="result" value="@PregnancyStatus.Vemhes" />
                                         <button type="submit" class="btn btn-success fw-bold px-3">VEMHES</button>
                                     </form>
-                                    
+
                                     <form asp-action="RecordResult" method="post" class="d-inline">
                                         <input type="hidden" name="cattleId" value="@c.Id" />
                                         <input type="hidden" name="result" value="@PregnancyStatus.Üres" />

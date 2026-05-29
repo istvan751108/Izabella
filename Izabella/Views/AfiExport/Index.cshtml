@@ -1,0 +1,93 @@
+﻿@model List<Izabella.Models.ViewModels.AfiExportViewModel>
+
+<div class="container mt-4">
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismissible="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="bi bi-box-arrow-up text-primary"></i> AfiFarm Adatátadás (afi_ms.dat)</h2>
+            <p class="text-muted mb-0">Első termékenyítés előtt álló növendék üszők exportálása a fejési rendszerbe.</p>
+        </div>
+        <span class="badge bg-dark fs-6">Nem termékenyített üszők: @Model.Count db</span>
+    </div>
+
+    <form asp-action="ExportToAfi" method="post">
+        <div class="card shadow border-0 mb-3">
+            <div class="card-header bg-dark d-flex justify-content-between align-items-center py-3">
+                <h5 class="text-white mb-0"><i class="bi bi-list-check"></i> Exportálandó állatok kijelölése</h5>
+                <button type="submit" class="btn btn-success fw-bold shadow-sm">
+                    <i class="bi bi-file-earmark-arrow-down"></i> Kijelöltek Exportálása (.DAT)
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="exportTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 40px;" class="text-center">
+                                <input class="form-check-input" type="checkbox" id="selectAllCheckbox" style="transform: scale(1.2); cursor: pointer;" />
+                            </th>
+                            <th>Fülszám</th>
+                            <th>ENAR szám</th>
+                            <th>Születési idő</th>
+                            <th>Korcsoport</th>
+                            <th>Istálló / Box</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center p-5 text-muted">
+                                    <i class="bi bi-info-circle fs-1 d-block mb-2"></i>
+                                    Jelenleg nincs olyan üsző az adatbázisban, amely megfelelne a kritériumoknak (aktív, üsző, és nincs termékenyítve).
+                                </td>
+                            </tr>
+                        }
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            <tr>
+                                <td class="text-center">
+                                    <input type="hidden" asp-for="@Model[i].CattleId" />
+                                    <input type="hidden" asp-for="@Model[i].EarTag" />
+                                    <input type="hidden" asp-for="@Model[i].EnarNumber" />
+                                    <input type="hidden" asp-for="@Model[i].BirthDate" />
+                                    <input class="form-check-input row-checkbox" type="checkbox" asp-for="@Model[i].IsSelected" style="transform: scale(1.2); cursor: pointer;" />
+                                </td>
+                                <td class="fw-bold text-primary fs-5">@Model[i].EarTag</td>
+                                <td>@Model[i].EnarNumber</td>
+                                <td>@Model[i].BirthDate.ToShortDateString()</td>
+                                <td><span class="badge bg-info text-dark">@Model[i].AgeGroup</span></td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(Model[i].Stall))
+                                    {
+                                        <span class="badge bg-secondary">@Model[i].Stall</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted-small"><em>Nincs besorolva</em></span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        // Mindent kijelöl / Kijelölés megszüntetése script
+        document.getElementById('selectAllCheckbox').addEventListener('change', function () {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+        });
+    </script>
+}
