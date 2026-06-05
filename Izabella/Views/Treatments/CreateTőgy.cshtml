@@ -1,0 +1,245 @@
+﻿@model Izabella.Models.ViewModels.MastitisTreatmentViewModel
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0 text-danger fw-bold">
+            <i class="bi bi-heart-pulse-fill"></i> Tőgygyulladás (Mastitis) Kezelés Rögzítése
+        </h1>
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Vissza a listához</a>
+    </div>
+
+    <form asp-action="CreateMastitis" method="post" id="mastitisForm">
+        @Html.AntiForgeryToken()
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-dark text-white fw-bold">Alapadatok</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Kezelt állat (Fülszám / ENAR)</label>
+                            <select asp-for="CattleId" class="form-select form-select-lg" asp-items="ViewBag.CattleId" required>
+                                <option value="">-- Válassz állatot --</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Diagnózis</label>
+                            <input asp-for="Diagnosis" class="form-control" />
+                        </div>
+
+                        <div class="mb-2 fw-bold text-center bg-light p-1 rounded small">Tőgynegyedek (Tehén hátulról nézve)</div>
+                        <div class="d-flex flex-column align-items-center bg-white border p-3 rounded mb-3">
+                            <div class="d-flex mb-2">
+                                <button type="button" class="btn btn-outline-danger me-2 quarter-helper" data-quarter="BE">Bal Első (BE)</button>
+                                <button type="button" class="btn btn-outline-danger quarter-helper" data-quarter="JE">Jobb Első (JE)</button>
+                            </div>
+                            <div class="d-flex">
+                                <button type="button" class="btn btn-outline-danger me-2 quarter-helper" data-quarter="BH">Bal Hátul (BH)</button>
+                                <button type="button" class="btn btn-outline-danger quarter-helper" data-quarter="JH">Jobb Hátul (JH)</button>
+                            </div>
+                            <small class="text-muted mt-2 text-center" style="font-size:0.75rem;">Kattints egy negyedre, hogy az új sorok alapértelmezetten ezt kapják!</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center fw-bold">
+                        <span>Kezelési Napok / Idővonal</span>
+                        <button type="button" class="btn btn-sm btn-light text-danger fw-bold" id="btnAddRow">
+                            <i class="bi bi-plus-circle-fill"></i> Új nap / Új sor
+                        </button>
+                    </div>
+                    <div class="table-responsive" style="max-height: 500px;">
+                        <table class="table table-hover align-middle mb-0" id="treatmentTable">
+                            <thead class="table-light small fw-bold">
+                                <tr>
+                                    <th style="width: 15%;">Dátum</th>
+                                    <th style="width: 12%;">Negyed</th>
+                                    <th style="width: 30%;">Elsődleges gyógyszer</th>
+                                    <th style="width: 30%;">Kombináció / Plusz szer</th>
+                                    <th style="width: 13%;" class="text-center">Művelet</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="treatment-row">
+                                    <td>
+                                        <input type="date" name="Rows[0].Date" class="form-control form-control-sm row-date" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                                    </td>
+                                    <td>
+                                        <select name="Rows[0].Quarter" class="form-select form-select-sm row-quarter" required>
+                                            <option value="JE">JE</option>
+                                            <option value="JH">JH</option>
+                                            <option value="BE">BE</option>
+                                            <option value="BH">BH</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select name="Rows[0].MedicationId" class="form-select form-select-sm row-med1" required>
+                                            <option value="">-- Gyógyszer --</option>
+                                            @foreach (var med in ViewBag.Medications)
+                                            {
+                                                <option value="@med.Value" data-dose="@med.Text.Contains("fecskendő") ? 1 : 0">@med.Text</option>
+                                            }
+                                        </select>
+                                        <input type="hidden" name="Rows[0].Dose" class="row-dose1" value="1" />
+                                    </td>
+                                    <td>
+                                        <select name="Rows[0].SecondaryMedicationId" class="form-select form-select-sm row-med2">
+                                            <option value="">-- Nincs kombináció --</option>
+                                            @foreach (var med in ViewBag.SecondaryMedications)
+                                            {
+                                                <option value="@med.Value">@med.Text</option>
+                                            }
+                                        </select>
+                                        <input type="hidden" name="Rows[0].SecondaryDose" class="row-dose2" value="0" />
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-success btn-copy-row" title="Sor másolása következő napra">
+                                                <i class="bi bi-arrow-down-square"></i> +1 Nap
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-delete-row" style="display:none;">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer bg-light text-end">
+                        <button type="submit" class="btn btn-danger btn-lg px-5 shadow">
+                            <i class="bi bi-cloud-arrow-up-fill"></i> Teljes Kezelési Sorozat Mentése
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        let rowCount = 1;
+        let selectedDefaultQuarter = "JE";
+
+        // Vizuális tőgyválasztó kezelése
+        document.querySelectorAll('.quarter-helper').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.quarter-helper').forEach(b => b.classList.replace('btn-danger', 'btn-outline-danger'));
+                this.classList.replace('btn-outline-danger', 'btn-danger');
+                selectedDefaultQuarter = this.getAttribute('data-quarter');
+
+                // Az összes olyan sorban átírja, ahol még nincs kiválasztva más
+                document.querySelectorAll('.row-quarter').forEach(select => {
+                    if(select.value === "JE" && select.closest('tr').rowIndex === 1) {
+                        select.value = selectedDefaultQuarter;
+                    }
+                });
+            });
+        });
+
+        // Új üres sor hozzáadása gombbal
+        document.getElementById('btnAddRow').addEventListener('click', function() {
+            addNewRow();
+        });
+
+        function addNewRow(baseData = null) {
+            const tbody = document.querySelector('#treatmentTable tbody');
+            const newRow = tbody.querySelector('.treatment-row').cloneNode(true);
+
+            // Mezők megtisztítása és név indexelése
+            newRow.querySelectorAll('input, select').forEach(input => {
+                const name = input.getAttribute('name');
+                if (name) {
+                    let updatedName = name.replace(/\[\d+\]/, '[' + rowCount + ']');
+                    input.setAttribute('name', updatedName);
+                }
+            });
+
+            // Alapértelmezett értékek beállítása az új sorban
+            const dateInput = newRow.querySelector('.row-date');
+            const quarterSelect = newRow.querySelector('.row-quarter');
+            const med1Select = newRow.querySelector('.row-med1');
+            const med2Select = newRow.querySelector('.row-med2');
+            const dose1Input = newRow.querySelector('.row-dose1');
+            const dose2Input = newRow.querySelector('.row-dose2');
+
+            if (baseData) {
+                // Ha másolásból jött létre a sor
+                let nextDate = new Date(baseData.date);
+                nextDate.setDate(nextDate.getDate() + 1);
+                dateInput.value = nextDate.toISOString().split('T')[0];
+                quarterSelect.value = baseData.quarter;
+                med1Select.value = baseData.med1;
+                med2Select.value = baseData.med2;
+                dose1Input.value = baseData.dose1;
+                dose2Input.value = baseData.dose2;
+            } else {
+                // Ha sima új sor
+                let lastRowDateStr = tbody.querySelector('.treatment-row:last-child .row-date').value;
+                dateInput.value = lastRowDateStr;
+                quarterSelect.value = selectedDefaultQuarter;
+                med1Select.value = "";
+                med2Select.value = "";
+            }
+
+            // Törlés gomb láthatóvá tétele az új soroknál
+            newRow.querySelector('.btn-delete-row').style.display = 'inline-block';
+
+            tbody.appendChild(newRow);
+            rowCount++;
+            attachRowEvents(newRow);
+        }
+
+        // Eseménykezelők hozzárendelése a sor gombjaihoz
+        function attachRowEvents(row) {
+            row.querySelector('.btn-delete-row').addEventListener('click', function() {
+                row.remove();
+                reIndexRows();
+            });
+
+            row.querySelector('.btn-copy-row').addEventListener('click', function() {
+                const baseData = {
+                    date: row.querySelector('.row-date').value,
+                    quarter: row.querySelector('.row-quarter').value,
+                    med1: row.querySelector('.row-med1').value,
+                    med2: row.querySelector('.row-med2').value,
+                    dose1: row.querySelector('.row-dose1').value,
+                    dose2: row.querySelector('.row-dose2').value
+                };
+                addNewRow(baseData);
+            });
+
+            // Automatikus adagkezelés (ha ml, akkor kérhetne bevitelt, de tőgynél a tubus fix 1)
+            row.querySelector('.row-med1').addEventListener('change', function() {
+                let doseHidden = row.querySelector('.row-dose1');
+                doseHidden.value = "1"; // Tőgy tubusoknál fixen 1 adag/alkalom
+            });
+            row.querySelector('.row-med2').addEventListener('change', function() {
+                let doseHidden = row.querySelector('.row-dose2');
+                doseHidden.value = this.value ? "10" : "0"; // Pl. Eurofit esetén ha be van jelölve, alap 10ml (ezt a kontroller majd pontosítja)
+            });
+        }
+
+        // Sorok indexeinek újraszámolása törlés után (hogy a modell-kötés ne törjön meg)
+        function reIndexRows() {
+            const rows = document.querySelectorAll('#treatmentTable tbody tr');
+            rowCount = 0;
+            rows.forEach(row => {
+                row.querySelectorAll('input, select').forEach(input => {
+                    const name = input.getAttribute('name');
+                    if (name) {
+                        let updatedName = name.replace(/\[\d+\]/, '[' + rowCount + ']');
+                        input.setAttribute('name', updatedName);
+                    }
+                });
+                rowCount++;
+            });
+        }
+
+        // Az első sor eseményeinek bekötése indításkor
+        attachRowEvents(document.querySelector('.treatment-row'));
+    </script>
+}

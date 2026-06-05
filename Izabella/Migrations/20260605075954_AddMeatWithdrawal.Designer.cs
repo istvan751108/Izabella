@@ -4,6 +4,7 @@ using Izabella.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Izabella.Migrations
 {
     [DbContext(typeof(IzabellaDbContext))]
-    partial class IzabellaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260605075954_AddMeatWithdrawal")]
+    partial class AddMeatWithdrawal
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -81,48 +84,6 @@ namespace Izabella.Migrations
                     b.HasIndex("HerdId");
 
                     b.ToTable("AnimalHistories");
-                });
-
-            modelBuilder.Entity("Izabella.Models.AnimalTreatment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<double>("AdministeredDose")
-                        .HasColumnType("float");
-
-                    b.Property<int>("Category")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CattleId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("MeatWithdrawalExpiry")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("MedicationId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("MilkWithdrawalExpiry")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("TreatmentDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CattleId");
-
-                    b.HasIndex("MedicationId");
-
-                    b.ToTable("AnimalTreatments");
                 });
 
             modelBuilder.Entity("Izabella.Models.BreedingData", b =>
@@ -1738,25 +1699,6 @@ namespace Izabella.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Herd");
-                });
-
-            modelBuilder.Entity("Izabella.Models.AnimalTreatment", b =>
-                {
-                    b.HasOne("Izabella.Models.Cattle", "Cattle")
-                        .WithMany()
-                        .HasForeignKey("CattleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Izabella.Models.Medication", "Medication")
-                        .WithMany()
-                        .HasForeignKey("MedicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cattle");
-
-                    b.Navigation("Medication");
                 });
 
             modelBuilder.Entity("Izabella.Models.BreedingData", b =>

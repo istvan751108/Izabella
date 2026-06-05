@@ -1,0 +1,148 @@
+﻿@model Izabella.Models.ViewModels.ReproTreatmentViewModel
+
+@{
+    ViewData["Title"] = "Szaporodásbiológiai kezelés";
+}
+
+<div class="container mt-4" style="max-width: 1000px;">
+    <div class="card shadow">
+        <div class="card-header text-white d-flex align-items-center justify-content-between" style="background-color: #dc3545;">
+            <h4 class="mb-0"><i class="bi bi-calendar-check-fill me-2"></i> Szaporodásbiológiai kezelések rögzítése</h4>
+            <a asp-action="Index" class="btn btn-sm btn-outline-light">Vissza a menühöz</a>
+        </div>
+        <div class="card-body p-4">
+
+            <form asp-action="CreateSzaporodás" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="TreatmentType" class="form-label fw-bold">Kezelés / Protokoll típusa</label>
+                        <select asp-for="TreatmentType" id="treatmentTypeSelect" class="form-select" asp-items="Html.GetEnumSelectList<Izabella.Models.ReproTreatmentType>()">
+                            <option value="">-- Válasszon kezelést --</option>
+                        </select>
+                        <span asp-validation-for="TreatmentType" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="StartDate" class="form-label fw-bold">Első kezelés / Esemény dátuma</label>
+                        <input asp-for="StartDate" class="form-control" />
+                        <span asp-validation-for="StartDate" class="text-danger small"></span>
+                    </div>
+
+                    <div id="singleCattleBlock" class="col-12 mt-3">
+                        <div class="p-3 border rounded bg-light">
+                            <label asp-for="SingleCattleId" class="form-label fw-bold">Válassza ki a kezelt tehenet</label>
+                            <select asp-for="SingleCattleId" class="form-select select2" asp-items="@(new SelectList(ViewBag.CowList, "Value", "Text"))">
+                                <option value="">-- Keressen fülszámra vagy ENAR-ra --</option>
+                            </select>
+                            <span asp-validation-for="SingleCattleId" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div id="bulkCattleBlock" class="col-12 mt-3 d-none">
+                        <div class="p-3 border rounded bg-light">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold mb-0 text-danger">Ovsynch protokollra kijelölt aktív tehenek listája</label>
+                                <div class="input-group input-group-sm" style="max-width: 250px;">
+                                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="cowSearch" class="form-control" placeholder="Gyorsszűrés fülszámra...">
+                                </div>
+                            </div>
+
+                            <p class="text-muted small">Jelöld be azokat a teheneket, amelyek most indulnak a programban. A rendszer automatikusan beütemezi a 0. nap, +7. nap, +8. nap és +9. nap injekcióit!</p>
+
+                            <div class="border rounded bg-white p-2" style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm table-hover mb-0" id="cowTable">
+                                    <thead>
+                                        <tr>
+                                            <th width="40"><input type="checkbox" id="selectAllCows" /></th>
+                                            <th>Fülszám - ENAR szám</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var item in ViewBag.CowList)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" name="SelectedCattleIds" value="@item.Value" class="cow-checkbox" />
+                                                </td>
+                                                <td class="cow-text">@item.Text</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <span asp-validation-for="SelectedCattleIds" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="col-12 mt-3">
+                        <label asp-for="Note" class="form-label fw-bold">Megjegyzés</label>
+                        <textarea asp-for="Note" class="form-control" rows="2" placeholder="Opcionális megjegyzés az egyedi esethez..."></textarea>
+                        <span asp-validation-for="Note" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                    <button type="submit" class="btn btn-lg btn-danger px-5">
+                        <i class="bi bi-check-circle me-2"></i> Mentés és Protokoll indítása
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const typeSelect = document.getElementById("treatmentTypeSelect");
+            const singleBlock = document.getElementById("singleCattleBlock");
+            const bulkBlock = document.getElementById("bulkCattleBlock");
+            const searchInput = document.getElementById("cowSearch");
+            const selectAllCheck = document.getElementById("selectAllCows");
+            const checkboxes = document.querySelectorAll(".cow-checkbox");
+
+            function toggleBlocks() {
+                // Az Enum érték indexe vagy string értéke alapján szűrünk.
+                // A '0' indexű elem nálunk a Tömeges_Ovsynch_Protokoll.
+                if (typeSelect.value === "0") {
+                    singleBlock.classList.add("d-none");
+                    bulkBlock.classList.remove("d-none");
+                } else {
+                    singleBlock.classList.remove("d-none");
+                    bulkBlock.classList.add("d-none");
+                }
+            }
+
+            typeSelect.addEventListener("change", toggleBlocks);
+            toggleBlocks(); // Oldalbetöltéskori ellenőrzés
+
+            // Mindent kijelöl funkció
+            selectAllCheck.addEventListener("change", function () {
+                const visibleRows = document.querySelectorAll("#cowTable tbody tr:not(.d-none) .cow-checkbox");
+                visibleRows.forEach(cb => cb.checked = selectAllCheck.checked);
+            });
+
+            // Gyorsszűrő a táblázathoz
+            searchInput.addEventListener("input", function () {
+                const filter = searchInput.value.toLowerCase();
+                const rows = document.querySelectorAll("#cowTable tbody tr");
+
+                rows.forEach(row => {
+                    const text = row.querySelector(".cow-text").textContent.toLowerCase();
+                    if (text.includes(filter)) {
+                        row.classList.remove("d-none");
+                    } else {
+                        row.classList.add("d-none");
+                    }
+                });
+            });
+        });
+    </script>
+}

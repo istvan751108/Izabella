@@ -1,0 +1,66 @@
+﻿@model Izabella.Models.ViewModels.BulkFootTreatmentViewModel
+
+@{
+    ViewData["Title"] = "Új Lábvég kezelés rögzítése";
+}
+
+<div class="container mt-4" style="max-width: 900px;">
+    <div class="card shadow">
+        <div class="card-header text-white d-flex align-items-center justify-content-between" style="background-color: #1abc9c;">
+            <h4 class="mb-0"><i class="bi bi-heart-pulse-fill me-2"></i> Lábvég kezelések és ápolás (Tömeges / Egyedi)</h4>
+            <a asp-action="Index" class="btn btn-sm btn-outline-light">Vissza a menühöz</a>
+        </div>
+        <div class="card-body p-4">
+
+            <div class="alert alert-info py-2 small mb-4">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Rendszerlogika:</strong> A <u>Lábfürösztés</u> választása esetén a rendszer nem szemeteli össze az állatok egyéni kórelőzményét (AnimalHistory), csupán a telepi statisztikát frissíti. <u>Körmözés és Gyógyszeres betegségek</u> esetén viszont minden beírt állat kartonjára felkerül a bejegyzés.
+            </div>
+
+            <form asp-action="CreateLáb" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="TreatmentDate" class="form-label fw-bold">Kezelés / Esemény dátuma</label>
+                        <input asp-for="TreatmentDate" class="form-control" />
+                        <span asp-validation-for="TreatmentDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="TreatmentType" class="form-label fw-bold">Lábkezelés típusa</label>
+                        <select asp-for="TreatmentType" class="form-select" asp-items="Html.GetEnumSelectList<Izabella.Models.FootTreatmentType>()">
+                            <option value="">-- Válasszon típust --</option>
+                        </select>
+                        <span asp-validation-for="TreatmentType" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 mt-3">
+                        <label asp-for="RawEarTags" class="form-label fw-bold">Állatok fülazonosítói (Fülszám vagy teljes ENAR)</label>
+                        <p class="text-muted text-small mb-1">Ide másolhatod az állatok listáját. Elválaszthatod őket <strong>új sorral, vesszővel, pontosvesszővel vagy szóközzel</strong> is (pl. Excelből közvetlenül beilleszthető).</p>
+                        <textarea asp-for="RawEarTags" class="form-control font-monospace" rows="8" placeholder="Pl:&#10;2955&#10;3412, 1254&#10;HU3186603054"></textarea>
+                        <span asp-validation-for="RawEarTags" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 mt-3">
+                        <label asp-for="Note" class="form-label fw-bold">Megjegyzés / Alkalmazott vegyszer, gyógyszer</label>
+                        <input asp-for="Note" class="form-control" placeholder="Pl: Rézgálic 5%-os fürdő / Bal oldali hátsó talp megnyitva" />
+                        <span asp-validation-for="Note" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                    <button type="submit" class="btn btn-lg text-white px-5" style="background-color: #1abc9c;">
+                        <i class="bi bi-check-circle me-2"></i> Kezeléssorozat indítása és mentése
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

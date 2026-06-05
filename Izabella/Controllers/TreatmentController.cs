@@ -63,9 +63,10 @@ namespace Izabella.Controllers
             var medication = await _context.Medications.FindAsync(medicationId);
             var cattle = await _context.Cattles.FindAsync(cattleId);
 
+            if (cattle == null) return NotFound();
             if (medication == null || medication.Quantity < dose)
             {
-                ModelState.AddModelError("", "Nincs elég gyógyszer készleten!");
+                TempData["Error"] = "Nincs elég gyógyszer készleten!";
                 return RedirectToAction("DryOffCandidates");
             }
 
@@ -75,16 +76,33 @@ namespace Izabella.Controllers
                 CattleId = cattleId,
                 MedicationId = medicationId,
                 DryOffDate = dryOffDate,
-                IsSeparated = false, // Kezdetben még nincs elkülönítve
+                IsSeparated = false,
                 Note = "Keddi rutinszerű apasztás"
             };
+            _context.DryOffEvents.Add(dryOffEvent);
 
             // 2. Készlet levonása
             medication.Quantity -= dose;
             _context.Entry(medication).State = EntityState.Modified;
-            _context.DryOffEvents.Add(dryOffEvent);
-            await _context.SaveChangesAsync();
 
+            // 3. JAVÍTÁS: ANIMAL HISTORY BEJEGYZÉS (Gyógykezelés naplózása az ÉVI adatokkal)
+            DateTime? milkExpiry = medication.WithdrawalPeriodMilk > 0 ? dryOffDate.AddDays(medication.WithdrawalPeriodMilk) : null;
+            DateTime? meatExpiry = medication.WithdrawalPeriodMeat > 0 ? dryOffDate.AddDays(medication.WithdrawalPeriodMeat) : null;
+
+            var history = new AnimalHistory
+            {
+                CattleId = cattleId,
+                EventDate = dryOffDate,
+                Type = "Gyógykezelés", // Szigorúan az általad megadott struktúra szerint
+                Comment = $"[Apasztás] Lekezelve: {medication.Name} ({dose} {medication.Unit}). " +
+                          $"Tej lejár: {milkExpiry?.ToShortDateString() ?? "Ellés utáni fejések"}, " +
+                          $"Hús lejár: {meatExpiry?.ToShortDateString() ?? "Nincs"}. Megj: Keddi rutinszerű apasztás",
+                IsEnarReported = false
+            };
+            _context.Add(history);
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $" {cattle.EarTag} apasztása és gyógyszerelése rögzítve.";
             return RedirectToAction("DryOffCandidates");
         }
 
@@ -96,17 +114,38 @@ namespace Izabella.Controllers
                 TempData["Error"] = "Nincs kijelölve tehén!";
                 return RedirectToAction("DryOffCandidates");
             }
+            if (SelectedMedicationIds == null || !SelectedMedicationIds.Any())
+            {
+                TempData["Error"] = "Nincs kijelölve apasztó készítmény!";
+                return RedirectToAction("DryOffCandidates");
+            }
 
+            // JAVÍTÁS: Előzetes készletellenőrzés a tömeges mentésnél a negatív raktár elkerülésére
+            double totalRequiredDose = 0;
+            foreach (var medId in SelectedMedicationIds)
+            {
+                var medication = await _context.Medications.FindAsync(medId);
+                if (medication != null)
+                {
+                    totalRequiredDose = medication.DefaultDose * SelectedCattleIds.Count;
+                    if (medication.Quantity < totalRequiredDose)
+                    {
+                        TempData["Error"] = $"Nincs elég készlet a(z) {medication.Name} termékből! Szükséges: {totalRequiredDose} {medication.Unit}, Elérhető: {medication.Quantity}";
+                        return RedirectToAction("DryOffCandidates");
+                    }
+                }
+            }
+
+            // Ha mindenből van elég, jöhet a mentés
             foreach (var cattleId in SelectedCattleIds)
             {
                 var cattle = await _context.Cattles.FindAsync(cattleId);
                 if (cattle == null) continue;
 
-                // Minden kijelölt gyógyszerre rögzítünk egy eseményt és levonjuk a készletet
                 foreach (var medId in SelectedMedicationIds)
                 {
                     var medication = await _context.Medications.FindAsync(medId);
-                    if (medication != null && medication.Quantity >= medication.DefaultDose)
+                    if (medication != null)
                     {
                         var dryEvent = new DryOffEvent
                         {
@@ -116,19 +155,32 @@ namespace Izabella.Controllers
                             IsSeparated = false,
                             Note = "Tömeges apasztás"
                         };
-
-                        medication.Quantity -= medication.DefaultDose;
                         _context.DryOffEvents.Add(dryEvent);
+
+                        // Levonás
+                        medication.Quantity -= medication.DefaultDose;
+
+                        // JAVÍTÁS: History bejegyzés generálása minden állatnak a gyógyszerről
+                        DateTime? milkExpiry = medication.WithdrawalPeriodMilk > 0 ? DryOffDate.AddDays(medication.WithdrawalPeriodMilk) : null;
+                        DateTime? meatExpiry = medication.WithdrawalPeriodMeat > 0 ? DryOffDate.AddDays(medication.WithdrawalPeriodMeat) : null;
+
+                        var history = new AnimalHistory
+                        {
+                            CattleId = cattleId,
+                            EventDate = DryOffDate,
+                            Type = "Gyógykezelés",
+                            Comment = $"[Tömeges Apasztás] Készítmény: {medication.Name}. " +
+                                      $"Tej ÉVI: {milkExpiry?.ToShortDateString() ?? "Ellés után"}, " +
+                                      $"Hús ÉVI: {meatExpiry?.ToShortDateString() ?? "Nincs"}.",
+                            IsEnarReported = false
+                        };
+                        _context.Add(history);
                     }
                 }
-
-                // Állat státuszának frissítése (pl. IsActive marad, de jelezhetjük, hogy már nem fejős)
-                // Itt beállíthatunk egy flaget, vagy a SeparationDate-et használhatjuk később
             }
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = $"{SelectedCattleIds.Count} állat apasztása sikeresen rögzítve.";
-
+            TempData["Success"] = $"{SelectedCattleIds.Count} állat apasztása sikeresen rögzítve, kórtörténet frissítve.";
             return RedirectToAction("DryOffCandidates");
         }
 
@@ -153,8 +205,6 @@ namespace Izabella.Controllers
                 return RedirectToAction("SeparationList");
             }
 
-            // Kiolvassuk az appsettings.json-ből az istálló kódot. Ha valamiért nem találná, az "5"-ös lesz a biztonsági tartalék.
-            // A szárazonállók istállókódjának beállításához írd át az appsettings.json fájlban a FarmSettings részt
             string dryOffStall = _configuration["FarmSettings:DefaultDryOffStallCode"] ?? "5";
 
             var events = await _context.DryOffEvents
@@ -164,6 +214,8 @@ namespace Izabella.Controllers
 
             foreach (var ev in events)
             {
+                if (ev.Cattle == null) continue;
+
                 ev.IsSeparated = true;
                 ev.SeparationDate = DateTime.Now;
 
@@ -173,16 +225,33 @@ namespace Izabella.Controllers
                     ev.Note = customNote;
                 }
 
-                // Az állat helyének frissítése a konfigurációból nyert kóddal
-                if (ev.Cattle != null)
+                // Mentjük a régi adatokat a történethez a változás előtt
+                string? oldStall = ev.Cattle.Stall;
+                string? oldAgeGroup = ev.Cattle.AgeGroup;
+
+                // Az állat aktuális státuszának átírása
+                ev.Cattle.Stall = dryOffStall;
+                ev.Cattle.AgeGroup = "Szárazonálló tehén";
+
+                // JAVÍTÁS: HerdId kicserélve CurrentHerdId-ra, hogy egyezzen a Cattle modellel
+                var history = new AnimalHistory
                 {
-                    ev.Cattle.Stall = dryOffStall; // Itt dinamikusan az "5" (vagy amit beállítasz) kerül be
-                    ev.Cattle.AgeGroup = "Szárazonálló tehén";
-                }
+                    CattleId = ev.CattleId,
+                    EventDate = DateTime.Today,
+                    Type = "Áthelyezés",
+                    OldAgeGroup = oldAgeGroup,
+                    NewAgeGroup = "Szárazonálló tehén",
+                    OldHerdId = ev.Cattle.CurrentHerdId, // ITT JAVÍTVA
+                    NewHerdId = ev.Cattle.CurrentHerdId, // ITT JAVÍTVA
+                    StallName = dryOffStall,
+                    Comment = $"Áthelyezve a fejősök közül a szárazonállókhoz. " + (!string.IsNullOrEmpty(ev.Note) ? $" Megj: {ev.Note}" : ""),
+                    IsEnarReported = false
+                };
+                _context.Add(history);
             }
 
             await _context.SaveChangesAsync();
-            TempData["Success"] = $"{events.Count} állat áthelyezése a(z) {dryOffStall}-ös szárazonálló csoportba megtörtént.";
+            TempData["Success"] = $"{events.Count} állat fizikai áthelyezése megtörtént, a történeti napló frissítve.";
 
             return RedirectToAction("SeparationList");
         }

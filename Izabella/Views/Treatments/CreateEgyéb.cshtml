@@ -1,0 +1,104 @@
+﻿@model Izabella.Models.ViewModels.OtherTreatmentViewModel
+
+@{
+    ViewData["Title"] = "Egyéb egyedi kezelések";
+}
+
+<div class="container mt-4" style="max-width: 950px;">
+    <div class="card shadow">
+        <div class="card-header text-white d-flex align-items-center justify-content-between" style="background-color: #ffc107;">
+            <h4 class="mb-0 text-dark"><i class="bi bi-heart-pulse-fill me-2"></i> Belgyógyászati és egyéb egyedi kezelések</h4>
+            <a asp-action="Index" class="btn btn-sm btn-outline-dark">Vissza a menühöz</a>
+        </div>
+        <div class="card-body p-4">
+
+            <form asp-action="CreateEgyéb" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3">
+                    <!-- Állat kiválasztása -->
+                    <div class="col-md-6">
+                        <label asp-for="CattleId" class="form-label fw-bold">Kezelt állat füljelzője</label>
+                        <select asp-for="CattleId" class="form-select select2" asp-items="ViewBag.CattleId">
+                            <option value="">-- Keresés fülszámra / ENAR-ra --</option>
+                        </select>
+                        <span asp-validation-for="CattleId" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Dátum -->
+                    <div class="col-md-3">
+                        <label asp-for="TreatmentDate" class="form-label fw-bold">Kezelés dátuma</label>
+                        <input asp-for="TreatmentDate" class="form-control" />
+                        <span asp-validation-for="TreatmentDate" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Diagnózis / Betegség -->
+                    <div class="col-md-3">
+                        <label asp-for="TreatmentType" class="form-label fw-bold">Diagnózis / Kórkép</label>
+                        <select asp-for="TreatmentType" class="form-select" asp-items="Html.GetEnumSelectList<Izabella.Models.OtherTreatmentType>()">
+                            <option value="">-- Válasszon --</option>
+                        </select>
+                        <span asp-validation-for="TreatmentType" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- ELŐSDLEGES GYÓGYSZER -->
+                    <div class="col-md-8">
+                        <label asp-for="MedicationId" class="form-label fw-bold text-primary">Alkalmazott elsődleges gyógyszer</label>
+                        <select asp-for="MedicationId" class="form-select" asp-items="@(new SelectList(ViewBag.Medications, "Value", "Text"))">
+                            <option value="">-- Válasszon gyógyszert a raktárból --</option>
+                        </select>
+                        <span asp-validation-for="MedicationId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="AdministeredDose" class="form-label fw-bold text-primary">Beadott mennyiség</label>
+                        <div class="input-group">
+                            <input asp-for="AdministeredDose" class="form-control" type="number" step="0.1" placeholder="Pl: 15" />
+                            <span class="input-group-text bg-light">ml / g / db</span>
+                        </div>
+                        <span asp-validation-for="AdministeredDose" class="text-danger small"></span>
+                    </div>
+
+                    <!-- MÁSODLAGOS GYÓGYSZER (KOMBINÁCIÓ) -->
+                    <div class="col-md-8 mt-3">
+                        <label asp-for="SecondaryMedicationId" class="form-label fw-bold text-success">Másodlagos / Támogató szer (pl. gyulladáscsökkentő, Eurofit - opcionális)</label>
+                        <select asp-for="SecondaryMedicationId" class="form-select" asp-items="@(new SelectList(ViewBag.SecondaryMedications, "Value", "Text"))">
+                            <option value="">-- Nem kötelező kombináció --</option>
+                        </select>
+                        <span asp-validation-for="SecondaryMedicationId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4 mt-3">
+                        <label asp-for="SecondaryAdministeredDose" class="form-label fw-bold text-success">Másodlagos szer mennyisége</label>
+                        <div class="input-group">
+                            <input asp-for="SecondaryAdministeredDose" class="form-control" type="number" step="0.1" placeholder="Pl: 20" />
+                            <span class="input-group-text bg-light">ml / g</span>
+                        </div>
+                        <span asp-validation-for="SecondaryAdministeredDose" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Megjegyzés -->
+                    <div class="col-12 mt-4">
+                        <label asp-for="Note" class="form-label fw-bold">Kiegészítő megjegyzés</label>
+                        <textarea asp-for="Note" class="form-control" rows="3" placeholder="Pl: Jobb oldali tüdő felett érdes alapzörej hallható, elkülönítőbe helyezve..."></textarea>
+                        <span asp-validation-for="Note" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+                    <button type="submit" class="btn btn-lg btn-warning px-5 fw-bold">
+                        <i class="bi bi-check-circle-fill me-2"></i> Kezelés mentése és zárás
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

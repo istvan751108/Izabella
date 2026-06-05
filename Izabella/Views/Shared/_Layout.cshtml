@@ -154,7 +154,7 @@
                     color: #3498db;
                 }
 
-            @@media(max - width:992px) {
+            @@media(max-width:992px) {
                 .sidebar {
                     position: relative;
                     width: 100%;
@@ -302,6 +302,25 @@
                         <a asp-controller="CattleReports" asp-action="ImportMilkLabResults"><i class="bi bi-database-down me-2"></i>Befejési Laboreredmények importálása</a>
                         <a asp-controller="MilkAnalysis" asp-action="Index"><i class="fas fa-chart-line me-2"></i>Próbafejés Adatösszefüggés Elemzések</a>
                         <a asp-controller="Genomic" asp-action="Index"><i class="fas fa-solid fa-dna me-2 text-warning"></i>Genomvizsgálat (Porcminta)</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#treatmentsMenu">
+                        <i class="bi bi-heart-pulse-fill text-danger me-2"></i>Kezelések és Naplók
+                    </button>
+                </h2>
+                <div id="treatmentsMenu" class="accordion-collapse collapse">
+                    <div class="submenu">
+                        <a asp-controller="Treatments" asp-action="Index"><i class="bi bi-journal-medical me-2 text-primary"></i>Kezelési napló / Zárlatok</a>
+                        <hr class="text-light m-1">
+                        <li><h6 class="dropdown-header text-danger fw-bold small">ÚJ KEZELÉS RÖGZÍTÉSE</h6></li>
+                        <a asp-controller="Treatments" asp-action="Create" asp-route-category="Tőgy"><i class="fa-solid fa-prescription-bottle-medical me-2 text-danger"></i>Tőgygyulladás (Masztitisz)</a>
+                        <a asp-controller="Treatments" asp-action="Create" asp-route-category="Láb"><i class="fa-solid fa-band-aid me-2 text-warning"></i>Lábvég kezelés / Sántaság</a>
+                        <a asp-controller="Treatments" asp-action="Create" asp-route-category="Szaporodás"><i class="fas fa-syringe me-2 text-info"></i>Szaporodásbiológiai kezelés</a>
+                        <a asp-controller="Treatments" asp-action="Create" asp-route-category="Egyéb"><i class="bi bi-plus-circle me-2 text-secondary"></i>Egyéb gyógykezelés</a>
                     </div>
                 </div>
             </div>
