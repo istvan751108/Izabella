@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Izabella.Models;
@@ -43,11 +42,9 @@ public class MedicationsController : Controller
     }
 
     // POST: MEDICATIONS/Create
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,Name,Quantity,Unit,DefaultDose,IsAntibiotic,Category,WithdrawalPeriodMilk")] Medication medication)
+    public async Task<IActionResult> Create([Bind("Id,Name,Quantity,Unit,DefaultDose,IsAntibiotic,Category,WithdrawalPeriodMilk,WithdrawalPeriodMeat")] Medication medication)
     {
         if (ModelState.IsValid)
         {
@@ -75,11 +72,9 @@ public class MedicationsController : Controller
     }
 
     // POST: MEDICATIONS/Edit/5
-    // To protect from overposting attacks, enable the specific properties you want to bind to.
-    // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Name,Quantity,Unit,DefaultDose,IsAntibiotic,Category,WithdrawalPeriodMilk")] Medication medication)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,Name,Quantity,Unit,DefaultDose,IsAntibiotic,Category,WithdrawalPeriodMilk,WithdrawalPeriodMeat")] Medication medication)
     {
         if (id != medication.Id)
         {

@@ -1,8 +1,5 @@
 ﻿namespace Izabella.Models
 {
-    public enum TreatmentCategory
-    { Tőgy, Láb, Szaporodás, Apasztás, Egyéb }
-
     public class Medication
     {
         public int Id { get; set; }
@@ -15,7 +12,6 @@
 
         public int WithdrawalPeriodMilk { get; set; } // ÉVI tej (nap)
 
-        // ÚJ OSZLOP AZ EXCEL ALAPJÁN:
         public int WithdrawalPeriodMeat { get; set; } // ÉVI hús (nap)
     }
 }

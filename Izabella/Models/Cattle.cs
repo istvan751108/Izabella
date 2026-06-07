@@ -134,5 +134,9 @@ namespace Izabella.Models
         // A bool tulajdonságot átalakíthatjuk úgy, hogy automatikusan igazat adjon, ha van dátum
         [Display(Name = "Genomvizsgálat elvégezve?")]
         public bool IsGenomicTested => GenomicTestDate.HasValue;
+
+        [Display(Name = "Aktuális kondíciópont (BCS)")]
+        [Range(1.0, 5.0, ErrorMessage = "A kondíciópontnak 1.0 és 5.0 között kell lennie!")]
+        public double BodyConditionScore { get; set; } = 3.5;
     }
 }

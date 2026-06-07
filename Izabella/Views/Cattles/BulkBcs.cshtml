@@ -1,0 +1,151 @@
+﻿@model IEnumerable<Izabella.Models.Cattle>
+
+@{
+    ViewData["Title"] = "Csoportos Kondíciópont Rögzítés";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-speedometer2"></i> Csoportos kondíciópont rögzítés (BCS)</h2>
+        <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Vissza az aktív állományhoz</a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["InfoMessage"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show shadow-sm mb-3" role="alert">
+            <i class="bi bi-info-circle-fill"></i> @TempData["InfoMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm mb-4 bg-light">
+        <div class="card-body">
+            <form asp-action="BulkBcs" method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Korcsoport szűrés</label>
+                    <select name="searchGroup" class="form-select" asp-items="ViewBag.AgeGroups">
+                        <option value="">-- Minden bírálható korcsoport --</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Istálló / Csoport (Stall)</label>
+                    <select name="searchStall" class="form-select" asp-items="ViewBag.Stalls">
+                        <option value="">-- Összes istálló --</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-dark w-100"><i class="bi bi-funnel"></i> Szűrés</button>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <a asp-action="BulkBcs" class="btn btn-outline-secondary w-100">Alaphelyzet</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info shadow-sm">
+            <i class="bi bi-info-circle-fill"></i> A megadott szűrési feltételeknek megfelelő, bírálható korcsoportú állat nem található.
+        </div>
+    }
+    else
+    {
+        <form id="bulkBcsForm" asp-action="BulkBcs" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="card border-success shadow-sm mb-4 bg-success-subtle">
+                <div class="card-body row align-items-center g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-success-emphasis"><i class="bi bi-pencil-fill"></i> 1. Lépés: Begépelt érték</label>
+                        <div class="input-group">
+                            <input type="number" name="globalBcs" id="globalBcsInput" class="form-control form-control-lg text-center fw-bold text-success border-success"
+                                   value="3.50" step="0.25" min="1.0" max="5.0" required />
+                            <span class="input-group-text bg-success text-white fw-bold">BCS</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-success btn-sm me-2 fw-bold bg-white" onclick="document.getElementById('globalBcsInput').value='3.50'">Alapértelmezett (3.5)</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm me-2 bg-white" onclick="document.getElementById('globalBcsInput').value='3.00'">3.0</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm bg-white" onclick="document.getElementById('globalBcsInput').value='4.00'">4.0</button>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end justify-content-md-end">
+                        <button type="submit" class="btn btn-success btn-lg fw-bold shadow w-100">
+                            <i class="bi bi-check-all"></i> 2. Lépés: Érték beírása a kijelöltekhez
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive shadow-sm border rounded bg-white mb-4">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 50px;">
+                                <input type="checkbox" id="selectAll" class="form-check-input" title="Mind kijelöl" />
+                            </th>
+                            <th>Fülszám</th>
+                            <th>Korcsoport</th>
+                            <th>Istálló / Box (Stall)</th>
+                            <th class="text-center">Jelenlegi kondíciópont</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="selectedCattleIds" value="@item.Id" class="form-check-input cattle-checkbox" />
+                                </td>
+                                <td class="fw-bold text-primary">@item.EarTag</td>
+                                <td>
+                                    <span class="badge bg-secondary">@item.AgeGroup</span>
+                                </td>
+                                <td>
+                                    <span class="text-muted">@(string.IsNullOrEmpty(item.Stall) ? "Nincs megadva" : item.Stall)</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border fw-bold px-3 py-2" style="font-size: 0.95rem;">
+                                        @item.BodyConditionScore.ToString("0.00")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Mind kijelölése / Kijelölés megszüntetése
+        document.getElementById('selectAll').onclick = function() {
+            var checkboxes = document.getElementsByClassName('cattle-checkbox');
+            for (var checkbox of checkboxes) {
+                checkbox.checked = this.checked;
+            }
+        }
+
+        // Küldés előtti ellenőrzés (hogy legyen kijelölt állat)
+        document.getElementById('bulkBcsForm').onsubmit = function(e) {
+            var checkedCount = document.querySelectorAll('.cattle-checkbox:checked').length;
+            if (checkedCount === 0) {
+                alert('Kérlek, jelölj ki legalább egy állatot a táblázatban a pontok mentéséhez!');
+                e.preventDefault();
+                return false;
+            }
+
+            var score = document.getElementById('globalBcsInput').value;
+            return confirm('Biztosan beírod a(z) ' + score + ' BCS értéket az összes (' + checkedCount + ' db) kijelölt állathoz?');
+        };
+    </script>
+}

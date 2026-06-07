@@ -116,7 +116,7 @@
           }
         }
       },
-      "EPPlus/8.5.4": {
+      "EPPlus/8.6.0": {
         "type": "package",
         "dependencies": {
           "EPPlus.Interfaces": "8.4.0",
@@ -3145,15 +3145,15 @@
         "lib/netstandard2.0/DocumentFormat.OpenXml.Framework.xml"
       ]
     },
-    "EPPlus/8.5.4": {
-      "sha512": "dHIYNqU4MDbkZPNyCF76bcQPSbx7/WhgDZw5hmDgGzRB1wn9+q/TMy4LC5gw00DamlqiWRnw4AVUXMdV1mGtOg==",
+    "EPPlus/8.6.0": {
+      "sha512": "5+ul28MjSE12OZwWzXDzF/LHTXwU5CavXBtjfASBfKxlJP9aiA+7KtuFGLydDbf0PwYwKjIkizfTj87y/cAC1A==",
       "type": "package",
-      "path": "epplus/8.5.4",
+      "path": "epplus/8.6.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "EPPlusLogo.png",
-        "epplus.8.5.4.nupkg.sha512",
+        "epplus.8.6.0.nupkg.sha512",
         "epplus.nuspec",
         "lib/net10.0/EPPlus.dll",
         "lib/net10.0/EPPlus.xml",
@@ -7664,7 +7664,7 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "ClosedXML >= 0.105.0",
-      "EPPlus >= 8.5.4",
+      "EPPlus >= 8.6.0",
       "Microsoft.AspNetCore.Identity.EntityFrameworkCore >= 10.0.8",
       "Microsoft.AspNetCore.Identity.UI >= 10.0.8",
       "Microsoft.EntityFrameworkCore.Design >= 10.0.8",
@@ -7679,23 +7679,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\Erzsike\\.nuget\\packages\\": {},
+    "C:\\Users\\istva\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Izabella.csproj",
+      "projectUniqueName": "C:\\Users\\istva\\source\\repos\\Izabella\\Izabella\\Izabella.csproj",
       "projectName": "Izabella",
-      "projectPath": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\Izabella.csproj",
-      "packagesPath": "C:\\Users\\Erzsike\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Erzsike\\source\\repos\\Izabella\\Izabella\\obj\\",
+      "projectPath": "C:\\Users\\istva\\source\\repos\\Izabella\\Izabella\\Izabella.csproj",
+      "packagesPath": "C:\\Users\\istva\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\istva\\source\\repos\\Izabella\\Izabella\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\Erzsike\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\istva\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -7737,7 +7737,7 @@
           },
           "EPPlus": {
             "target": "Package",
-            "version": "[8.5.4, )"
+            "version": "[8.6.0, )"
           },
           "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
             "target": "Package",

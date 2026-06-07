@@ -59,6 +59,7 @@
                         <th>Neme</th>
                         <th>Született</th>
                         <th>Tenyészet</th>
+                        <th>Kondíció (BCS)</th> <!-- ÚJ OSZLOP -->
                         <th>Marhalevél</th>
                         <th class="text-center">Műveletek</th>
                     </tr>
@@ -81,6 +82,18 @@
                             <td>@item.BirthDate.ToString("yyyy.MM.dd.")</td>
                             <td>@item.CurrentHerd?.Name</td>
                             <td>
+                                <!-- Kondíció pont színezése érték szerint -->
+                                @{
+                                    string bcsClass = "bg-secondary text-white";
+                                    if (item.BodyConditionScore >= 3.25 && item.BodyConditionScore <= 3.75) bcsClass = "bg-success text-white"; // Ideális
+                                    else if (item.BodyConditionScore < 3.25) bcsClass = "bg-warning text-dark"; // Soványabb
+                                    else if (item.BodyConditionScore > 3.75) bcsClass = "bg-danger text-white"; // Kövérebb
+                                }
+                                <span class="badge @bcsClass fw-bold" style="font-size: 0.9rem;">
+                                    <i class="bi bi-speedometer2"></i> @item.BodyConditionScore.ToString("0.00")
+                                </span>
+                            </td>
+                            <td>
                                 @if (item.PassportNumber == "Kérve")
                                 {
                                     <span class="badge bg-warning text-dark border border-warning shadow-sm">
@@ -100,13 +113,12 @@
                                 <div class="btn-group shadow-sm" role="group">
                                     @if (item.PassportNumber == "Kérve")
                                     {
-                                        @* Gomb, ami nem form, de meghív egy mini javascriptet *@
                                         <button type="button" class="btn btn-outline-warning btn-sm border-end-0"
                                                 onclick="submitUndo('@item.Id')">
                                             <i class="bi bi-arrow-counterclockwise"></i> Visszavon
                                         </button>
                                     }
-        
+
                                     <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary btn-sm">
                                         <i class="bi bi-pencil"></i> Szerkeszt
                                     </a>
@@ -117,7 +129,7 @@
                                         <i class="bi bi-x-circle"></i> Elhullás
                                     </a>
                                 </div>
-    
+
                                 <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-light text-danger ms-2 border" title="Törlés">
                                     <i class="bi bi-trash"></i>
                                 </a>
@@ -136,7 +148,6 @@
 
 @section Scripts {
     <script>
-        // Mind kijelölése funkció
         document.getElementById('selectAll').onclick = function() {
             var checkboxes = document.getElementsByClassName('cattle-checkbox');
             for (var checkbox of checkboxes) {
@@ -144,9 +155,7 @@
             }
         }
 
-        // Ellenőrzés elküldés előtt
         document.getElementById('salesForm').onsubmit = function(e) {
-            // Javítva: .length (kis l betűvel)
             var checkedCount = document.querySelectorAll('.cattle-checkbox:checked').length;
             if (checkedCount === 0) {
                 alert('Kérlek, válassz ki legalább egy állatot az értékesítéshez!');
@@ -155,7 +164,6 @@
             }
         };
 
-        // A visszavonásért felelős függvény - most már a script tagen belül
         function submitUndo(id) {
             if (confirm('Biztosan visszavonja a bejelentést?')) {
                 var input = document.getElementById('undoBirthId');

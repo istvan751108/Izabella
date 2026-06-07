@@ -10,6 +10,9 @@ namespace Izabella.Models
         [Display(Name = "Tulajdonosváltás")] OwnershipChange = 4
     }
 
+    public enum TreatmentCategory
+    { Tőgy, Láb, Szaporodás, Apasztás, Egyéb }
+
     public enum FootTreatmentType
     {
         // Gyógyszer nélküli - Tömeges

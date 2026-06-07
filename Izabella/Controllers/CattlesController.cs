@@ -9,6 +9,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
@@ -128,7 +129,7 @@ namespace Izabella.Controllers
                 // Az ID helyett a Cattle objektumot rendeljük hozzá
                 var history = new AnimalHistory
                 {
-                    Cattle = cattle, // Itt a lényeg! Nem CattleId, hanem Cattle
+                    Cattle = cattle,
                     EventDate = DateTime.Now,
                     Weight = cattle.CurrentWeight,
                     Type = "Kézi rögzítés",
@@ -144,10 +145,8 @@ namespace Izabella.Controllers
             // Hiba esetén újra kell tölteni a listákat!
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
             ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "Name", cattle.CurrentHerdId);
-
             var ageGroups = new List<string> { "Itatásos borjú", "Borjú", "Növendék 6-9", "Növendék 9-12", "Növendék 12 hó-tól", "Vemhes üsző", "Tehén" };
             ViewBag.AgeGroupList = new SelectList(ageGroups, cattle.AgeGroup);
-
             PopulateBreeds();
             return View(cattle);
         }
@@ -174,7 +173,7 @@ namespace Izabella.Controllers
         // POST: Cattles/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,EarTag,EnarNumber,PassportNumber,PassportSequence,CompanyId,CurrentHerdId,AgeGroup,IsTwin,IsAlive,DamAgeAtCalving,BirthDate,BirthWeight,Gender,MotherEnar,FatherKlsz,ExitDate,ExitType,IsActive,BreedCode")] Cattle cattle, string returnUrl = null)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,EarTag,EnarNumber,PassportNumber,PassportSequence,CompanyId,CurrentHerdId,AgeGroup,IsTwin,IsAlive,DamAgeAtCalving,BirthDate,BirthWeight,Gender,MotherEnar,FatherKlsz,ExitDate,ExitType,IsActive,BreedCode,CurrentWeight,Stall,LastInseminationDate,InseminationBullKlsz,BloodTestTubeNumber,LastBloodTestDate,PregnancyStatus,LastPregnancyTestDate,CurrentLactationNo,GenomicTestDate,BodyConditionScore")] Cattle cattle, string returnUrl = null)
         {
             if (id != cattle.Id) return NotFound();
 
@@ -182,7 +181,24 @@ namespace Izabella.Controllers
             {
                 try
                 {
+                    // Lekérjük az adatbázisból a módosítás ELŐTTI állapotot, hogy lássuk változott-e a BCS
+                    var originalCattle = await _context.Cattles.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+
                     _context.Update(cattle);
+
+                    // Ha a szerkesztés során megváltoztatták a kondíciópontot, bejegyezzük a történetbe
+                    if (originalCattle != null && originalCattle.BodyConditionScore != cattle.BodyConditionScore)
+                    {
+                        var history = new AnimalHistory
+                        {
+                            CattleId = cattle.Id,
+                            EventDate = DateTime.Now,
+                            Type = "Küllemi bírálat",
+                            Comment = $"Kondíciópont kézi módosítása. Régi érték: {originalCattle.BodyConditionScore:0.00}, Új érték: {cattle.BodyConditionScore:0.00} BCS."
+                        };
+                        _context.AnimalHistories.Add(history);
+                    }
+
                     await _context.SaveChangesAsync();
 
                     if (!string.IsNullOrEmpty(returnUrl)) return LocalRedirect(returnUrl);
@@ -190,7 +206,6 @@ namespace Izabella.Controllers
                 }
                 catch (DbUpdateException ex)
                 {
-                    // Ha az SQL dob hibát (pl. truncation), itt elkapjuk
                     if (ex.InnerException?.Message.Contains("truncated") == true)
                     {
                         ModelState.AddModelError("PassportNumber", "Túl hosszú adatot adtál meg! Kérlek rövidítsd le.");
@@ -206,7 +221,6 @@ namespace Izabella.Controllers
                 }
             }
 
-            // Ha idáig eljutunk, hiba volt, újraépítjük a listákat a nézethez
             ViewData["CompanyId"] = new SelectList(_context.Companies, "Id", "Name", cattle.CompanyId);
             ViewData["CurrentHerdId"] = new SelectList(_context.Herds, "Id", "HerdCode", cattle.CurrentHerdId);
             PopulateBreeds(cattle.BreedCode);
@@ -798,6 +812,109 @@ namespace Izabella.Controllers
                 Age6To24Count = animals.Count(c => c.AgeGroup != "Tehén" && c.BirthDate <= h6 && c.BirthDate > h24),
                 Over24Count = animals.Count(c => c.AgeGroup != "Tehén" && c.BirthDate <= h24)
             };
+        }
+        // GET: Cattles/BulkBcs
+        public async Task<IActionResult> BulkBcs(string searchGroup, string searchStall)
+        {
+            // Szűrők feltöltése (marad a korábbi logika szerint)
+            var ageGroups = await _context.Cattles
+                .Where(c => c.IsActive && c.IsAlive && c.AgeGroup != "Itatásos borjú" && c.AgeGroup != "Borjú")
+                .Select(c => c.AgeGroup)
+                .Distinct()
+                .ToListAsync();
+
+            var stalls = await _context.Cattles
+                .Where(c => c.IsActive && c.IsAlive && !string.IsNullOrEmpty(c.Stall))
+                .Select(c => c.Stall)
+                .Distinct()
+                .ToListAsync();
+
+            ViewBag.AgeGroups = new SelectList(ageGroups, searchGroup);
+            ViewBag.Stalls = new SelectList(stalls, searchStall);
+
+            // Csak a bírálható (Növendék 6-9 hó-tól felfelé) aktív állatok
+            var query = _context.Cattles
+                .Where(c => c.IsActive && c.IsAlive && c.AgeGroup != "Itatásos borjú" && c.AgeGroup != "Borjú");
+
+            if (!string.IsNullOrEmpty(searchGroup))
+            {
+                query = query.Where(c => c.AgeGroup == searchGroup);
+            }
+
+            if (!string.IsNullOrEmpty(searchStall))
+            {
+                query = query.Where(c => c.Stall == searchStall);
+            }
+
+            var list = await query.OrderBy(c => c.EarTag).ToListAsync();
+            return View(list); // Sima Cattle listát adunk vissza a nézetnek!
+        }
+
+        // POST: Cattles/BulkBcs
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkBcs(int[] selectedCattleIds, string globalBcs) // double helyett string-ként fogadjuk!
+        {
+            if (selectedCattleIds == null || selectedCattleIds.Length == 0)
+            {
+                TempData["InfoMessage"] = "Nem jelöltél ki egyetlen állatot sem!";
+                return RedirectToAction(nameof(BulkBcs));
+            }
+
+            // Biztonságos átalakítás ponttól és vesszőtől függetlenül
+            if (!double.TryParse(globalBcs.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out double parsedBcs))
+            {
+                TempData["ErrorMessage"] = "A megadott kondíciópont formátuma érvénytelen!";
+                return RedirectToAction(nameof(BulkBcs));
+            }
+
+            // Értéktartomány ellenőrzése
+            if (parsedBcs < 1.0 || parsedBcs > 5.0)
+            {
+                TempData["ErrorMessage"] = "A megadott kondíciópontnak 1.0 és 5.0 között kell lennie!";
+                return RedirectToAction(nameof(BulkBcs));
+            }
+
+            int updatedCount = 0;
+
+            // Csak a kijelölt állatokat kérjük le
+            var cattlesToUpdate = await _context.Cattles
+                .Where(c => selectedCattleIds.Contains(c.Id))
+                .ToListAsync();
+
+            foreach (var cattle in cattlesToUpdate)
+            {
+                // Most már a ténylegesen átalakított parsedBcs-el hasonlítjuk össze
+                if (cattle.BodyConditionScore != parsedBcs)
+                {
+                    double oldScore = cattle.BodyConditionScore;
+                    cattle.BodyConditionScore = parsedBcs;
+
+                    var history = new AnimalHistory
+                    {
+                        CattleId = cattle.Id,
+                        EventDate = DateTime.Now,
+                        Type = "Küllemi bírálat",
+                        Comment = $"Tömeges gyorsrögzítővel beállítva. Régi érték: {oldScore:0.00}, Új érték: {parsedBcs:0.00} BCS."
+                    };
+
+                    _context.AnimalHistories.Add(history);
+                    _context.Update(cattle);
+                    updatedCount++;
+                }
+            }
+
+            if (updatedCount > 0)
+            {
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"{updatedCount} db állat kondíciópontja sikeresen frissítve lett a következő értékre: {parsedBcs.ToString("0.00", CultureInfo.InvariantCulture)} BCS!";
+            }
+            else
+            {
+                TempData["InfoMessage"] = "A kijelölt állatoknak már eleve ez volt a kondíciópontja.";
+            }
+
+            return RedirectToAction(nameof(BulkBcs));
         }
     }
 }

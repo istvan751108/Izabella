@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,7 +26,7 @@ namespace Izabella.Services
             string companyName = company?.Name ?? "Ismeretlen Cég";
             string period = month.HasValue ? $"{year}.{month:D2}" : $"{year}. teljes év";
 
-            // Laboradatok lekérése
+            // 1. Laboradatok lekérése a kiválasztott időszakra
             var query = _context.MilkLabResults
                 .Include(m => m.Cattle)
                 .Where(m => m.Cattle.CompanyId == companyId && m.BefDat.Year == year);
@@ -45,22 +46,35 @@ namespace Izabella.Services
 
             if (!labData.Any()) return report;
 
-            // Behozzuk a napi termelési adatokat a MilkProductions táblából
+            // 2. Szükséges kiegészítő adatok beolvasása a háttérszámításokhoz
+            var targetCattleIds = labData.Select(l => l.CattleId).Distinct().ToList();
             var labDates = labData.Select(l => l.BefDat.Date).Distinct().ToList();
+
+            // Napi termelési adatok az érintett napokra
             var productionData = await _context.MilkProductions
-                .Where(p => p.Cattle.CompanyId == companyId && labDates.Contains(p.Date.Date))
+                .Where(p => targetCattleIds.Contains(p.CattleId) && labDates.Contains(p.Date.Date))
+                .AsNoTracking()
                 .ToListAsync();
 
-            // Készítünk egy gyors keresőtáblát a napi adatokhoz
             var prodLookup = productionData.ToLookup(p => $"{p.CattleId}_{p.Date:yyyyMMdd}");
 
-            // 🔥 JAVÍTVA: Most már a MilkProduction.LactationNo értékét olvassuk ki élesben!
+            // Előző próbafejések kereséséhez lefejjük az összes történelmi laboradatot ezekre az állatokra, időrendben
+            var allHistoricalLabs = await _context.MilkLabResults
+                .Where(m => targetCattleIds.Contains(m.CattleId))
+                .OrderBy(m => m.BefDat)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Csoportosítás állatok szerint a gyors memóriabeli kereséshez
+            var historicalLabLookup = allHistoricalLabs.ToLookup(m => m.CattleId);
+
+            // 3. Adatok dúsítása valós számításokkal
             var enrichedData = labData.Select(l =>
             {
                 string key = $"{l.CattleId}_{l.BefDat:yyyyMMdd}";
                 var match = prodLookup[key].FirstOrDefault();
 
-                // Alapértelmezett fallback érték arra az esetre, ha a tesztállatnak még nincs napi bejegyzése
+                // --- Laktációs sorszám fallback kezelése ---
                 double fallbackLactation = 1.0;
                 if (match == null && l.Cattle != null)
                 {
@@ -68,36 +82,77 @@ namespace Izabella.Services
                     if (totalDaysAlive > 1100) fallbackLactation = 2.0;
                     if (totalDaysAlive > 1500) fallbackLactation = 3.0;
                 }
+                double calvingCount = match != null ? (double)match.LactationNo : fallbackLactation;
+
+                // --- 1. pr.f ssz. (Próbafejés sorszáma a laktációban) KISZÁMÍTÁSA ---
+                // Megszámoljuk, hogy az adott állat laktációjában hanyadik próbafejés ez (időrendben legfeljebb a mai napig)
+                var animalHistoryLabs = historicalLabLookup[l.CattleId].ToList();
+
+                // Kiszűrjük azokat, amelyek az aktuális laktációhoz tartoznak (ha elérhető a laktációs szám a produkcióban, 
+                // akkor az azonos laktációs számúak közül hanyadik, egyébként az utolsó 305 napon belüliek közül)
+                double testMilkCount = 1.0;
+                if (match != null)
+                {
+                    // Ha a MilkProduction-ben van laktációs számunk, akkor az adott laktáción belüli sorszámot keressük
+                    var currentLactationLabs = animalHistoryLabs
+                        .Where(h => h.BefDat <= l.BefDat)
+                        .ToList();
+
+                    // Mivel a labor eredményekben magában nincs benne a laktációs szám, a DaysInMilk (Tejelő nap) és a dátumok alapján 
+                    // megnézzük, hány próbafejezése volt az állatnak a tejelő napok kezdete óta
+                    double daysInMilk = match.DaysInMilk;
+                    DateTime lactationStartDate = l.BefDat.AddDays(-daysInMilk);
+
+                    testMilkCount = currentLactationLabs.Count(h => h.BefDat >= lactationStartDate && h.BefDat <= l.BefDat);
+                }
+                else
+                {
+                    // Fallback ha nincs produkciós egyezés: az elmúlt 305 napon belüli laborok száma
+                    testMilkCount = animalHistoryLabs.Count(h => h.BefDat <= l.BefDat && h.BefDat >= l.BefDat.AddDays(-305));
+                }
+                if (testMilkCount == 0) testMilkCount = 1.0;
+
+                // --- 2. DEVIATION (Eltérés az előző próbafejéshez képest) KISZÁMÍTÁSA ---
+                double deviation = 0.0;
+                var previousLab = animalHistoryLabs
+                    .Where(h => h.BefDat < l.BefDat)
+                    .LastOrDefault(); // Időrendben a közvetlenül megelőző
+
+                if (previousLab != null)
+                {
+                    deviation = l.NapiTej - previousLab.NapiTej;
+                }
+
+                // --- 3. KONDÍCIÓPONT (BCS) BEKÖTÉSE ---
+                // Kivesszük az állat modellből az Erzsike által rögzített éles értéket
+                double conditionScore = l.Cattle != null ? l.Cattle.BodyConditionScore : 3.50;
+                if (conditionScore == 0) conditionScore = 3.50; // Biztonsági mentőöv, ha valamiért 0 maradt volna
 
                 return new
                 {
                     Lab = l,
                     DaysInMilk = match != null ? match.DaysInMilk : 100,
-
-                    // 🔥 Ha van egyezés, a valódi adatbázisból vett LactationNo-t rakjuk be (Ell. ssz.)
-                    CalvingCount = match != null ? (double)match.LactationNo : fallbackLactation,
-
-                    // Ezek a számított/későbbi mezők maradnak biztonsági alapértéken, amíg nem kalkuláljuk őket
-                    TestMilkCount = 1.0,         // pr.f ssz.
-                    Deviation = 0.0,             // Eltérés
-                    ConditionScore = 3.25        // Kondipont
+                    CalvingCount = calvingCount,
+                    TestMilkCount = testMilkCount,
+                    Deviation = deviation,
+                    ConditionScore = conditionScore
                 };
             }).ToList();
 
             // --- A) TEJELŐ NAP SZERINTI CSOPORTOSÍTÁS (11 kategória) ---
             var dayIntervals = new (string Name, Func<int, bool> Filter)[]
             {
-        ("1. 0-30", d => d >= 0 && d <= 30),
-        ("2. 31-60", d => d >= 31 && d <= 60),
-        ("3. 61-90", d => d >= 61 && d <= 90),
-        ("4. 91-120", d => d >= 91 && d <= 120),
-        ("5. 121-150", d => d >= 121 && d <= 150),
-        ("6. 151-180", d => d >= 151 && d <= 180),
-        ("7. 181-210", d => d >= 181 && d <= 210),
-        ("8. 211-240", d => d >= 211 && d <= 240),
-        ("9. 241-270", d => d >= 241 && d <= 270),
-        ("10. 271-305", d => d >= 271 && d <= 305),
-        ("11. 306->", d => d > 305)
+                ("1. 0-30", d => d >= 0 && d <= 30),
+                ("2. 31-60", d => d >= 31 && d <= 60),
+                ("3. 61-90", d => d >= 61 && d <= 90),
+                ("4. 91-120", d => d >= 91 && d <= 120),
+                ("5. 121-150", d => d >= 121 && d <= 150),
+                ("6. 151-180", d => d >= 151 && d <= 180),
+                ("7. 181-210", d => d >= 181 && d <= 210),
+                ("8. 211-240", d => d >= 211 && d <= 240),
+                ("9. 241-270", d => d >= 241 && d <= 270),
+                ("10. 271-305", d => d >= 271 && d <= 305),
+                ("11. 306->", d => d > 305)
             };
 
             foreach (var interval in dayIntervals)
@@ -113,17 +168,17 @@ namespace Izabella.Services
             // --- B) TEJ KG KATEGÓRIA SZERINTI CSOPORTOSÍTÁS (11 kategória) ---
             var kgIntervals = new (string Name, Func<double, bool> Filter)[]
             {
-        ("1. 0-5", k => k >= 0 && k <= 5),
-        ("2. 5-10", k => k > 5 && k <= 10),
-        ("3. 10-15", k => k > 10 && k <= 15),
-        ("4. 15-20", k => k > 15 && k <= 20),
-        ("5. 20-25", k => k > 20 && k <= 25),
-        ("6. 25-30", k => k > 25 && k <= 30),
-        ("7. 30-35", k => k > 30 && k <= 35),
-        ("8. 35-40", k => k > 35 && k <= 40),
-        ("9. 40-45", k => k > 40 && k <= 45),
-        ("10. 45-50", k => k > 45 && k <= 50),
-        ("11. 50->", k => k > 50)
+                ("1. 0-5", k => k >= 0 && k <= 5),
+                ("2. 5-10", k => k > 5 && k <= 10),
+                ("3. 10-15", k => k > 10 && k <= 15),
+                ("4. 15-20", k => k > 15 && k <= 20),
+                ("5. 20-25", k => k > 20 && k <= 25),
+                ("6. 25-30", k => k > 25 && k <= 30),
+                ("7. 30-35", k => k > 30 && k <= 35),
+                ("8. 35-40", k => k > 35 && k <= 40),
+                ("9. 40-45", k => k > 40 && k <= 45),
+                ("10. 45-50", k => k > 45 && k <= 50),
+                ("11. 50->", k => k > 50)
             };
 
             foreach (var interval in kgIntervals)
@@ -152,7 +207,7 @@ namespace Izabella.Services
                 Count = labs.Count,
                 AverageDaysInMilk = subset.Average(x => (double)x.DaysInMilk),
 
-                // 🔥 Az új oszlopok átlagai:
+                // Élesített oszlopok átlagai:
                 AverageCalvingCount = subset.Average(x => (double)x.CalvingCount),
                 AverageTestMilkCount = subset.Average(x => (double)x.TestMilkCount),
                 AverageMilkDeviation = subset.Average(x => (double)x.Deviation),
@@ -195,14 +250,13 @@ namespace Izabella.Services
             ws.Cell(2, 1).Value = $"Időszak: {report.PeriodText}";
             ws.Cell(2, 1).Style.Font.SetItalic();
 
-            // FEJLÉC ÉPÍTÉSE (Pontosan a PDF szerint)
+            // FEJLÉC ÉPÍTÉSE
             int col = 1;
             ws.Cell(4, col++).Value = mainTitle;
             ws.Cell(4, col++).Value = "Tehén (db)";
             ws.Cell(4, col++).Value = "Ell. ssz.";
             ws.Cell(4, col++).Value = "pr.f ssz.";
 
-            // Ha a Tej kg kategória fülön vagyunk, akkor a Tejelő nap egy külön oszlop (mint a PDF-ben)
             if (!isLactationDaySheet)
             {
                 ws.Cell(4, col++).Value = "Tejelő nap";
@@ -248,7 +302,7 @@ namespace Izabella.Services
                 ws.Cell(rIdx, col).Value = row.AverageSomaticCell; ws.Cell(rIdx, col++).Style.NumberFormat.Format = "#,##0";
                 ws.Cell(rIdx, col).Value = row.AverageUrea; ws.Cell(rIdx, col++).Style.NumberFormat.Format = "0.0";
 
-                // Eltérés és kondi formázása
+                // Eltérés előjelezése és kondipont kivezetése
                 ws.Cell(rIdx, col).Value = row.AverageMilkDeviation; ws.Cell(rIdx, col++).Style.NumberFormat.Format = "+0.00;-0.00;0.00";
                 ws.Cell(rIdx, col).Value = row.AverageConditionScore; ws.Cell(rIdx, col++).Style.NumberFormat.Format = "0.00";
 
@@ -283,7 +337,6 @@ namespace Izabella.Services
                 var totalRange = ws.Range(rIdx, 1, rIdx, endCol);
                 totalRange.Style.Font.SetBold().Fill.SetBackgroundColor(XLColor.LightGray);
 
-                // Formátumok másolása az összesítő sorra
                 int startFormatCol = isLactationDaySheet ? 5 : 6;
                 ws.Cell(rIdx, startFormatCol).Style.NumberFormat.Format = "0.00";
                 ws.Cell(rIdx, startFormatCol + 1).Style.NumberFormat.Format = "0.00%";

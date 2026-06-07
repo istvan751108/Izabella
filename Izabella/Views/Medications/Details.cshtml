@@ -1,66 +1,64 @@
 @model Izabella.Models.Medication
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Gyógyszer adatlap";
 }
 
-<h1>Details</h1>
+<div class="container mt-4" style="max-width: 700px;">
+    <div class="mb-4">
+        <h1 class="display-5 fw-bold text-primary"><i class="bi bi-file-earmark-medical"></i> Gyógyszer adatlap</h1>
+        <p class="text-muted">A kiválasztott törzskönyvezett készítmény részletes paraméterei.</p>
+    </div>
 
-<div>
-    <h4>Medication</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Quantity)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Quantity)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Unit)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Unit)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.DefaultDose)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.DefaultDose)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.IsAntibiotic)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.IsAntibiotic)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Category)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Category)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.WithdrawalPeriodMilk)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.WithdrawalPeriodMilk)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light py-3">
+            <h3 class="m-0 fw-bold text-dark">@Model.Name</h3>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped align-middle mb-0">
+                <tbody>
+                    <tr>
+                        <td class="fw-bold ps-4" style="width: 35%;">Kezelési kategória</td>
+                        <td><span class="badge bg-secondary fs-6"><i class="bi bi-tag"></i> @Model.Category</span></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold ps-4">Aktuális raktárkészlet</td>
+                        <td>
+                            <span class="fw-bold fs-5 @(Model.Quantity < 10 ? "text-danger" : "text-success")">@Model.Quantity</span> @Model.Unit
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold ps-4">Szokásos adagolás</td>
+                        <td><span class="fw-bold">@Model.DefaultDose</span> @Model.Unit</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold ps-4">Antibiotikum tartalom</td>
+                        <td>
+                            @if (Model.IsAntibiotic)
+                            {
+                                <span class="badge bg-danger fs-6"><i class="bi bi-exclamation-triangle"></i> IGEN (Különös figyelem!)</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-dark border">Nem</span>
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold ps-4 text-primary"><i class="bi bi-droplet-fill"></i> ÉVI Tej mentesség</td>
+                        <td><span class="fw-bold text-primary fs-5">@Model.WithdrawalPeriodMilk</span> nap</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold ps-4 text-danger"><i class="bi bi-egg-fried"></i> ÉVI Hús mentesség</td>
+                        <td><span class="fw-bold text-danger fs-5">@Model.WithdrawalPeriodMeat</span> nap</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Vissza a listához</a>
+        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-primary px-4 shadow-sm"><i class="bi bi-pencil"></i> Adatok szerkesztése</a>
+    </div>
 </div>
