@@ -1,0 +1,113 @@
+﻿@model List<Izabella.ViewModels.HeiferSalesViewModel>
+@{
+    ViewData["Title"] = "Üsző Kínálat Kigyűjtés";
+    string[] selectedMonths = ViewBag.SelectedMonths;
+}
+
+<div class="container-fluid mt-4">
+    <h2><i class="fas fa-search-dollar text-primary me-2"></i>Értékesítésre felkínálható vemhes üszők kigyűjtése</h2>
+
+    <div class="card my-3 shadow-sm bg-light">
+        <div class="card-body">
+            <form asp-action="Index" method="get">
+                <label class="fw-bold mb-2">Válassz ki termékenyítési hónapokat (többet is lehet):</label>
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                    @foreach (string month in ViewBag.AvailableMonths)
+                    {
+                        <div class="form-check form-check-inline bg-white p-2 rounded border shadow-sm">
+                            <input class="form-check-input ms-1" type="checkbox" name="selectedMonths" value="@month" id="m_@month" @(selectedMonths.Contains(month) ? "checked" : "")>
+                            <label class="form-check-label me-2 fw-bold" for="m_@month">@month</label>
+                        </div>
+                    }
+                    <button type="submit" class="btn btn-primary px-4 fw-bold ms-auto"><i class="fas fa-sync me-2"></i>Kigyűjtés</button>
+                    <a asp-action="BufferIndex" class="btn btn-success fw-bold"><i class="fas fa-clipboard-list me-2"></i>Puffer Tároló Megtekintése</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model != null && Model.Any())
+    {
+        <form asp-action="ExportToExcel" method="post">
+            <div class="d-flex justify-content-between align-items-center my-3">
+                <span class="text-muted">Találatok száma: <strong>@Model.Count db</strong></span>
+                <button type="submit" class="btn btn-outline-success fw-bold"><i class="fas fa-file-excel me-2"></i>Kijelöltek exportálása Excelbe</button>
+            </div>
+
+            <div class="table-responsive shadow rounded">
+                <table class="table table-bordered table-striped table-hover align-middle bg-white m-0">
+                    <thead class="table-dark text-center text-nowrap">
+                        <tr>
+                            <th rowspan="2"><input type="checkbox" id="selectAll" checked /></th>
+                            <th rowspan="2">Fülszám</th>
+                            <th rowspan="2">ENAR szám</th>
+                            <th rowspan="2">Született</th>
+                            <th rowspan="2">Utolsó termék.</th>
+                            <th rowspan="2">Bika / Apa</th>
+                            <th colspan="4" class="table-primary text-dark">Anya 1. Laktáció</th>
+                            <th colspan="3" class="table-info text-dark">Anya Legjobb Lakt.</th>
+                            <th rowspan="2">Puffer művelet</th>
+                        </tr>
+                        <tr class="table-secondary text-dark">
+                            <th>Tej (kg)</th>
+                            <th>Zsír%</th>
+                            <th>Feh%</th>
+                            <th>Sejt</th>
+                            <th>Tej (kg)</th>
+                            <th>Zsír%</th>
+                            <th>Feh%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="text-center">
+                                    <input type="checkbox" name="cattleIds" value="@item.CattleId" checked />
+                                </td>
+                                <td class="fw-bold text-primary">@item.EarTag</td>
+                                <td>@item.EnarNumber</td>
+                                <td>@item.BirthDate.ToString("yyyy-MM-dd")</td>
+                                <td>@item.LastInseminationDate?.ToString("yyyy-MM-dd")</td>
+                                <td class="text-center small">@item.InseminationBullKlsz <br /> / @item.FatherKlsz</td>
+
+                                <td class="text-end">@item.DamLact1Tej.ToString("N0")</td>
+                                <td class="text-end">@item.DamLact1Zsir.ToString("F2")%</td>
+                                <td class="text-end">@item.DamLact1Feherje.ToString("F2")%</td>
+                                <td class="text-end">@item.DamLact1Sejt.ToString("N0")</td>
+
+                                <td class="text-end fw-bold">@item.DamBestLactTej.ToString("N0")</td>
+                                <td class="text-end">@item.DamBestLactZsir.ToString("F2")%</td>
+                                <td class="text-end">@item.DamBestLactFeherje.ToString("F2")%</td>
+
+                                <td class="text-center">
+                                    @if (item.IsInBuffer)
+                                    {
+                                        <button type="submit" formaction="@Url.Action("RemoveFromBuffer", new { cattleId = item.CattleId, returnAction = "Index", selectedMonths = string.Join(",", selectedMonths) })" class="btn btn-sm btn-danger w-100">
+                                            <i class="fas fa-minus-circle"></i> Kivétel
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" formaction="@Url.Action("AddToBuffer", new { cattleId = item.CattleId, returnAction = "Index", selectedMonths = string.Join(",", selectedMonths) })" class="btn btn-sm btn-success w-100">
+                                            <i class="fas fa-plus-circle"></i> Pufferbe
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    }
+</div>
+
+<script>
+    document.getElementById('selectAll').addEventListener('change', function() {
+        var checkboxes = document.querySelectorAll('input[name="cattleIds"]');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+    });
+</script>

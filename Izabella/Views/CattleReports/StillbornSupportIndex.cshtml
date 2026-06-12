@@ -1,0 +1,72 @@
+﻿@model dynamic
+@{
+    ViewData["Title"] = "K0800 - Holtellés Igazolás Generálás";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card shadow border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0"><i class="fas fa-file-pdf me-2"></i> K0800 Nyomtatvány - Holtellés Igazolások</h4>
+                </div>
+                <div class="card-body bg-light">
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> @TempData["ErrorMessage"]
+                        </div>
+                    }
+
+                    <form asp-action="GenerateStillbornPdf" method="post" class="row g-3">
+                        
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Tenyészet / Cég kiválasztása</label>
+                            <select name="companyId" class="form-select" required>
+                                @foreach (var comp in ViewBag.Companies)
+                                {
+                                    <option value="@comp.Id">@comp.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Támogatási év (Bázisév)</label>
+                            <input type="number" name="targetYear" class="form-control" value="@ViewBag.CurrentYear" required />
+                            <div class="form-text text-muted">
+                                A rendszer az ezen év március 31-ig tartó 1 éves időszakot fogja vizsgálni (Április 1 - Március 31).
+                            </div>
+                        </div>
+
+                        <div class="col-12 border-top pt-3 mt-4">
+                            <h5 class="text-secondary mb-3"><i class="fas fa-user-shield me-2"></i>Űrlap Alapadatok</h5>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Támogatási azonosító (MÁK Gazdálkodó ID)</label>
+                            <input type="text" name="gazId" class="form-control" value="@ViewBag.DefaultGazId" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Állatorvos neve</label>
+                            <input type="text" name="doctorName" class="form-control" value="@ViewBag.DefaultDoctorName" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Beosztása</label>
+                            <input type="text" name="doctorPos" class="form-control" value="@ViewBag.DefaultDoctorPos" required />
+                        </div>
+
+                        <div class="col-12 mt-4 border-top pt-3">
+                            <button type="submit" class="btn btn-danger w-100 py-3 fw-bold shadow-sm">
+                                <i class="fas fa-file-archive me-2"></i> K0800 Nyomtatványok Generálása (.ZIP)
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

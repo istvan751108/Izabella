@@ -9,6 +9,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.IO.Compression;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Izabella.Controllers
 {
@@ -2084,5 +2089,186 @@ namespace Izabella.Controllers
 
             return View();
         }
+
+        // 1. GET: Paraméterválasztó és indító felület a holtellés támogatáshoz
+        [HttpGet]
+        public async Task<IActionResult> StillbornSupportIndex()
+        {
+            ViewBag.Companies = await _context.Companies.AsNoTracking().ToListAsync();
+
+            // Alapértelmezett értékek a felületre
+            ViewBag.DefaultGazId = "1001798252";
+            ViewBag.DefaultDoctorName = "Dr. Gábor István";
+            ViewBag.DefaultDoctorPos = "Kezelő állatorvos";
+            ViewBag.CurrentYear = DateTime.Today.Year;
+
+            return View();
+        }
+
+        // 2. POST: Adatok összegyűjtése, csoportosítása tenyészetenként és ZIP generálás
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GenerateStillbornPdf(int targetYear, int companyId, string gazId, string doctorName, string doctorPos)
+        {
+            var company = await _context.Companies.FirstOrDefaultAsync(c => c.Id == companyId);
+            if (company == null) return NotFound("A kiválasztott cég nem található.");
+
+            // Időszak meghatározása: Előző év április 1-től az aktuális év március 31-ig
+            var startDate = new DateTime(targetYear - 1, 4, 1);
+            var endDate = new DateTime(targetYear, 3, 31);
+
+            // Azon állatok lekérése, amelyeknek az első ellése (Lactation == 1) holtellés volt (IsAlive == false) a megadott időszakban
+            // Feltételezzük, hogy a BirthDate az ellés napja (mivel a borjú adatrekordjáról beszélünk, ami elpusztult, de az anya tenyészetében van)
+            var stillbornCattles = await _context.Cattles
+                .Include(c => c.CurrentHerd)
+                .Where(c => c.CompanyId == companyId &&
+                            c.CurrentLactationNo == 1 &&
+                            c.IsAlive == false &&
+                            c.BirthDate >= startDate &&
+                            c.BirthDate <= endDate &&
+                            c.IsActive)
+                .ToListAsync();
+
+            if (stillbornCattles == null || !stillbornCattles.Any())
+            {
+                TempData["ErrorMessage"] = $"{company.Name} részére a megadott időszakban ({startDate:yyyy.MM.dd} - {endDate:yyyy.MM.dd}) nincs a feltételeknek megfelelő holttelési adat.";
+                return RedirectToAction(nameof(StillbornSupportIndex));
+            }
+
+            // Csoportosítás tenyészetenként (HerdCode)
+            var groupedByHerd = stillbornCattles.GroupBy(c => c.CurrentHerd).ToList();
+
+            using (var zipStream = new MemoryStream())
+            {
+                using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
+                {
+                    foreach (var herdGroup in groupedByHerd)
+                    {
+                        var herdCode = herdGroup.Key?.HerdCode ?? "Ismeretlen";
+
+                        // Állatok listája: Anya ENAR + Ellés (Születés) dátuma
+                        var animalData = herdGroup.Select(a => new StillbornAnimalDto
+                        {
+                            // Az űrlapra csak a HU előtag NÉLKÜLI 10 jegyű számot írjuk fel, ha HU-val van tárolva
+                            Enar = a.EnarNumber.Replace("HU", "").Trim(),
+                            CalvingDate = a.BirthDate
+                        }).ToList();
+
+                        // PDF bájtok legenerálása (kezelve a többoldalas elágazást is, ha > 21 állat)
+                        byte[] pdfBytes = await CreateStillbornPdfBytes(animalData, company, herdCode, gazId, doctorName, doctorPos);
+
+                        var entry = archive.CreateEntry($"K0800_Holtelles_{herdCode}_{targetYear}.pdf");
+                        using (var entryStream = entry.Open())
+                        {
+                            await entryStream.WriteAsync(pdfBytes, 0, pdfBytes.Length);
+                        }
+                    }
+                }
+
+                zipStream.Position = 0;
+                return File(zipStream.ToArray(), "application/zip", $"K0800_Holtelles_Igazolasok_{company.Name}_{targetYear}.zip");
+            }
+        }
+
+        // 3. PRIVÁT: Az iText AcroForm kitöltő motorja a K0800-as sablonhoz
+        private async Task<byte[]> CreateStillbornPdfBytes(List<StillbornAnimalDto> animals, Company company, string herdCode, string gazId, string doctorName, string doctorPos)
+        {
+            string templatePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "templates", "K0800_sablon.pdf");
+
+            int maxPerPage = 21; // 3 oszlop * 7 sor
+            int pageCount = (int)Math.Ceiling((double)animals.Count / maxPerPage);
+
+            using (MemoryStream outputMs = new MemoryStream())
+            {
+                PdfWriter writer = new PdfWriter(outputMs);
+                PdfDocument resultPdf = new PdfDocument(writer);
+
+                for (int p = 0; p < pageCount; p++)
+                {
+                    byte[] filledPageBytes;
+
+                    using (MemoryStream tempMs = new MemoryStream())
+                    {
+                        using (PdfReader reader = new PdfReader(templatePath))
+                        {
+                            PdfDocument sourcePdf = new PdfDocument(reader, new PdfWriter(tempMs));
+                            PdfAcroForm form = PdfAcroForm.GetAcroForm(sourcePdf, true);
+                            var fields = form.GetAllFormFields();
+
+                            // Felső alapadatok kitöltése
+                            if (fields.ContainsKey("DATA_GAZID")) fields["DATA_GAZID"].SetValue(gazId);
+                            if (fields.ContainsKey("DATA_UNEVE")) fields["DATA_UNEVE"].SetValue(company.Name);
+
+                            // Tenyészetkód (Az első mezőbe rakjuk)
+                            if (fields.ContainsKey("DATA_AITENY1")) fields["DATA_AITENY1"].SetValue(herdCode);
+
+                            // Igazolt állatok száma ezen a lapon (Összesen vagy a maradék)
+                            int animalsOnThisPage = Math.Min(maxPerPage, animals.Count - (p * maxPerPage));
+                            if (fields.ContainsKey("DATA_TENYDB")) fields["DATA_TENYDB"].SetValue(animalsOnThisPage.ToString());
+
+                            // Állatorvos adatai
+                            if (fields.ContainsKey("DATA_AINEV")) fields["DATA_AINEV"].SetValue(doctorName);
+                            if (fields.ContainsKey("DATA_AIBEO")) fields["DATA_AIBEO"].SetValue(doctorPos);
+
+                            // Alsó kiállítási dátum (Mai nap)
+                            DateTime today = DateTime.Now;
+                            if (fields.ContainsKey("DATA_AIADA")) fields["DATA_AIADA"].SetValue(today.Year.ToString());
+                            if (fields.ContainsKey("DATA_AIADA_")) fields["DATA_AIADA_"].SetValue(today.Month.ToString("D2"));
+                            if (fields.ContainsKey("DATA_AIADA__")) fields["DATA_AIADA__"].SetValue(today.Day.ToString("D2"));
+
+                            // Ciklus az adott oldalon szereplő állatoknak (Max 21)
+                            var pageAnimals = animals.Skip(p * maxPerPage).Take(maxPerPage).ToList();
+                            for (int i = 0; i < pageAnimals.Count; i++)
+                            {
+                                // Kiszámoljuk az űrlap egyedi indexelési logikáját:
+                                // Oszlopok: 1, 2, 3
+                                // Sorok: 1, 2, 3, 4, 5, 6, 7
+                                int col = (i / 7) + 1; // 0-6 -> 1, 7-13 -> 2, 14-20 -> 3
+                                int row = (i % 7) + 1; // Sor száma 1-7 között oszloponként
+
+                                string fieldEnar = $"DATA_ENAR{col}{row}";
+                                string fieldYear = $"DATA_IDOP{col}{row}";
+                                string fieldMonth = $"DATA_IDOP{col}{row}_";
+                                string fieldDay = $"DATA_IDOP{col}{row}__";
+
+                                // ENAR beírása
+                                if (fields.ContainsKey(fieldEnar)) fields[fieldEnar].SetValue(pageAnimals[i].Enar);
+
+                                // Dátum komponensek beírása
+                                var cDate = pageAnimals[i].CalvingDate;
+                                if (fields.ContainsKey(fieldYear)) fields[fieldYear].SetValue(cDate.Year.ToString());
+                                if (fields.ContainsKey(fieldMonth)) fields[fieldMonth].SetValue(cDate.Month.ToString("D2"));
+                                if (fields.ContainsKey(fieldDay)) fields[fieldDay].SetValue(cDate.Day.ToString("D2"));
+                            }
+
+                            form.FlattenFields();
+                            sourcePdf.Close();
+                        }
+                        filledPageBytes = tempMs.ToArray();
+                    }
+
+                    // Oldal hozzáfűzése a végleges dokumentumhoz
+                    using (MemoryStream readMs = new MemoryStream(filledPageBytes))
+                    {
+                        using (PdfReader pageReader = new PdfReader(readMs))
+                        {
+                            PdfDocument pageDoc = new PdfDocument(pageReader);
+                            pageDoc.CopyPagesTo(1, pageDoc.GetNumberOfPages(), resultPdf);
+                            pageDoc.Close();
+                        }
+                    }
+                }
+
+                resultPdf.Close();
+                return outputMs.ToArray();
+            }
+        }
+    }
+
+    // Segéd DTO osztály az adatok átadásához
+    public class StillbornAnimalDto
+    {
+        public string Enar { get; set; }
+        public DateTime CalvingDate { get; set; }
     }
 }

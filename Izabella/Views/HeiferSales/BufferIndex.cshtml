@@ -1,0 +1,151 @@
+﻿@model List<Izabella.ViewModels.HeiferSalesViewModel>
+@{
+    ViewData["Title"] = "Puffer Tároló - Eladásra Szánt Üszők";
+    string[] selectedBufferMonths = ViewBag.SelectedBufferMonths;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2><i class="fas fa-clipboard-list text-success me-2"></i>Puffer Tároló - Kiválogatott Üszők listája</h2>
+        <a asp-action="Index" class="btn btn-secondary fw-bold"><i class="fas fa-arrow-left me-2"></i>Vissza a kigyűjtéshez</a>
+    </div>
+
+    <div class="card my-3 shadow-sm bg-light">
+        <div class="card-body">
+            <form asp-action="BufferIndex" method="get">
+                <label class="fw-bold mb-2">Vevői szűrés termékenyítési hónap szerint:</label>
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                    @foreach (string month in ViewBag.AvailableBufferMonths)
+                    {
+                        <div class="form-check form-check-inline bg-white p-2 rounded border shadow-sm">
+                            <input class="form-check-input ms-1" type="checkbox" name="selectedBufferMonths" value="@month" id="bm_@month" @(selectedBufferMonths.Contains(month) ? "checked" : "")>
+                            <label class="form-check-label me-2 fw-bold" for="bm_@month">@month</label>
+                        </div>
+                    }
+                    <button type="submit" class="btn btn-success px-4 fw-bold ms-auto"><i class="fas fa-filter me-2"></i>Szűrés alkalmazása</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="card my-4 shadow border-primary">
+        <div class="card-header bg-primary text-white d-flex align-items-center">
+            <h5 class="m-0"><i class="fas fa-chart-line me-2"></i>Várható ellések alakulása és puffer-kiesés (Következő 8 hónap)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover m-0 text-center align-middle">
+                    <thead class="table-light fw-bold text-secondary">
+                        <tr>
+                            <th>Várható ellési hónap</th>
+                            <th>Összes várható ellés (db)</th>
+                            <th class="text-primary">Ebből Vemhes Üsző</th>
+                            <th class="text-success">Ebből Tehén</th>
+                            <th class="text-danger bg-light-danger">Pufferben eladásra kínált</th>
+                            <th class="table-dark">Telepen maradó ellések száma</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in (List<Izabella.ViewModels.ExpectedCalvingForecastViewModel>)ViewBag.CalvingForecast)
+                        {
+                            <tr class="@(f.RemovedViaBuffer > 0 ? "table-warning-subtle" : "")">
+                                <td class="fw-bold fs-6">@f.MonthLabel</td>
+                                <td class="fw-bold text-dark fs-6">@f.TotalExpectedCalvings db</td>
+                                <td class="text-primary">@f.HeiferCalvings db</td>
+                                <td class="text-success">@f.CowCalvings db</td>
+                                <td class="text-danger fw-bold bg-light-danger">
+                                    @if (f.RemovedViaBuffer > 0)
+                                    {
+                                        <span>- @f.RemovedViaBuffer db</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">0 db</span>
+                                    }
+                                </td>
+                                <td class="table-dark fw-bold fs-6">
+                                    @f.NetRemainingCalvings db
+                                    @if (f.RemovedViaBuffer > 0)
+                                    {
+                                        <small class="d-block text-warning" style="font-size: 0.75rem;">
+                                            (@(((double)f.NetRemainingCalvings / f.TotalExpectedCalvings * 100).ToString("F0"))%-a marad meg)
+                                        </small>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white text-muted small">
+            <i class="fas fa-info-circle text-primary me-1"></i>
+            <strong>Megjegyzés:</strong> A táblázat az <em>utolsó sikeres termékenyítéstől számított 276 napos átlagos vemhességi idővel</em> számol. A pufferből való hozzáadás vagy törlés után a táblázat számai azonnal újraszámolódnak.
+        </div>
+    </div>
+    @if (Model != null && Model.Any())
+    {
+        <form asp-action="ExportToExcel" method="post">
+            <div class="d-flex justify-content-between align-items-center my-3">
+                <span class="badge bg-success p-2 fs-6">Aktuálisan a pufferben: @Model.Count db állat</span>
+                <button type="submit" class="btn btn-success btn-lg fw-bold shadow"><i class="fas fa-file-excel me-2"></i>A szűrt puffer EXCEL LETÖLTÉSE</button>
+            </div>
+
+            <div class="table-responsive shadow rounded">
+                <table class="table table-bordered table-striped table-hover align-middle bg-white m-0">
+                    <thead class="table-success text-center text-nowrap">
+                        <tr>
+                            <th><input type="checkbox" id="selectAllBuffer" checked /></th>
+                            <th>Fülszám</th>
+                            <th>ENAR szám</th>
+                            <th>Született</th>
+                            <th>Utolsó termék.</th>
+                            <th>Bika KLSZ</th>
+                            <th>Apa KLSZ</th>
+                            <th>Anya ENAR</th>
+                            <th>Anya Legjobb Tej (kg)</th>
+                            <th>Eltávolítás</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="text-center">
+                                    <input type="checkbox" name="cattleIds" value="@item.CattleId" checked />
+                                </td>
+                                <td class="fw-bold text-success">@item.EarTag</td>
+                                <td>@item.EnarNumber</td>
+                                <td>@item.BirthDate.ToString("yyyy-MM-dd")</td>
+                                <td class="fw-bold">@item.LastInseminationDate?.ToString("yyyy-MM-dd")</td>
+                                <td>@item.InseminationBullKlsz</td>
+                                <td>@item.FatherKlsz</td>
+                                <td>@item.MotherEnar</td>
+                                <td class="text-end fw-bold text-dark">@item.DamBestLactTej.ToString("N0")</td>
+                                <td class="text-center">
+                                    <button type="submit" formaction="@Url.Action("RemoveFromBuffer", new { cattleId = item.CattleId, returnAction = "BufferIndex", selectedMonths = string.Join(",", selectedBufferMonths) })" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash-alt"></i> Törlés a listáról
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </form>
+    }
+    else
+    {
+        <div class="alert alert-info mt-4 shadow-sm text-center">
+            <i class="fas fa-info-circle me-2 fs-4 align-middle"></i> A puffer tároló jelenleg üres a választott szűrési feltételek mellett.
+        </div>
+    }
+</div>
+
+<script>
+    document.getElementById('selectAllBuffer').addEventListener('change', function() {
+        var checkboxes = document.querySelectorAll('input[name="cattleIds"]');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+    });
+</script>
